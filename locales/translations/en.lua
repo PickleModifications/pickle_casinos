@@ -1,0 +1,18 @@
+Language["en"] = {
+    interact_far = "You are too far away to do this.",
+    no_player_near = "There are no players nearby to perform this action.",
+    no_permission = "You do not have permission to do this.",
+    invalid_transaction_id = "This transaction does not exist, contact support.",
+    invalid_redeemed_transaction = "This transaction has already been redeemed.",
+    invalid_transaction_processing = "Processing Redemption... (This may take up to one minute.)",
+    redeemed_transaction = "You have redeemed your purchase! %s action(s) have been processed.",
+    product_not_exist = "This product does not exist.",
+    no_action = "This product has no actions, cancelling purchase.",
+    no_user_data = "ERROR: You do not have any user data.",
+    insufficient_coins = "You need %s more %s to purchase this product.",
+    cancel_command_failed = "The purchase cannot be completed as the command failed to execute: %s",
+    purchase_success = "You have successfully purchased %s for %s %s.",
+    user_purchase_limit_reached = "You have reached the purchase limit for this product.",
+    insufficient_spins = "You do not have any pending wheel spins available.",
+    spin_cooldown = "You must wait until your next daily spin to do this.",
+}
