@@ -22,7 +22,58 @@ function App() {
     {class: "clubs", value: "A"},
     {class: "clubs", value: "2"},
     {class: "clubs", value: "3"},
+    {class: "clubs", value: "4"},
+    {class: "clubs", value: "5"},
+    {class: "clubs", value: "6"},
+    {class: "clubs", value: "7"},
+    {class: "clubs", value: "8"},
+
   ]
+  let players = [
+    {
+      name: "John Doe",
+      cards: [
+        {class: "clubs", value: "A"},
+        {class: "clubs", value: "2"},
+        {class: "clubs", value: "3"},
+        {class: "clubs", value: "4"},
+        {class: "clubs", value: "5"},
+        {class: "clubs", value: "6"},
+        {class: "clubs", value: "7"},
+        {class: "clubs", value: "8"},
+      ]
+    },
+    {
+      name: "Jane Doe",
+      cards: [
+        {class: "clubs", value: "A"},
+        {class: "clubs", value: "2"},
+        {class: "clubs", value: "3"},
+      ]
+    },
+    {
+      name: "Johnathaneeeeeeeeeeeeeeeeeeeeeeeeeeeee Doe",
+      cards: [
+
+        {class: "clubs", value: "A"},
+        {class: "clubs", value: "2"},
+        {class: "clubs", value: "3"},
+        {class: "clubs", value: "4"},
+        {class: "clubs", value: "5"},
+        {class: "clubs", value: "6"},
+        {class: "clubs", value: "7"},
+        {class: "clubs", value: "8"},
+      ]
+    },
+    {
+      name: "Jennifer Doe",
+      cards: [
+        {class: "clubs", value: "A"},
+        {class: "clubs", value: "2"},
+        {class: "clubs", value: "3"},
+      ]
+    }
+  ];
   return (
     <div className="dark w-screen h-screen absolute text-primary top-0 left-0" style={{ backgroundImage: 'url(/nui/images/background.png)' }}>
       <div className='flex flex-col bg-background/95 absolute w-full p-8' style={{ height: 250, bottom: 0, left: '0', }}>
@@ -59,29 +110,58 @@ function App() {
             </div>
           </div>
           <div className="flex flex-col gap-2">
+            {/* <div className='flex flex-row gap-2 items-center justify-between w-100'>
+              <div className='font-bold text-2xl'>DEALER: (1/11)</div>
+              <div className="flex flex-col gap-2 relative">
+                {playerCards.map((card, index) => (
+                  <img src={`/nui/images/cards/${card.class}_${card.value}.png`} alt="card" className="w-fit h-15 border rounded-md" style={index > 0 ? {
+                    position: "absolute",
+                    right: index * 10,
+                    zIndex: playerCards.length - index,
+                  } : {
+                    zIndex: playerCards.length,
+                  }} />
+                ))}
+              </div>
+            </div> */}
+            <div className="grid grid-cols-2 gap-4 w-150">
+              {players.map((player, index) => (
+                <div className='flex flex-row items-center justify-between gap-2 border p-2 rounded-md' key={index}>
+                  <div className="flex flex-col gap-0 w-full">
+                    <div className="flex flex-row gap-2 justify-between items-center">
+                      <div className="flex flex-col gap-2 w-full">
+                        <div className="flex flex-row gap-2 justify-between items-center">
+                            <div className='font-bold text-lg truncate' style={{
+                              maxWidth: 200 - (8 * (player.cards.length - 1)),
+                            }}>{player.name}</div>
+                        </div>
+                        <div className="font-semibold text-md text-zinc-400">$10,000</div>
+                      </div>
+                      <div className="flex flex-row justify-end gap-2 items-center">
+                      <div className="font-semibold text-sm text-zinc-400">9/19</div>
 
+                        <div className="flex flex-col gap-2 relative items-end" style={{width: 33 + (8 * (player.cards.length - 1))}}>
+                          {player.cards.map((card, index) => (
+                            <img src={`/nui/images/cards/${card.class}_${card.value}.png`} alt="card" className="w-fit h-12 border rounded-md" style={index > 0 ? {
+                              position: "absolute",
+                              right: index * 8,
+                              zIndex: player.cards.length - index,
+                            } : {
+                              zIndex: player.cards.length,
+                            }} />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
         <div className="transform transform-z-0 rounded-md" id='dialog-container' style={{position: "absolute", top: 0, left: 0, width: "100%", height: "100%", overflow: "hidden", pointerEvents: "none", zIndex: 100}}></div>
       </div>
-      <div className='absolute flex flex-row gap-2 items-center justify-between rounded-md bg-background/95 p-4 w-100' style={{
-            top: 20,
-            left: "50%",
-            transform: "translateX(-50%)",
-          }}>
-            <div className='font-bold text-2xl'>Dealer: (1/11)</div>
-            <div className="flex flex-col gap-2 relative">
-              {playerCards.map((card, index) => (
-                <img src={`/nui/images/cards/${card.class}_${card.value}.png`} alt="card" className="w-fit h-15 border rounded-md" style={index > 0 ? {
-                  position: "absolute",
-                  right: index * 20,
-                  zIndex: playerCards.length - index,
-                } : {
-                  zIndex: playerCards.length,
-                }} />
-              ))}
-            </div>
-          </div>
     </div>
   )
 }
