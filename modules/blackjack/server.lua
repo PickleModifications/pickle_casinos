@@ -14,37 +14,18 @@ function JoinBlackjackEntity(source, casinoId, entityId, seatId)
         ShowNotification(source, "There are no available seats at this table.")
         return 
     end
-    entity.seats[1] = {source = source, wager = math.random(10000, 100000), cards = {}}
+    entity.seats[seatId] = {source = source, wager = math.random(10000, 100000), cards = {}}
     SetTimeout(100 * 1, function()
-        TriggerClientEvent("pickle_casinos:blackjack:updateSeatWager", -1, casinoId, entityId, 1, entity.seats[1].wager)
+        TriggerClientEvent("pickle_casinos:blackjack:updateSeatWager", -1, casinoId, entityId, seatId, entity.seats[seatId].wager)
     end)
     ShowNotification(source, "You have joined the table at seat " .. seatId .. ".")
     if entity.stage.type == "waiting" then
-        StartBlackjackGame(casinoId, entityId)
+        CreateThread(function()
+            Wait(math.random(100, 500))
+            StartBlackjackGame(casinoId, entityId)
+        end)
     end
-end
-
-function GetValueOfCards(cards)
-    local value = 0
-    local aces = 0
-    for i=1, #cards do
-        local card = cards[i]
-        if card.class == "ace" then
-            aces = aces + 1
-        elseif card.value == "jack" or card.value == "queen" or card.value == "king" then
-            value = value + 10
-        else
-            value = value + tonumber(card.value)
-        end
-    end
-    for i=1, aces do
-        if value + 11 <= 21 then
-            value = value + 11
-        else
-            value = value + 1
-        end
-    end
-    return value
+    return seatId
 end
 
 function StartBlackjackGame(casinoId, entityId)
@@ -52,9 +33,10 @@ function StartBlackjackGame(casinoId, entityId)
     if not casino then return end
     local entity = GetCasinoEntity(casinoId, entityId)
     if not entity then return end
-    if not entity.stage.type == "waiting" then return end
+    if entity.stage.type ~= "waiting" then return end
     local hiddenCard = GenerateCard()
     entity.seats[0] = {source = 0, cards = {}}
+    print("STARTING BLACKJACK GAME")
     CreateThread(function()
         local round = 0
         repeat
@@ -85,9 +67,9 @@ function StartBlackjackGame(casinoId, entityId)
                 local done = false
                 local hasHit = false
                 repeat
-                    entity.stage = {type = "turn", seat = seat, hasHit = hasHit, action = nil}
+                    entity.stage = {type = "turn", seat = seat, hasHit = hasHit, action = nil, cards = entity.seats[seat].cards}
                     TriggerClientEvent("pickle_casinos:blackjack:updateStage", -1, casinoId, entityId, entity.stage)
-                    local timeLeft = 10
+                    local timeLeft = 11
                     repeat
                         local entity2 = GetCasinoEntity(casinoId, entityId)
                         print("WAITING", timeLeft, entity.stage.action, entity.stage.seat, entity2.stage.action)
@@ -118,16 +100,18 @@ function StartBlackjackGame(casinoId, entityId)
         entity.seats[0].cards[1] = entity.stage.card
         TriggerClientEvent("pickle_casinos:blackjack:updateStage", -1, casinoId, entityId, entity.stage)
         Wait(2000)
-        repeat
-            entity.stage = {type = "dealing", seat = 0, card = GenerateCard()}
-            entity.seats[0].cards[#entity.seats[0].cards + 1] = entity.stage.card
-            TriggerClientEvent("pickle_casinos:blackjack:updateStage", -1, casinoId, entityId, entity.stage)
-            SetTimeout(1300, function()
-                TriggerClientEvent("pickle_casinos:blackjack:updateSeatCards", -1, casinoId, entityId, 0, entity.seats[0].cards)
-            end)
-            print(json.encode(entity.seats[0].cards))
-            Wait(2000)
-        until GetValueOfCards(entity.seats[0].cards) >= 17
+        if GetValueOfCards(entity.seats[0].cards) < 17 then
+            repeat
+                entity.stage = {type = "dealing", seat = 0, card = GenerateCard()}
+                entity.seats[0].cards[#entity.seats[0].cards + 1] = entity.stage.card
+                TriggerClientEvent("pickle_casinos:blackjack:updateStage", -1, casinoId, entityId, entity.stage)
+                SetTimeout(1300, function()
+                    TriggerClientEvent("pickle_casinos:blackjack:updateSeatCards", -1, casinoId, entityId, 0, entity.seats[0].cards)
+                end)
+                print(json.encode(entity.seats[0].cards))
+                Wait(2000)
+            until GetValueOfCards(entity.seats[0].cards) >= 17
+        end
         local seat = 0
         repeat
             seat = seat + 1
@@ -140,6 +124,11 @@ function StartBlackjackGame(casinoId, entityId)
         entity.stage = {type = "cleanup", seat = 0}
         TriggerClientEvent("pickle_casinos:blackjack:updateStage", -1, casinoId, entityId, entity.stage)
         Wait(2000)
+        for k,v in pairs(entity.seats) do
+            entity.seats[k].cards = {}
+        end
+        entity.stage = {type = "waiting"}
+        StartBlackjackGame(casinoId, entityId)
     end)
 end
 
@@ -165,6 +154,10 @@ function GetPlayerBlackjackInfo(source)
         end
     end
 end
+
+RegisterCallback("pickle_casinos:blackjack:requestSeat", function(source, cb, casinoId, entityId, seatId)
+    cb(JoinBlackjackEntity(source, casinoId, entityId, seatId))
+end)
 
 RegisterNetEvent("pickle_casinos:blackjack:performAction", function(action)
     local source = source

@@ -41,11 +41,5 @@ CreateThread(function()
         RegisterCasino(k, {
             entities = v.entities
         }, true)
-        SetTimeout(1500, function()
-            local players = GetPlayers()
-            for i=1, #players do
-                JoinCasinoEntity(players[i], k, v.entities[1].id)
-            end
-        end)
     end
 end)

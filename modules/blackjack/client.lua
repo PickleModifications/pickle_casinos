@@ -60,6 +60,7 @@ local CHIP_VALUATIONS = {
     { value = 5000, model = `vw_prop_plaq_5kdollar_x1` },
     { value = 10000, model = `vw_prop_plaq_10kdollar_x1` },
 }
+local CurrentBlackjackTable = nil
 
 function DoesBlackjackEntityExist(casinoId, entityId)
     return LocalBlackjackTables[casinoId] and LocalBlackjackTables[casinoId][entityId]
@@ -83,6 +84,43 @@ function GetCalculatedChips(amount)
         if remainingAmount < CHIP_VALUATIONS[1].value then break end
     until (remainingAmount == 0 or #chips >= 2000)
     return chips
+end
+
+function AttemptSeatAtBlackjackEntity(casinoId, entityId)
+    local ped = PlayerPedId()
+    local blackjackTable = LocalBlackjackTables[casinoId][entityId]
+    local closest = {seatId = -1, distance = 100.0}
+    for i,playArea in pairs(blackjackTable.playAreas) do
+        local coords = GetEntityCoords(playArea.surfaceObject)
+        local distance = #(GetEntityCoords(ped) - coords)
+        if distance < closest.distance then
+            closest = {seatId = i, distance = distance}
+        end
+    end
+    ServerCallback("pickle_casinos:blackjack:requestSeat", function(seatId)
+        if not seatId then 
+            return 
+        end
+        CurrentBlackjackTable = {
+            casinoId = casinoId,
+            entityId = entityId,
+            seatId = seatId,
+        }
+        local playerPed = PlayerPedId()
+        local playArea = blackjackTable.playAreas[seatId]
+        local coords = GetOffsetFromEntityInWorldCoords(playArea.surfaceObject, 0.0, -0.5, 0.05)
+        local rotation = GetEntityRotation(playArea.surfaceObject) + vector3(0.0, 0.0, 90.0)
+        TaskGoStraightToCoord(playerPed, coords.x, coords.y, coords.z, 1.0, 5000, heading, 0.01)
+        local netScene = NetworkCreateSynchronisedScene(coords.x, coords.y, coords.z, rotation.x, rotation.y, rotation.z, 2, 1, 0, 1065353216, 0, 1065353216)
+        NetworkAddPedToSynchronisedScene(playerPed, netScene, "anim_casino_b@amb@casino@games@shared@player@", "sit_enter_left", 2.0, -2.0, 13, 16, 2.0, 0) -- 8.0, -1.5, 157, 16, 1148846080, 0) ?
+        NetworkStartSynchronisedScene(netScene)
+        SetTableGamesCameraThisUpdate(`CASINO_BLACKJACK_CAMERA`)
+        Wait(6000)
+        local netIdleScene = NetworkCreateSynchronisedScene(coords.x, coords.y, coords.z, rotation.x, rotation.y, rotation.z, 2, 1, 1, 1065353216, 0, 1065353216)
+        NetworkAddPedToSynchronisedScene(PlayerPedId(), netIdleScene, "anim_casino_b@amb@casino@games@shared@player@", "idle_cardgames", 2.0, -2.0, 13, 16, 1148846080, 0)
+        NetworkStartSynchronisedScene(netIdleScene)
+        SetTableGamesCameraThisUpdate(`CASINO_BLACKJACK_CAMERA`)
+    end, casinoId, entityId, closest.seatId)
 end
 
 function CreateBlackjackEntity(casinoId, entityId)
@@ -112,6 +150,7 @@ function CreateBlackjackEntity(casinoId, entityId)
         dealerPed = dealerPed,
         tableObject = tableObject,
         surfaceObject = surfaceObject,
+        interacts = {},
         playAreas = {
             [0] = {
                 cards = {},
@@ -141,29 +180,27 @@ function CreateBlackjackEntity(casinoId, entityId)
         playArea.surfaceObject = CreateProp(`prop_tennis_ball`, GetOffsetFromEntityInWorldCoords(surfaceObject, cardOffset.coords - vector3(0.0, 0.0, 0.05)), false, false, false)
         FreezeEntityPosition(playArea.surfaceObject, true)
         SetEntityHeading(playArea.surfaceObject, heading + cardOffset.rotation.z)
-        -- for j=1, 4 do
-        --     local card = CreateProp(GetHashKey("vw_prop_cas_card_club_0".. (j + 2)), GetOffsetFromEntityInWorldCoords(playArea.surfaceObject, vector3((j - 1) * 0.01, 0.0, (j - 1) * 0.001)), false, false, false)
-        --     FreezeEntityPosition(card, true)
-        --     SetEntityHeading(card, heading + cardOffset.rotation.z)
-        --     table.insert(playArea.cards, card)
-        -- end
-        -- local chipsvalue = math.random(10000, 60000)
-        -- local chips = GetCalculatedChips(chipsvalue)
-        -- for j=1, #chips do
-        --     local chip = chips[j]
-        --     local chipOffset = PLAY_AREA_OFFSETS[i].chips
-        --     local chipObject = CreateProp(chip.model, GetOffsetFromEntityInWorldCoords(playArea.surfaceObject, vector3(0.0, -0.12, 1 + (j - 1) * 0.0065)), false, false, false)
-        --     FreezeEntityPosition(chipObject, true)
-        --     SetEntityHeading(chipObject, heading + chipOffset.rotation.z)
-        --     table.insert(playArea.chips, chipObject)
-        -- end
-        -- print( "Chips: " .. chipsvalue, #chips )
     end
+    for i,playArea in pairs(LocalBlackjackTables[casinoId][entityId].playAreas) do
+        if i > 0 then
+            LocalBlackjackTables[casinoId][entityId].interacts[#LocalBlackjackTables[casinoId][entityId].interacts + 1] = CreateInteraction({
+                label = _L("interact_blackjack"),
+                coords = GetOffsetFromEntityInWorldCoords(playArea.surfaceObject, 0.0, -0.8, 1.0),
+                heading = heading,
+            }, function(selected)
+                AttemptSeatAtBlackjackEntity(casinoId, entityId)
+            end)
+        end
+    end
+    AttemptSeatAtBlackjackEntity(casinoId, entityId)
 end
 
 function DeleteBlackjackEntity(casinoId, entityId)
     if not DoesBlackjackEntityExist(casinoId, entityId) then return end
     local blackjackTable = LocalBlackjackTables[casinoId][entityId]
+    for i=1, #blackjackTable.interacts do
+        DeleteInteraction(blackjackTable.interacts[i])
+    end
     DeleteEntity(blackjackTable.dealerPed)
     DeleteEntity(blackjackTable.tableObject)
     DeleteEntity(blackjackTable.surfaceObject)
@@ -264,8 +301,35 @@ RegisterNetEvent("pickle_casinos:blackjack:updateStage", function(casinoId, enti
         if not stage.hasHit then 
             PlayAnim(blackjackTable.dealerPed, "anim_casino_b@amb@casino@games@blackjack@dealer", "dealer_focus_player_0" .. stage.seat .. "_idle_intro", 3.0, 1.0, -1, 2, 0, 0, 0, 0 )
         end
-        Wait(1000)
-        TriggerServerEvent("pickle_casinos:blackjack:performAction", "hit")
+        if not CurrentBlackjackTable or CurrentBlackjackTable.seatId ~= stage.seat then return end
+        local action = nil
+        local timeLeft = 10
+        CreateThread(function()
+            repeat
+                timeLeft = timeLeft - 1
+                Wait(1000)
+            until timeLeft == 0 or action ~= nil
+        end)
+        CreateThread(function()
+            local value, secondaryValue = GetValueOfCards(stage.cards)
+            local valueDisplay = value
+            if (secondaryValue > 0) then
+                valueDisplay = value .. " / " .. secondaryValue
+            end
+            while timeLeft > 0 and action == nil do
+                Wait(0)
+                ShowInteractText("[E] - Hit\n\n[F] - Stand\n\nCurrent Hand: " .. valueDisplay, 0.5)
+                if IsControlJustPressed(0, 51) then
+                    action = "hit"
+                elseif IsControlJustPressed(0, 23) then
+                    action = "stand"
+                end
+            end
+            if not action then
+                action = "stand"
+            end
+            TriggerServerEvent("pickle_casinos:blackjack:performAction", action)
+        end)
     elseif stage.type == "displayCard" then
         local dealerPed = blackjackTable.dealerPed
         local card = blackjackTable.playAreas[0].cards[1]
@@ -288,7 +352,7 @@ RegisterNetEvent("pickle_casinos:blackjack:updateStage", function(casinoId, enti
         local dealerPed = blackjackTable.dealerPed
         if stage.seat ~= 0 then
             PlayAnim(dealerPed, "anim_casino_b@amb@casino@games@blackjack@dealer", "retrieve_cards_player_0" .. stage.seat, 3.0, 1.0, -1, 2, 0, 0, 0, 0)
-            Wait(400)
+            Wait(600)
             for i=1, #blackjackTable.playAreas[stage.seat].cards do
                 DeleteEntity(blackjackTable.playAreas[stage.seat].cards[i])
             end
