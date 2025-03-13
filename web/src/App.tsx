@@ -13,9 +13,7 @@ export type User = {
 
 function App() {
   return (
-    <div className="dark w-screen h-screen absolute text-primary top-0 left-0" style={{ backgroundImage: 
-      process.env.NODE_ENV === 'development' ? 'url(/nui/images/background.png)' : "unset"
-    }}>
+    <div className="dark w-screen h-screen absolute text-primary top-0 left-0">
       <CasinoGameDisplay />
     </div>
   )
