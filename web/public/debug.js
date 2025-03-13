@@ -5,12 +5,12 @@ window.addEventListener('DOMContentLoaded', function() {
     //     // DEBUG MODE
     // });
     setTimeout(function() {
-        window.postMessage({
-            type: "setConfig",
-            config: {
-                identifier: "char:1",
-            }
-        }, '*');
+        // window.postMessage({
+        //     type: "setConfig",
+        //     config: {
+        //         identifier: "char:1",
+        //     }
+        // }, '*');
     }, 1000);
 });
 
