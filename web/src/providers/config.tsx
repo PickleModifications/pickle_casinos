@@ -25,6 +25,7 @@ export const ConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             "blackjack_title": "Blackjack",
             "blackjack_nextround": "Next Round: %s",
             "blackjack_dealing": "Dealer is now dealing cards...",
+            "blackjack_displaycard": "Dealer is revealing the hidden card...",
             "blackjack_otherturn": "Player in seat #%s is playing their hand...",
             "blackjack_playerturn": "You have %s second(s) to play your hand...",
             "blackjack_won": "You won %s this round!",
@@ -38,7 +39,7 @@ export const ConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         },
     });
     useNuiEvent('setConfig', (data) => {
-        setConfig(data.config);
+        setConfig({ ...config, ...data.config });
     });
     return (
         <ConfigContext.Provider value={{ config, setConfig }}>

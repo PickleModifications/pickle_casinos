@@ -7,6 +7,17 @@ function CreateCasinoEntity(casinoId, entityId)
     end
 end
 
+RegisterNUICallback("pageLoaded", function(data, cb)
+    SendNUIMessage({
+        type = "setConfig",
+        config = {
+            currency = "USD",
+            countryCode = "en-US",
+        }
+    })
+    TriggerServerEvent("pickle_casinos:initializePlayer")
+end)
+
 RegisterNetEvent("pickle_casinos:syncCasinos", function(data)
     for k,v in pairs(data) do
         Casinos[k] = v
@@ -14,9 +25,4 @@ RegisterNetEvent("pickle_casinos:syncCasinos", function(data)
             CreateCasinoEntity(k, v.entities[i].id)
         end
     end
-end)
-
-CreateThread(function()
-    Wait(1000)
-    TriggerServerEvent("pickle_casinos:initializePlayer")
 end)

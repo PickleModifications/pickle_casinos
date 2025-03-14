@@ -8,6 +8,7 @@ import { Translate } from "@/providers/locale/Locale";
 
 export type CasinoGame = {
     visible: boolean;
+    data: any;
     type: string;
 }
 
@@ -49,6 +50,27 @@ export function CardsDisplay({cards, direction, height, stacked} : {cards: Card[
     }
     const cardsList = direction === "left" ? cards : cards.slice().reverse();
     const elementWidth = (cardsList.length - 1) * spacingValue + widthValue;
+    const cardClasses = {
+        "hrt": "hearts",
+        "dia": "diamonds",
+        "spd": "spades",
+        "club": "clubs",
+    }
+    const cardValues = {
+        "ace": "ace",
+        "02": "2",
+        "03": "3",
+        "04": "4",
+        "05": "5",
+        "06": "6",
+        "07": "7",
+        "08": "8",
+        "09": "9",
+        "10": "10",
+        "jack": "jack",
+        "queen": "queen",
+        "king": "king",
+    }
     return (
         <div className="flex flex-col gap-2 relative select-none" id={""+ spacingValue} style={{
             minWidth: elementWidth,
@@ -56,7 +78,7 @@ export function CardsDisplay({cards, direction, height, stacked} : {cards: Card[
             alignItems: "flex-end",
         }}>
             {cardsList.map((card, index) => {
-                let cardImage = "/nui/images/cards/" + card.value + "_of_" + card.class + ".png";
+                let cardImage = "/nui/images/cards/" + cardValues[card.value as keyof typeof cardValues] + "_of_" + cardClasses[card.class as keyof typeof cardClasses] + ".png";
                 if (card.class === "hidden") {
                     cardImage = "/nui/images/cards/hidden.png";
                 }
@@ -240,19 +262,25 @@ export function CasinoGameDisplay() {
     const [currentGame, setCurrentGame] = useState<CasinoGame | null>(null);
     const [isGameVisible, setGameVisible] = useState<boolean>(false);
     useNuiEvent("setCurrentGame", (data: any) => {
-        setCurrentGame({
-            visible: data.visible,
-            type: data.type,
-        });
-        setGameVisible(true);
+        if (data.game) {
+            console.log(data.game);
+            setCurrentGame({
+                data: data.game.data,
+                visible: data.game.visible,
+                type: data.game.type,
+            });
+            setTimeout(() => {
+                setGameVisible(true);
+            }, 10);
+        }
+        else {
+            setGameVisible(false);
+            setTimeout(() => {
+                setCurrentGame(null);
+            }, 300);
+        }
+
     });
-    useEffect(() => {
-        setCurrentGame({
-            visible: true,
-            type: "blackjack",
-        });
-        setGameVisible(true);
-    }, []);
 
     return currentGame != null && (
         <div className='flex flex-col bg-background/95 absolute w-full p-8' style={{ 
@@ -263,7 +291,7 @@ export function CasinoGameDisplay() {
             transition: "opacity 0.25s ease-in-out",
         }}>
             <div className='flex justify-between h-full items-center'>
-                {(currentGame.type == "blackjack") && <Blackjack/>}
+                {(currentGame.type == "blackjack") && <Blackjack game={currentGame}/>}
             </div>
             <div className="transform transform-z-0 rounded-md" id='dialog-container' style={{position: "absolute", top: 0, left: 0, width: "100%", height: "100%", overflow: "hidden", pointerEvents: "none", zIndex: 100}}></div>
         </div>
