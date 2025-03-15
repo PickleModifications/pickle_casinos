@@ -1,3 +1,5 @@
+LOCAL_MONEY = 0
+
 function CreateCasinoEntity(casinoId, entityId)
     local casino = Config.Casinos[casinoId]
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
@@ -25,4 +27,12 @@ RegisterNetEvent("pickle_casinos:syncCasinos", function(data)
             CreateCasinoEntity(k, v.entities[i].id)
         end
     end
+end)
+
+RegisterNetEvent("pickle_casinos:updateMoney", function(money)
+    LOCAL_MONEY = money
+    SendNUIMessage({
+        type = "updateMoney",
+        money = money
+    })
 end)

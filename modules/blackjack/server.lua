@@ -14,17 +14,11 @@ function JoinBlackjackEntity(source, casinoId, entityId, seatId)
         ShowNotification(source, "There are no available seats at this table.")
         return 
     end
-    entity.seats[seatId] = {source = source, wager = math.random(10000, 100000), hands = {{}, {}}}
+    entity.seats[seatId] = {source = source, wagers = {0, 0}, hands = {{}, {}}}
     SetTimeout(100 * 1, function()
-        TriggerClientEvent("pickle_casinos:blackjack:updateSeatWager", -1, casinoId, entityId, seatId, entity.seats[seatId].wager)
+        TriggerClientEvent("pickle_casinos:blackjack:updateSeat", -1, casinoId, entityId, seatId, entity.seats[seatId])
     end)
     ShowNotification(source, "You have joined the table at seat " .. seatId .. ".")
-    if entity.stage.type == "waiting" then
-        CreateThread(function()
-            Wait(math.random(100, 500))
-            StartBlackjackGame(casinoId, entityId)
-        end)
-    end
     return seatId
 end
 
@@ -38,6 +32,11 @@ function GetBlackjackEntity(casinoId, entityId)
         seats = entity.seats,
         stage = entity.stage
     }
+end
+
+function IsSplittable(cards)
+    if #cards ~= 2 then return false end
+    return GetValueOfCards({cards[1]}) == GetValueOfCards({cards[2]})
 end
 
 function StartBlackjackTurn(casinoId, entityId, seat, handId, splitAllowed)
@@ -71,26 +70,36 @@ function StartBlackjackTurn(casinoId, entityId, seat, handId, splitAllowed)
             if value >= 21 then
                 done = true
             end
-        elseif action == "split" then
+        elseif action == "double" and #entity.seats[seat].hands[handId] == 2 then
+            entity.seats[seat].wagers[handId] = entity.seats[seat].wagers[handId] * 2
+            TriggerClientEvent("pickle_casinos:blackjack:updateSeatWager", -1, casinoId, entityId, seat, handId, entity.seats[seat].wagers[handId])
+            entity.stage = {type = "dealing", seat = seat, handId = handId, isDouble = true, card = GenerateCard() }
+            entity.seats[seat].hands[handId][#entity.seats[seat].hands[handId] + 1] = entity.stage.card
+            TriggerClientEvent("pickle_casinos:blackjack:updateStage", -1, casinoId, entityId, entity.stage)
+            SetTimeout(1300, function()
+                TriggerClientEvent("pickle_casinos:blackjack:updateSeatCards", -1, casinoId, entityId, seat, handId, entity.seats[seat].hands[handId], {isDouble = true})
+            end)
+            Wait(2000)
+            done = true
+        elseif action == "split" and IsSplittable(entity.seats[seat].hands[1]) and splitAllowed then
             entity.seats[seat].hands = {
                 [1] = {entity.seats[seat].hands[entity.stage.handId][1]},
                 [2] = {entity.seats[seat].hands[entity.stage.handId][2]}
             }
-            
-            entity.stage = {type = "split", seat = seat, isHit = false}
+            entity.seats[seat].wagers[2] = entity.seats[seat].wagers[1]
+            TriggerClientEvent("pickle_casinos:blackjack:performAction", -1, casinoId, entityId, {
+                type = "split",
+                seat = seat,
+                hands = entity.seats[seat].hands
+            })
+            Wait(1300)
+            entity.stage = {type = "dealing", seat = seat, handId = 2, card = GenerateCard() }
+            entity.seats[seat].hands[2][#entity.seats[seat].hands[2] + 1] = entity.stage.card
             TriggerClientEvent("pickle_casinos:blackjack:updateStage", -1, casinoId, entityId, entity.stage)
-
             SetTimeout(1300, function()
-                TriggerClientEvent("pickle_casinos:blackjack:updateSeatCards", -1, casinoId, entityId, seat, entity.stage.handId, entity.seats[seat].hands[entity.stage.handId])
+                TriggerClientEvent("pickle_casinos:blackjack:updateSeatCards", -1, casinoId, entityId, seat, 2, entity.seats[seat].hands[2])
             end)
-            for i=1, 2 do 
-                entity.seats[seat].hands[entity.stage.handId][#entity.seats[seat].hands[entity.stage.handId] + 1] = entity.stage.card
-                hasHit = true
-                local value = GetValueOfCards(entity.seats[seat].hands[entity.stage.handId])
-                TriggerClientEvent("pickle_casinos:blackjack:updateStage", -1, casinoId, entityId, entity.stage)
-
-                Wait(2000)
-            end
+            Wait(2000)
             StartBlackjackTurn(casinoId, entityId, seat, 2, false)
             done = true
         else
@@ -98,8 +107,29 @@ function StartBlackjackTurn(casinoId, entityId, seat, handId, splitAllowed)
         end
     until done
     if handId == 2 then
+        entity.stage = {type = "dealing", seat = seat, handId = 1, card = GenerateCard() }
+        entity.seats[seat].hands[1][#entity.seats[seat].hands[1] + 1] = entity.stage.card
+        TriggerClientEvent("pickle_casinos:blackjack:updateStage", -1, casinoId, entityId, entity.stage)
+        SetTimeout(1300, function()
+            TriggerClientEvent("pickle_casinos:blackjack:updateSeatCards", -1, casinoId, entityId, seat, 1, entity.seats[seat].hands[1])
+        end)
+        Wait(2000)
         StartBlackjackTurn(casinoId, entityId, seat, 1, false)
     end
+end
+
+function ProcessBlackjackWager(casinoId, entityId, seat, handId)
+    local casino = Casinos[casinoId]
+    if not casino then return end
+    local entity = GetCasinoEntity(casinoId, entityId)
+    if not entity then return end
+    local wager = entity.seats[seat].wagers[handId]
+    if wager > GetMoney(entity.seats[seat].source) then
+        ShowNotification(entity.seats[seat].source, "You do not have enough money to place this wager.")
+        return false
+    end
+    RemoveMoney(entity.seats[seat].source, wager)
+    return true
 end
 
 function StartBlackjackGame(casinoId, entityId)
@@ -110,13 +140,22 @@ function StartBlackjackGame(casinoId, entityId)
     if entity.stage.type ~= "waiting" then return end
     local hiddenCard = GenerateCard()
     entity.seats[0] = {source = 0, hands = {{}, {}}}
+    for i=1, 4 do
+        if entity.seats[i].source then
+            if not ProcessBlackjackWager(casinoId, entityId, i, 1) then
+                entity.seats[i].wagers = {0, 0}
+                entity.seats[i].hands = {{}, {}}
+                TriggerClientEvent("pickle_casinos:blackjack:updateSeat", -1, casinoId, entityId, i, entity.seats[i])
+            end
+        end
+    end
     print("STARTING BLACKJACK GAME")
     CreateThread(function()
         local round = 0
         repeat
             round = round + 1
             for k=1, 4 do
-                if entity.seats[k].source then
+                if entity.seats[k].source and entity.seats[k].wagers[1] > 0 then
                     entity.stage = {type = "dealing", seat = k, card = GenerateCard() }
                     entity.seats[k].hands[1][#entity.seats[k].hands[1] + 1] = entity.stage.card
                     TriggerClientEvent("pickle_casinos:blackjack:updateStage", -1, casinoId, entityId, entity.stage)
@@ -137,8 +176,11 @@ function StartBlackjackGame(casinoId, entityId)
         local seat = 0
         repeat
             seat = seat + 1
-            if entity.seats[seat].source then
-                StartBlackjackTurn(casinoId, entityId, seat, 1, true)
+            if entity.seats[seat].source and entity.seats[seat].wagers[1] > 0 then
+                local value, secondaryValue = GetValueOfCards(entity.seats[seat].hands[1])
+                if value < 21 and secondaryValue < 21 then
+                    StartBlackjackTurn(casinoId, entityId, seat, 1, true)
+                end
             end
         until seat >= 4
         entity.stage = {type = "displayCard", seat = 0, card = hiddenCard}
@@ -165,10 +207,45 @@ function StartBlackjackGame(casinoId, entityId)
                 end
             until done 
         end
+        local dealerValue, dealerSecondaryValue = GetValueOfCards(entity.seats[0].hands[1])
+        if dealerSecondaryValue > 0 then
+            dealerValue = dealerSecondaryValue
+        end
+        local seatResults = {}
+        for i=1, 4 do 
+            seatResults[i] = {won = 0, money = 0}
+            if entity.seats[i].source and entity.seats[i].wagers[1] > 0 then
+                for j=1, 2 do
+                    local wager = entity.seats[i].wagers[j]
+                    local hand = entity.seats[i].hands[j]
+                    local value, secondaryValue = GetValueOfCards(hand)
+                    if secondaryValue > 0 then
+                        value = secondaryValue
+                    end
+                    print("COMPARING", "seat" .. i, "hand" .. j, value, dealerValue)
+                    if wager > 0 and value <= 21 then
+                        if value == dealerValue then
+                            seatResults[i].won = seatResults[i].won + wager
+                        elseif (dealerValue > 21 or (value > dealerValue)) then
+                            seatResults[i].won = seatResults[i].won + (wager * (value == 21 and 2.5 or 2))
+                        end
+                    end
+                end
+            end
+        end
+        for i=1, 4 do
+            if entity.seats[i].source  then
+                seatResults[i].money = GetMoney(entity.seats[i].source) + seatResults[i].won
+                if entity.seats[i].wagers[1] > 0 then
+                    AddMoney(entity.seats[i].source, seatResults[i].won)
+                end
+            end
+        end
+        TriggerClientEvent("pickle_casinos:blackjack:updateResults", -1, casinoId, entityId, seatResults)
         local seat = 0
         repeat
             seat = seat + 1
-            if entity.seats[seat].source then
+            if entity.seats[seat].source and entity.seats[seat].wagers[1] > 0 then
                 entity.stage = {type = "cleanup", seat = seat}
                 TriggerClientEvent("pickle_casinos:blackjack:updateStage", -1, casinoId, entityId, entity.stage)
                 Wait(2000)
@@ -179,15 +256,41 @@ function StartBlackjackGame(casinoId, entityId)
         Wait(2000)
         for k,v in pairs(entity.seats) do
             entity.seats[k].hands = {{}, {}}
+            entity.seats[k].wagers = {0, 0}
+            TriggerClientEvent("pickle_casinos:blackjack:updateSeat", -1, casinoId, entityId, k, entity.seats[k])
         end
-        entity.stage = {type = "waiting"}
-        StartBlackjackGame(casinoId, entityId)
+        StartBlackjackLobby(casinoId, entityId)
     end)
 end
 
-function InitializeBlackjackEntity(entity)
-    local entity = entity or {}
-    entity.stage = {type = "waiting"}
+function StartBlackjackLobby(casinoId, entityId)
+    local casino = Casinos[casinoId]
+    if not casino then return end
+    local entity = GetCasinoEntity(casinoId, entityId)
+    if not entity then return end
+    entity.stage = {type = "waiting", time = 11}
+    TriggerClientEvent("pickle_casinos:blackjack:updateStage", -1, casinoId, entityId, entity.stage)
+    CreateThread(function()
+        while entity.stage.type == "waiting" and entity.stage.time > 1 do
+            entity.stage.time = entity.stage.time - 1
+            Wait(1000)
+        end
+        local totalWagers = 0
+        for k,v in pairs(entity.seats) do
+            if v.wagers then
+                totalWagers = totalWagers + v.wagers[1]
+            end
+        end
+        if totalWagers > 0 then
+            StartBlackjackGame(casinoId, entityId)
+        else
+            StartBlackjackLobby(casinoId, entityId)
+        end
+    end)
+end
+
+function InitializeBlackjackEntity(casinoId, entity)
+    local entity = entity or { id = "ERR_BLACKJACK_ENTITY" }
     entity.seats = {}
     for i=0, 4 do 
         entity.seats[i] = {
@@ -196,6 +299,9 @@ function InitializeBlackjackEntity(entity)
             hands = {{}, {}}
         }
     end
+    SetTimeout(1000, function()
+        StartBlackjackLobby(casinoId, entity.id)
+    end)
     return entity
 end
 
@@ -217,8 +323,14 @@ end
 
 RegisterCallback("pickle_casinos:blackjack:requestSeat", function(source, cb, casinoId, entityId, seatId)
     local seatId = JoinBlackjackEntity(source, casinoId, entityId, seatId)
+    local entity = GetBlackjackEntity(casinoId, entityId)
     if seatId then
-        return cb(seatId, GetBlackjackEntity(casinoId, entityId))
+        return cb(seatId, {
+            id = entity.id,
+            seats = entity.seats,
+            stage = entity.stage,
+            money = GetMoney(source)
+        })
     end
     cb(seatId)
 end)
@@ -231,4 +343,18 @@ RegisterNetEvent("pickle_casinos:blackjack:performAction", function(action)
     if not entity then return end
     if entity.stage.type ~= "turn" then return end
     entity.stage.action = action
+    if action == "split" then
+        TriggerClientEvent("pickle_casinos:blackjack:updateSeatWager", -1, info.casinoId, info.entityId, info.seatId, 2, entity.seats[info.seatId].wagers[1])
+    end
 end)    
+
+RegisterNetEvent("pickle_casinos:blackjack:setWager", function(wager)
+    local source = source
+    local info = GetPlayerBlackjackInfo(source)
+    if not info then return end
+    local entity = GetCasinoEntity(info.casinoId, info.entityId)
+    if not entity then return end
+    if not entity.stage.type == "waiting" then return end
+    entity.seats[info.seatId].wagers[1] = wager
+    TriggerClientEvent("pickle_casinos:blackjack:updateSeatWager", -1, info.casinoId, info.entityId, info.seatId, 1, wager)
+end)

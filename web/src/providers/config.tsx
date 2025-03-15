@@ -21,6 +21,7 @@ export const ConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         currency: "GBP",
         countryCode: "en-GB",
         locale: {
+            "casino_money": "Balance: %s",
             "casino_betrange": "Limit: %s - %s",
             "blackjack_title": "Blackjack",
             "blackjack_nextround": "Next Round: %s",

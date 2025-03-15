@@ -1,4 +1,4 @@
-import { Card, CardsDisplay, CasinoGame, DisplayCurrency, GameIcon, GetCurrencyString, WagerComponent } from "@/components/casino/Casino";
+import { AnimatedValue, Card, CardsDisplay, CasinoGame, ChipDisplay, DisplayCurrency, GameIcon, GetCurrencyString, WagerComponent } from "@/components/casino/Casino";
 import { Button } from "@/components/ui/button";
 import { useConfig } from "@/providers/config";
 import { Translate } from "@/providers/locale/Locale";
@@ -10,9 +10,17 @@ type BlackjackStage = any;
 
 type BlackjackSeat = {
     source?: string | number;
+    wager: number;
     name: string;
     currentHand: number;
-    hands: [Card[]];
+    hands: Card[][];
+}
+
+function IsSplittable(cards: Card[]) {
+    if (cards.length != 2) return false;
+    let card1 = BlackjackCardValue([cards[0]]);
+    let card2 = BlackjackCardValue([cards[1]]);
+    return (card1.value == card2.value)
 }
 
 export function BlackjackCardValue(cards: Card[]) {
@@ -35,12 +43,17 @@ export function BlackjackCardValue(cards: Card[]) {
     if (aces > 0 && value + 10 <= 21) {
         secondaryValue = value + 10
     }
+    if (secondaryValue == 21) {
+        value = 21
+        secondaryValue = 0
+    }
     return {value, secondaryValue}
 }
 
 export default function Blackjack({game} : {game: CasinoGame}) {
     const { config } = useConfig();
     const wagerLimit = game.data.wagerLimit
+    const [money, setMoney] = useState<number>(game.data.money || 0);
     const [currentSeat, setCurrentSeat] = useState<number>(game.data.seatId);
     const [seats, setSeats] = useState<BlackjackSeat[]>(game.data.seats);
     const [stage, setStage] = useState<BlackjackStage>(game.data.stage);
@@ -56,6 +69,9 @@ export default function Blackjack({game} : {game: CasinoGame}) {
             }
         }
     }, [turnTimeLeft]);
+    useNuiEvent("updateMoney", (data) => {
+        setMoney(data.money);
+    });
     useNuiEvent("updateBlackjackStage", (data) => {
         setStage(data.stage);
         setPerformingAction(false);
@@ -70,9 +86,12 @@ export default function Blackjack({game} : {game: CasinoGame}) {
         setCurrentSeat(data.seatId);
     });
     const canPlayerPerformAction = (action: "hit" | "stand" | "double" | "split") => {
-        if (stage.type !== "turn") return true;
-        if (currentSeat !== stage.seatId) return true;
-        return false
+        if (stage.type !== "turn") return false;
+        if (currentSeat !== stage.seatId) return false;
+        let seat = seats[currentSeat];
+        if (action == "split" && !(IsSplittable(seat.hands[seat.currentHand]) && seat.hands[1].length == 0)) return false;
+        if (action == "double" && seat.hands[seat.currentHand].length > 2) return false;
+        return true
     }
     const performAction = (action: "hit" | "stand" | "double" | "split") => {
         setPerformingAction(true);
@@ -92,44 +111,44 @@ export default function Blackjack({game} : {game: CasinoGame}) {
                             <div className='font-bold text-2xl'><Translate id="blackjack_title" /></div>
                         </div>
                         <div className='font-bold text-md text-zinc-400'>
-                            {stage.type === "waiting" && <Translate id="blackjack_nextround" args={[10]} />}
+                            {stage.type === "waiting" && <Translate id="blackjack_nextround" args={[stage.time]} />}
                             {stage.type === "dealing" && <Translate id="blackjack_dealing" />}
                             {stage.type === "displayCard" && <Translate id="blackjack_displaycard" />}
                             {stage.type === "turn" && (currentSeat == stage.seatId ? <Translate id="blackjack_playerturn" args={[turnTimeLeft]} /> : <Translate id="blackjack_otherturn" args={[stage.seatId]} />)}
-                            {stage.type === "results" && (
-                                stage.won > 0 ? (
+                            {/* {stage.type === "results" && (
+                                stage.seatResults[currentSeat].won > 0 ? (
                                     <div className="text-green-400">
-                                        <Translate id="blackjack_won" args={[GetCurrencyString(stage.won, config)]} />
+                                        <Translate id="blackjack_won" args={[GetCurrencyString(stage.seatResults[currentSeat].won, config)]} />
                                     </div>
                                 ) : (
                                     <div className="text-red-400">
                                         <Translate id="blackjack_lost" />
                                     </div>
                                 )
-                            )}
+                            )} */}
                         </div>
                     </div>
                     <div className="font-semibold text-md text-zinc-400"><Translate id="blackjack_desc" /></div>
                 </div>
-                {currentSeat && (<div className="flex flex-row items-center justify-between w-full gap-2">
+                {(currentSeat && stage.type !== "waiting") && (<div className="flex flex-row items-center justify-between w-full gap-2">
                     <div className='flex flex-col gap-2 w-full'>
                         <div className="flex flex-row gap-2 justify-between items-center min-w-64">
-                            <div className='font-bold text-xl'><Translate id="blackjack_hand" args={[1]} /></div>
+                            <div className='font-bold text-xl'><Translate id="blackjack_hand" args={[seats[currentSeat].currentHand + 1]} /></div>
                             {playerHand.value > 0 && <div className='font-bold text-xl text-zinc-400'>
                                 {playerHand.value}{playerHand.secondaryValue > 0 && `/${playerHand.secondaryValue}`}
                             </div>}
                         </div>
                         <div className='grid grid-cols-2 gap-1 w-full'>
-                            <Button variant={"secondary"} disabled={canPlayerPerformAction("hit")} onClick={() => {
+                            <Button variant={"secondary"} disabled={!canPlayerPerformAction("hit")} onClick={() => {
                                 performAction("hit");
                             }}><Translate id="blackjack_hit" /></Button>
-                            <Button variant={"secondary"} disabled={canPlayerPerformAction("stand")} onClick={() => {
+                            <Button variant={"secondary"} disabled={!canPlayerPerformAction("stand")} onClick={() => {
                                 performAction("stand");
                             }}><Translate id="blackjack_stand" /></Button>
-                            <Button variant={"secondary"} disabled={canPlayerPerformAction("double")} onClick={() => {
+                            <Button variant={"secondary"} disabled={!canPlayerPerformAction("double")} onClick={() => {
                                 performAction("double");
                             }}><Translate id="blackjack_double" /></Button>
-                            <Button variant={"secondary"} disabled={canPlayerPerformAction("split")} onClick={() => {
+                            <Button variant={"secondary"} disabled={!canPlayerPerformAction("split")} onClick={() => {
                                 performAction("split");
                             }}><Translate id="blackjack_split" /></Button>
                         </div>
@@ -137,9 +156,13 @@ export default function Blackjack({game} : {game: CasinoGame}) {
                     <CardsDisplay cards={seats[currentSeat].hands[seats[currentSeat].currentHand]} direction="right" height={108} />
                 </div>)}
             </div>
-            <div className="flex flex-col gap-2 items-center w-[33.333333%] p-8">
+            <div className="flex flex-col gap-2 items-center w-[33.333333%] px-8">
                 {stage.type === "waiting" ? (
-                    <WagerComponent betRange={wagerLimit} wager={0} setWager={(value) => console.log(value)} />
+                    <WagerComponent betRange={wagerLimit} money={money} wager={0} setWager={(value) => {
+                        fetchNui("setBlackjackWager", {
+                            wager: value
+                        });
+                    }} />
                 ) : (
                     <div className='flex flex-row items-center justify-between gap-2 border p-2 rounded-md w-full'>
                         <div className="flex flex-row gap-2 items-center">
@@ -161,7 +184,7 @@ export default function Blackjack({game} : {game: CasinoGame}) {
                                     maxWidth: 200 - (8 * (player.hands[player.currentHand].length - 1)),
                                     }}>{player.name}</div>
                                 </div>
-                                <div className="font-semibold text-md text-zinc-400">$10,000</div>
+                                <div className="font-semibold text-md text-zinc-400"><AnimatedValue value={player.wager} /></div>
                             </div>
                             <div className="flex flex-row justify-end gap-2 items-center">
                                 {playerHand.value > 0 && <div className="font-semibold text-sm text-zinc-400">{playerHand.value}{playerHand.secondaryValue > 0 && `/${playerHand.secondaryValue}`}</div>}

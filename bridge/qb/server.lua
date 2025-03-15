@@ -57,24 +57,39 @@ function CheckPermission(source, permission)
     end
 end
 
-function AddMoney(source, count)
+function AddMoney(source, count, currency)
     local xPlayer = QBCore.Functions.GetPlayer(tonumber(source))
-    xPlayer.Functions.AddMoney('cash',count)
+    local currency = currency or "money"
+    if (currency == "money") then
+        xPlayer.Functions.AddMoney('cash', count)
+    elseif (currency == "dirty") then
+        Inventory.AddItem(source, 'dirty_money', count)
+    end
+    TriggerClientEvent("pickle_casinos:updateMoney", source, money)
 end
 
-function AddDirtyMoney(source, count)
+function RemoveMoney(source, count, currency)
     local xPlayer = QBCore.Functions.GetPlayer(tonumber(source))
-    Inventory.AddItem(source, 'dirty_money', count)
+    local currency = currency or "money"
+    if (currency == "money") then
+        xPlayer.Functions.RemoveMoney('cash', count)
+    elseif (currency == "dirty") then
+        Inventory.RemoveItem(source, 'dirty_money', count)
+    end
+    TriggerClientEvent("pickle_casinos:updateMoney", source, money)
 end
 
-function RemoveDirtyMoney(source, count)
+function GetMoney(source, currency)
     local xPlayer = QBCore.Functions.GetPlayer(tonumber(source))
-    xPlayer.Functions.RemoveMoney('dirty', count)
-end
-
-function GetDirtyMoney(source)
-    local xPlayer = QBCore.Functions.GetPlayer(tonumber(source))
-    return xPlayer.PlayerData.money.dirty
+    local currency = currency or "money"
+    local money = 0
+    if (currency == "money") then
+        money = xPlayer.PlayerData.money.cash
+    elseif (currency == "dirty") then
+        money = Inventory.GetItemCount(source, 'dirty_money')
+    end
+    TriggerClientEvent("pickle_casinos:updateMoney", source, money)
+    return money
 end
 
 function GetOwnedVehicleFromPlate(plate)

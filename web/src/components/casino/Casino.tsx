@@ -172,7 +172,7 @@ export function AnimatedValue({ value }: { value: number }) {
     return <DisplayCurrency value={Math.round(displayValue)} />;
 }
 
-export function WagerComponent({wager, setWager, betRange} : {wager: number, setWager: (value: number) => void, betRange?: [number, number]}) {
+export function WagerComponent({wager, setWager, betRange, money} : {wager: number, setWager: (value: number) => void, betRange?: [number, number], money: number}) {
     const {config} = useConfig();
     const [value, setValue] = useState(wager);
     const [chips, setChips] = useState<Chip[]>([
@@ -184,7 +184,7 @@ export function WagerComponent({wager, setWager, betRange} : {wager: number, set
     ]);
 
     const playAudio = (name: string) => {
-        const audio = new Audio('nui/audio/chips_'+name+'.mp3');
+        const audio = new Audio('/nui/audio/chips_'+name+'.mp3');
         audio.play();
     };
 
@@ -194,16 +194,24 @@ export function WagerComponent({wager, setWager, betRange} : {wager: number, set
             closestChip = chips[i];
         }
     }
+    const setWagerValue = (wager: number) => {
+        let num = wager;
+        if (money < wager) {
+            num = money;
+        }
+        setValue(num);
+        setWager(num);
+    }
     const attemptWagerUpdate = (wager: number) => {
         if (wager == value) return;
         if (betRange) {
             if (wager < 0) {
                 playAudio("clear");
-                return setValue(0);
+                return setWagerValue(0);
             }
             if (wager > betRange[1]) {
                 playAudio("bet");
-                return setValue(betRange[1]);
+                return setWagerValue(betRange[1]);
             }
         }
         if (value != 0 && wager <= 0) {
@@ -212,11 +220,12 @@ export function WagerComponent({wager, setWager, betRange} : {wager: number, set
         else {
             playAudio("bet");
         }
-        setValue(wager);
+        setWagerValue(wager);
     }
 
     return (
         <div className="flex flex-col gap-2 items-center justify-center">
+            {betRange && <div className="font-semibold text-zinc-400"><Translate id="casino_betrange" args={[GetCurrencyString(betRange[0], config), GetCurrencyString(betRange[1], config)]} /></div>}
             <div className="flex relative flex-row gap-1 items-center">
                 <div className="rounded-full border  p-2" style={{width: 60, height: 60}}>
                     <div className="absolute top-[50%] left-[50%] rounded-full z-1" style={{transform: "translate(-50%, -50%)"}}>
@@ -235,7 +244,7 @@ export function WagerComponent({wager, setWager, betRange} : {wager: number, set
                 }}>
                     <AnimatedValue value={value} />
                 </div>
-                {betRange && <div className="font-semibold text-zinc-400"><Translate id="casino_betrange" args={[GetCurrencyString(betRange[0], config), GetCurrencyString(betRange[1], config)]} /></div>}
+                <div className="font-semibold text-zinc-400"><Translate id="casino_money" args={[GetCurrencyString(money, config)]} /></div>
             </div>
             <div className="flex flex-row gap-2 items-center">
                 <div className="relative rounded-full bg-yellow-600 border-zinc-400 p-2 cursor-pointer hover:scale-90 transition-transform" style={{width: 48, height: 48}} onClick={() => { attemptWagerUpdate(value * 2); }}>
@@ -283,8 +292,8 @@ export function CasinoGameDisplay() {
     });
 
     return currentGame != null && (
-        <div className='flex flex-col bg-background/95 absolute w-full p-8' style={{ 
-            height: 250, 
+        <div className='flex flex-col bg-background/95 absolute w-full px-8 py-8' style={{ 
+            height: 272,
             bottom: 0, 
             left: '0', 
             opacity: isGameVisible ? 1 : 0,

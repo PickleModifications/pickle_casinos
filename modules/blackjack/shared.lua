@@ -16,5 +16,8 @@ function GetValueOfCards(cards)
     if aces > 0 and value + 10 <= 21 then
         secondaryValue = value + 10
     end
+    if secondaryValue == 21 then
+        return 21, 0
+    end
     return value, secondaryValue
 end

@@ -10,7 +10,7 @@ files {
 	"nui/index.html",
 	"nui/images/*.*",
 	"nui/images/**/*.*",
-	"nui/sounds/*.*",
+	"nui/audio/*.*",
 	"nui/assets/**/*.*",
 	"nui/debug.js",
 	"components/**/*.*",

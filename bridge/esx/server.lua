@@ -57,24 +57,39 @@ function CheckPermission(source, permission)
     end
 end
 
-function AddMoney(source, count)
+function AddMoney(source, count, currency)
     local xPlayer = ESX.GetPlayerFromId(source)
-    xPlayer.addMoney(count)
+    local currency = currency or "money"
+    if (currency == "money") then
+        xPlayer.addMoney(count)
+    elseif (currency == "dirty") then
+        xPlayer.addAccountMoney("black_money", count)
+    end
+    TriggerClientEvent("pickle_casinos:updateMoney", source, GetMoney(source, currency))
 end
 
-function AddDirtyMoney(source, count)
+function RemoveMoney(source, count, currency)
     local xPlayer = ESX.GetPlayerFromId(source)
-    xPlayer.addAccountMoney('black_money', count)
+    local currency = currency or "money"
+    if (currency == "money") then
+        xPlayer.removeMoney(count)
+    elseif (currency == "dirty") then
+        xPlayer.removeAccountMoney("black_money", count)
+    end
+    TriggerClientEvent("pickle_casinos:updateMoney", source, GetMoney(source, currency))
 end
 
-function RemoveMoney(source, count)
+function GetMoney(source, currency)
     local xPlayer = ESX.GetPlayerFromId(source)
-    xPlayer.removeMoney(count)
-end
-
-function GetMoney(source)
-    local xPlayer = ESX.GetPlayerFromId(source)
-    return xPlayer.getMoney()
+    local currency = currency or "money"
+    local money = 0
+    if (currency == "money") then
+        money = xPlayer.getMoney()
+    elseif (currency == "dirty") then
+        money = xPlayer.getAccount("black_money").money
+    end    
+    TriggerClientEvent("pickle_casinos:updateMoney", source, money)
+    return money
 end
 
 function GetOwnedVehicleFromPlate(plate)
