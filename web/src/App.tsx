@@ -13,7 +13,7 @@ export type User = {
 
 function App() {
   return (
-    <div className="dark w-screen h-screen absolute text-primary top-0 left-0 bg-background">
+    <div className="dark w-screen h-screen absolute text-primary top-0 left-0 bg-gray-900">
       <CasinoGameDisplay />
     </div>
   )

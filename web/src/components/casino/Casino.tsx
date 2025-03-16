@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import Blackjack from "../games/blackjack/Blackjack";
 import { Translate } from "@/providers/locale/Locale";
 import Slots from "../games/slots/Slots";
+import Roulette, { GetDefaultRouletteRows, GetDefaultRouletteSections, RouletteComponent } from "../games/roulette/Roulette";
 
 export type CasinoGame = {
     visible: boolean;
@@ -33,7 +34,7 @@ export function GetCurrencyString(value: number, config: Config) {
 }
 
 export function GameIcon({name, style}: {name: string, style?: React.CSSProperties}) {
-    if (name === "blackjack") {
+    if (name === "blackjack" || name === "roulette") {
       return (
         <svg xmlns="http://www.w3.org/2000/svg" width={20} height={20} viewBox="0 0 15 15" version="1.1" style={style}>
           <path xmlns="http://www.w3.org/2000/svg" d="M8.5,10c0.4561,0.6072,1.1821,1,2,1c1.3807,0,2.5-1.1193,2.5-2.5c0-0.5642-0.1938-1.0789-0.509-1.4973L12.5,7l-5-6l-5,6&#10;&#9;l0.009,0.0027C2.1938,7.4211,2,7.9358,2,8.5C2,9.8807,3.1193,11,4.5,11c0.8179,0,1.5439-0.3928,2-1&#10;&#9;C6.5997,9.8672,6.7902,9.6135,7,9.3337V11.5C7,13,4.5,13,4.5,13C4.2239,13,4,13.2238,4,13.5C4,13.7761,4.2239,14,4.5,14H7h1h2.5&#10;&#9;c0.2761,0,0.5-0.2239,0.5-0.5c0-0.2762-0.2239-0.5-0.5-0.5c0,0-2.5,0-2.5-1.5V9.3337C8.2098,9.6135,8.4003,9.8672,8.5,10z"/>
@@ -173,22 +174,185 @@ export function AnimatedValue({ value }: { value: number }) {
     return <DisplayCurrency value={Math.round(displayValue)} />;
 }
 
-export function WagerComponent({wager, setWager, betRange, money} : {wager: number, setWager: (value: number) => void, betRange?: [number, number], money: number}) {
+export function DefaultWagerComponent({wager, setWager, betRange, money, chips, attemptWagerUpdate, closestChip, config} : {wager: number, setWager: (value: number) => void, betRange?: [number, number], money: number, chips: Chip[], attemptWagerUpdate: (wager: number, strictMode?: boolean) => boolean, closestChip: Chip, config: Config}) {
+    return (
+        <div className="flex flex-col gap-2 items-center justify-center">
+            {betRange && <div className="font-semibold text-zinc-400"><Translate id="casino_betrange" args={[GetCurrencyString(betRange[0], config), GetCurrencyString(betRange[1], config)]} /></div>}
+            <div className="flex relative flex-row gap-1 items-center">
+                <div className="rounded-full border  p-2" style={{width: 60, height: 60}}>
+                    <div className="absolute top-[50%] left-[50%] rounded-full z-1" style={{transform: "translate(-50%, -50%)"}}>
+                        {wager > 0 ? <ChipDisplay chip={{
+                            color: closestChip.color,
+                            value: wager
+                        }} size={48} /> : (
+                            <div className="font-bold text-xs text-zinc-500">PLAY</div>
+                        ) }
+                    </div>
+                </div>
+            </div>
+            <div className="flex flex-col gap-0 items-center">
+                <div className="font-bold text-lg" style={{
+                    color: (betRange ? (wager >= betRange[0] ? "white" : "var(--color-red-400)") : undefined)
+                }}>
+                    <AnimatedValue value={wager} />
+                </div>
+                <div className="font-semibold text-zinc-400"><Translate id="casino_money" args={[GetCurrencyString(money, config)]} /></div>
+            </div>
+            <div className="flex flex-row gap-2 items-center">
+                <div className="relative rounded-full bg-yellow-600 border-zinc-400 p-2 cursor-pointer hover:scale-90 transition-transform" style={{width: 48, height: 48}} onClick={() => { attemptWagerUpdate(wager * 2); }}>
+                    <div className="absolute top-[50%] left-[50%] rounded-full z-1" style={{transform: "translate(-50%, -50%)"}}>
+                        <div className="font-bold text-xl">x2</div>
+                    </div>
+                </div>
+                {chips.map((chip, index) => (
+                    <div className="cursor-pointer hover:scale-90 transition-transform" onClick={() => { attemptWagerUpdate(wager + chip.value); }} key={index}>
+                        <ChipDisplay chip={chip} size={48} />
+                    </div>
+                ))}
+                <div className="relative rounded-full bg-secondary/80 border-zinc-400 p-2 cursor-pointer hover:scale-90 transition-transform" style={{width: 48, height: 48}} onClick={() => { attemptWagerUpdate(0); }}>
+                    <div className="absolute top-[50%] left-[50%] rounded-full z-1" style={{transform: "translate(-50%, -50%)"}}>
+                        <Trash2 size={24}/>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+const playAudio = (name: string) => {
+    const audio = new Audio('/nui/audio/chips_'+name+'.mp3');
+    audio.play();
+};
+
+export function GetChipForValue(value: number, chips: Chip[], preserveNumber: boolean = false) {
+    let closestChip = chips[0];
+    for (let i = 0; i < chips.length; i++) {
+        if (value >= chips[i].value) {
+            closestChip = chips[i];
+        }
+    }
+    if (preserveNumber) {
+        return {
+            ...closestChip,
+            value: value,
+        }
+    }
+    return closestChip;
+}
+
+export function RouletteWagerComponent({wager, setWager, betRange, money, chips, attemptWagerUpdate, closestChip, config} : {wager: number, setWager: (value: number) => void, betRange?: [number, number], money: number, chips: Chip[], attemptWagerUpdate: (wager: number, strictMode?: boolean) => boolean, closestChip: Chip, config: Config}) {
+    const [selectedChip, setSelectedChip] = useState<Chip | null>(null);
+    const [rows, setRows] = useState(GetDefaultRouletteRows());
+    const [green, setGreen] = useState({
+        isWinner: false,
+        wager: 0,
+        value: 0,
+        color: "green",
+    });
+    const [sections, setSections] = useState(GetDefaultRouletteSections());
+    return (
+        <div className="flex flex-col gap-2 items-center justify-center">
+            <RouletteComponent roulette={{green, rows, sections, onClick: (type: "green" | "row" | "section", index: number, row?: number) => {
+                if (type === "green") {
+                    if (selectedChip && attemptWagerUpdate(wager + selectedChip.value, true)) {
+                        setGreen({
+                            ...green,
+                            wager: green.wager + selectedChip.value,
+                        });
+                    }
+                }
+                else if (type === "row" && row != undefined) {
+                    if (selectedChip &&  attemptWagerUpdate(wager + selectedChip.value, true)) {
+                        let newRows = rows;
+                        newRows[row][index].wager += selectedChip.value;
+                        setRows(newRows);
+                    }
+                }
+                else if (type === "section" && row != undefined) {
+                    if (selectedChip && attemptWagerUpdate(wager + selectedChip.value, true)) {
+                        let newSections = sections;
+                        newSections[row][index].wager += selectedChip.value;
+                        setSections(newSections);
+                    }
+                }
+            }}}/>
+            {betRange && <div className="font-semibold text-zinc-400"><Translate id="casino_betrange" args={[GetCurrencyString(betRange[0], config), GetCurrencyString(betRange[1], config)]} /></div>}
+            <div className="flex flex-col gap-0 items-center">
+                <div className="font-bold text-lg" style={{
+                    color: (betRange ? (wager >= betRange[0] ? "white" : "var(--color-red-400)") : undefined)
+                }}>
+                    <AnimatedValue value={wager} />
+                </div>
+                <div className="font-semibold text-zinc-400"><Translate id="casino_money" args={[GetCurrencyString(money, config)]} /></div>
+            </div>
+            <div className="flex flex-row gap-2 items-center">
+                <div className="relative rounded-full bg-yellow-600 border-zinc-400 p-2 cursor-pointer hover:scale-90 transition-transform" style={{width: 48, height: 48}} onClick={() => { 
+                    if (attemptWagerUpdate(wager * 2, true)) {
+                        setGreen({
+                            ...green,
+                            wager: green.wager * 2,
+                        });
+                        setRows(
+                            rows.map((row) => {
+                                return row.map((cell) => {
+                                    return {
+                                        ...cell,
+                                        wager: cell.wager * 2,
+                                    }
+                                })
+                            })
+                        );
+                        setSections(
+                            sections.map((section) => {
+                                return section.map((cell) => {
+                                    return {
+                                        ...cell,
+                                        wager: cell.wager * 2,
+                                    }
+                                })
+                            })
+                        );
+                    }
+                }}>
+                    <div className="absolute top-[50%] left-[50%] rounded-full z-1" style={{transform: "translate(-50%, -50%)"}}>
+                        <div className="font-bold text-xl">x2</div>
+                    </div>
+                </div>
+                {chips.map((chip, index) => (
+                    <div className="cursor-pointer hover:scale-90 transition-transform" style={{
+                        filter: selectedChip == chip ? "brightness(1.2)" : "brightness(0.8)",
+                    }} onClick={() => { 
+                        playAudio("bet");
+                        setSelectedChip(chip);
+                     }} key={index}>
+                        <ChipDisplay chip={chip} size={48} />
+                    </div>
+                ))}
+                <div className="relative rounded-full bg-secondary/80 border-zinc-400 p-2 cursor-pointer hover:scale-90 transition-transform" style={{width: 48, height: 48}} onClick={() => { 
+                    attemptWagerUpdate(0); 
+                    setRows(GetDefaultRouletteRows());
+                    setGreen({
+                        wager: 0,
+                        value: 0,
+                        color: "green",
+                        isWinner: false,
+                    });
+                    setSections(GetDefaultRouletteSections());
+                }}>
+                    <div className="absolute top-[50%] left-[50%] rounded-full z-1" style={{transform: "translate(-50%, -50%)"}}>
+                        <Trash2 size={24}/>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+export function WagerComponent({wager, setWager, betRange, money, wagerType} : {wagerType?: string, wager: number, setWager: (value: number) => void, betRange?: [number, number], money: number}) {
+    const wagerTypeString = wagerType ? wagerType : "default";
     const {config} = useConfig();
     const [value, setValue] = useState(wager);
-    const [chips, setChips] = useState<Chip[]>([
-        {color: "#15803D", value: 1},
-        {color: "#C2410C", value: 5},
-        {color: "#BE185D", value: 10},
-        {color: "#3F3F46", value: 100},
-        {color: "#0369A1", value: 1000},
-    ]);
-
-    const playAudio = (name: string) => {
-        const audio = new Audio('/nui/audio/chips_'+name+'.mp3');
-        audio.play();
-    };
-
+    const chips = config.chips || [];
     let closestChip = chips[0];
     for (let i = 0; i < chips.length; i++) {
         if (value >= chips[i].value) {
@@ -202,17 +366,23 @@ export function WagerComponent({wager, setWager, betRange, money} : {wager: numb
         }
         setValue(num);
         setWager(num);
+        return num;
     }
-    const attemptWagerUpdate = (wager: number) => {
-        if (wager == value) return;
+    const attemptWagerUpdate = (wager: number, strictMode?: boolean) => {
+        if (wager == value) return false;
+        if (strictMode && wager > money) {
+            return false;
+        }
         if (betRange) {
             if (wager < 0) {
                 playAudio("clear");
-                return setWagerValue(0);
+                setWagerValue(0);
+                return true
             }
             if (wager > betRange[1]) {
                 playAudio("bet");
-                return setWagerValue(betRange[1]);
+                setWagerValue(betRange[1]);
+                return true
             }
         }
         if (value != 0 && wager <= 0) {
@@ -222,61 +392,36 @@ export function WagerComponent({wager, setWager, betRange, money} : {wager: numb
             playAudio("bet");
         }
         setWagerValue(wager);
+        return true; 
     }
 
     return (
-        <div className="flex flex-col gap-2 items-center justify-center">
-            {betRange && <div className="font-semibold text-zinc-400"><Translate id="casino_betrange" args={[GetCurrencyString(betRange[0], config), GetCurrencyString(betRange[1], config)]} /></div>}
-            <div className="flex relative flex-row gap-1 items-center">
-                <div className="rounded-full border  p-2" style={{width: 60, height: 60}}>
-                    <div className="absolute top-[50%] left-[50%] rounded-full z-1" style={{transform: "translate(-50%, -50%)"}}>
-                        {value > 0 ? <ChipDisplay chip={{
-                            color: closestChip.color,
-                            value: value
-                        }} size={48} /> : (
-                            <div className="font-bold text-xs text-zinc-500">PLAY</div>
-                        ) }
-                    </div>
-                </div>
-            </div>
-            <div className="flex flex-col gap-0 items-center">
-                <div className="font-bold text-lg" style={{
-                    color: (betRange ? (value >= betRange[0] ? "white" : "var(--color-red-400)") : undefined)
-                }}>
-                    <AnimatedValue value={value} />
-                </div>
-                <div className="font-semibold text-zinc-400"><Translate id="casino_money" args={[GetCurrencyString(money, config)]} /></div>
-            </div>
-            <div className="flex flex-row gap-2 items-center">
-                <div className="relative rounded-full bg-yellow-600 border-zinc-400 p-2 cursor-pointer hover:scale-90 transition-transform" style={{width: 48, height: 48}} onClick={() => { attemptWagerUpdate(value * 2); }}>
-                    <div className="absolute top-[50%] left-[50%] rounded-full z-1" style={{transform: "translate(-50%, -50%)"}}>
-                        <div className="font-bold text-xl">x2</div>
-                    </div>
-                </div>
-                {chips.map((chip, index) => (
-                    <div className="cursor-pointer hover:scale-90 transition-transform" onClick={() => { attemptWagerUpdate(value + chip.value); }} key={index}>
-                        <ChipDisplay chip={chip} size={48} />
-                    </div>
-                ))}
-                <div className="relative rounded-full bg-secondary/80 border-zinc-400 p-2 cursor-pointer hover:scale-90 transition-transform" style={{width: 48, height: 48}} onClick={() => { attemptWagerUpdate(0); }}>
-                    <div className="absolute top-[50%] left-[50%] rounded-full z-1" style={{transform: "translate(-50%, -50%)"}}>
-                        <Trash2 size={24}/>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <>
+            {wagerTypeString === "default" && ( <DefaultWagerComponent wager={value} setWager={setWager} betRange={betRange} money={money} chips={chips} attemptWagerUpdate={attemptWagerUpdate} closestChip={closestChip} config={config} /> )}
+            {wagerTypeString === "roulette" && ( <RouletteWagerComponent wager={value} setWager={setWager} betRange={betRange} money={money} chips={chips} attemptWagerUpdate={attemptWagerUpdate} closestChip={closestChip} config={config} /> )}
+        </>
     );
 }
 
 export function CasinoGameDisplay() {
     const [currentGame, setCurrentGame] = useState<CasinoGame | null>({
-        type: "slots",
-        visible: false,
+        type: "roulette",
+        visible: true,
         data: {
-            headerTextImage: "/nui/images/bananabonanza/header_title.png",
-            backgroundImage: "/nui/images/bananabonanza/background.png",
+            stage: {
+                type: "waiting"
+            },
+            seats: []
         },
     });
+    // const [currentGame, setCurrentGame] = useState<CasinoGame | null>({
+    //     type: "slots",
+    //     visible: false,
+    //     data: {
+    //         headerTextImage: "/nui/images/bananabonanza/header_title.png",
+    //         backgroundImage: "/nui/images/bananabonanza/background.png",
+    //     },
+    // });
     const [isGameVisible, setGameVisible] = useState<boolean>(true);
     useNuiEvent("setCurrentGame", (data: any) => {
         if (data.game) {
@@ -305,6 +450,7 @@ export function CasinoGameDisplay() {
         }}>
             {(currentGame.type == "blackjack") && <Blackjack game={currentGame}/>}
             {(currentGame.type == "slots") && <Slots game={currentGame}/>}
+            {(currentGame.type == "roulette") && <Roulette game={currentGame}/>}
             <div className="transform transform-z-0 rounded-md" id='dialog-container' style={{position: "absolute", top: 0, left: 0, width: "100%", height: "100%", overflow: "hidden", pointerEvents: "none", zIndex: 100}}></div>
         </div>
     )
