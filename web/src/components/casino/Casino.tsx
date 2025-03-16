@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useEffect } from "react";
 import Blackjack from "../games/blackjack/Blackjack";
 import { Translate } from "@/providers/locale/Locale";
+import Slots from "../games/slots/Slots";
 
 export type CasinoGame = {
     visible: boolean;
@@ -268,8 +269,15 @@ export function WagerComponent({wager, setWager, betRange, money} : {wager: numb
 }
 
 export function CasinoGameDisplay() {
-    const [currentGame, setCurrentGame] = useState<CasinoGame | null>(null);
-    const [isGameVisible, setGameVisible] = useState<boolean>(false);
+    const [currentGame, setCurrentGame] = useState<CasinoGame | null>({
+        type: "slots",
+        visible: false,
+        data: {
+            headerTextImage: "/nui/images/bananabonanza/header_title.png",
+            backgroundImage: "/nui/images/bananabonanza/background.png",
+        },
+    });
+    const [isGameVisible, setGameVisible] = useState<boolean>(true);
     useNuiEvent("setCurrentGame", (data: any) => {
         if (data.game) {
             console.log(data.game);
@@ -292,16 +300,11 @@ export function CasinoGameDisplay() {
     });
 
     return currentGame != null && (
-        <div className='flex flex-col bg-background/95 absolute w-full px-8 py-8' style={{ 
-            height: 272,
-            bottom: 0, 
-            left: '0', 
+        <div className="w-screen h-screen absolute text-primary top-0 left-0" style={{
             opacity: isGameVisible ? 1 : 0,
-            transition: "opacity 0.25s ease-in-out",
         }}>
-            <div className='flex justify-between h-full items-center'>
-                {(currentGame.type == "blackjack") && <Blackjack game={currentGame}/>}
-            </div>
+            {(currentGame.type == "blackjack") && <Blackjack game={currentGame}/>}
+            {(currentGame.type == "slots") && <Slots game={currentGame}/>}
             <div className="transform transform-z-0 rounded-md" id='dialog-container' style={{position: "absolute", top: 0, left: 0, width: "100%", height: "100%", overflow: "hidden", pointerEvents: "none", zIndex: 100}}></div>
         </div>
     )
