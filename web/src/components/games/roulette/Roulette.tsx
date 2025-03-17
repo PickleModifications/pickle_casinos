@@ -13,19 +13,17 @@ type RouletteSeat = {
     source?: string | number;
     wager: number;
     name: string;
-    currentHand: number;
-    hands: Card[][];
 }
 
 type RouletteComponentProps = {
+    winningNumber: number,
+    isPlaying: boolean,
     green: {
-        isWinner: boolean,
         wager: number,
         value: number,
         color: string
     },
     rows: {
-        isWinner: boolean,
         wager: number,
         value: string | number,
         color: string
@@ -59,7 +57,6 @@ export function GetDefaultRouletteRows() {
         let row = [];
         for (let j=0; j <= 11; j++) {
             row.push({
-                isWinner: (Math.random() > 0.5),
                 wager: 0,
                 value: (3 - i) + (j * 3),
                 color: GetRouletteColor((3 - i) + (j * 3)),
@@ -70,7 +67,6 @@ export function GetDefaultRouletteRows() {
             wager: 0,
             value: "2:1",
             color: "none",
-            isWinner: false,
         });
         rows.push(row);
     }
@@ -102,20 +98,56 @@ export function GetDefaultRouletteSections() {
     ];
 }
 
+export function IsSectionWinner(winningNumber: number, sectionIndex: number, index: number) {
+    if (winningNumber == 0) return false;
+    if (sectionIndex == 0 && index == 0) {
+        return winningNumber >= 1 && winningNumber <= 12;
+    }
+    if (sectionIndex == 0 && index == 1) {
+        return winningNumber >= 13 && winningNumber <= 24;
+    }
+    if (sectionIndex == 0 && index == 2) {
+        return winningNumber >= 25 && winningNumber <= 36;
+    }
+    if (sectionIndex == 1 && index == 0) {
+        return winningNumber >= 1 && winningNumber <= 18;
+    }
+    if (sectionIndex == 1 && index == 1) {
+        return winningNumber % 2 == 0;
+    }
+    if (sectionIndex == 1 && index == 2) {
+        return GetRouletteColor(winningNumber) == "red";
+    }
+    if (sectionIndex == 1 && index == 3) {
+        return GetRouletteColor(winningNumber) == "black";
+    }
+    if (sectionIndex == 1 && index == 4) {
+        return winningNumber % 2 != 0;
+    }
+    if (sectionIndex == 1 && index == 5) {
+        return winningNumber >= 19 && winningNumber <= 36;
+    }
+    return false;
+}
+
 export function RouletteComponent({roulette} : {roulette: RouletteComponentProps}) {
     const { config } = useConfig();
     const green = roulette.green;
     const rows = roulette.rows;
     const sections = roulette.sections;
+    const isPlaying = roulette.isPlaying;
     const chips = config.chips || [];
+    const winningNumber = roulette.winningNumber != undefined ? roulette.winningNumber : -1;
     return (
         <div className="flex flex-col gap-2 items-center justify-center">
             <div className="flex flex-col gap-1 items-center">
                 <div className="flex flex-row gap-1">
-                    <div className="rounded-md border relative p-2 cursor-pointer" style={{
+                    <div className="rounded-md border relative p-2" style={{
                         width: 50, 
                         height: 158,
                         backgroundColor: "green",
+                        filter: (isPlaying && winningNumber != 0) ? "brightness(0.5)" : "unset",
+                        cursor: (!isPlaying) ? "pointer" : "unset",
                     }} onClick={() => {
                         roulette.onClick("green", 0);
                     }}>
@@ -127,7 +159,7 @@ export function RouletteComponent({roulette} : {roulette: RouletteComponentProps
                         <div className="absolute top-[50%] left-[50%] rounded-full z-1" style={{transform: "translate(-50%, -50%)"}}>
                             <div className="font-bold text-xl">{green.value}</div>
                         </div>
-                        {!green.isWinner && (
+                        {winningNumber == 0 && (
                             <div className="scale-90 h-full" style={{ transformOrigin: "center" }}><ReactSparkle count={100}/></div>
                         )}
                     </div>
@@ -135,10 +167,12 @@ export function RouletteComponent({roulette} : {roulette: RouletteComponentProps
                         {rows.map((row, rowIndex) => (
                             <div className="flex flex-row gap-1 items-center" key={rowIndex}>
                                 {row.map((value, index) => (index < row.length - 1) && (
-                                    <div className="rounded-md border relative p-2 cursor-pointer" style={{
+                                    <div className="rounded-md border relative p-2" style={{
                                         width: 50, 
                                         height: 50,
                                         backgroundColor: value.color,
+                                        filter: (isPlaying && winningNumber != value.value) ? "brightness(0.5)" : "unset",
+                                        cursor: (!isPlaying) ? "pointer" : "unset",
                                     }} key={index} onClick={() => {
                                         roulette.onClick("row", index, rowIndex);
                                     }}>
@@ -150,14 +184,16 @@ export function RouletteComponent({roulette} : {roulette: RouletteComponentProps
                                         <div className="absolute top-[50%] left-[50%] rounded-full z-1" style={{transform: "translate(-50%, -50%)"}}>
                                             <div className="font-bold text-xl">{value.value}</div>
                                         </div>
-                                        {value.isWinner && (
+                                        {(value.value == winningNumber) && (
                                             <div className="scale-90 h-full" style={{ transformOrigin: "center" }}><ReactSparkle/></div>
                                         )}
                                     </div>
                                 ))}
-                                <div className="rounded-md border relative p-2 cursor-pointer bg-background/95" style={{
+                                <div className="rounded-md border relative p-2 bg-background/95" style={{
                                     width: 30, 
                                     height: 50,
+                                    cursor: (!isPlaying) ? "pointer" : "unset",
+                                    filter: (isPlaying) ? "brightness(0.5)" : "unset",
                                 }} key={rowIndex} onClick={() => {
                                     roulette.onClick("row", rows[rowIndex].length - 1, rowIndex);
                                 }}>
@@ -177,10 +213,12 @@ export function RouletteComponent({roulette} : {roulette: RouletteComponentProps
                 {sections.map((section, sectionIndex) => (
                     <div className="flex flex-row justify-between items-center w-full" key={sectionIndex}>
                         {section.map((value, index) => (
-                            <div className="rounded-md border relative p-2 cursor-pointer bg-background/95" style={{
+                            <div className="rounded-md border relative p-2 bg-background/95" style={{
                                 width: "100%", 
                                 height: 40,
                                 backgroundColor: value?.backgroundColor || "unset",
+                                filter: (isPlaying && !IsSectionWinner(winningNumber, sectionIndex, index)) ? "brightness(0.5)" : "unset",
+                                cursor: (!isPlaying) ? "pointer" : "unset",
                             }} key={index} onClick={() => {
                                 roulette.onClick("section", index, sectionIndex);
                             }}>
@@ -194,6 +232,9 @@ export function RouletteComponent({roulette} : {roulette: RouletteComponentProps
                                 }}>
                                     {value.component}
                                 </div>
+                                {IsSectionWinner(winningNumber, sectionIndex, index) && (
+                                    <div className="scale-90 h-full" style={{ transformOrigin: "center" }}><ReactSparkle/></div>
+                                )}
                             </div>    
                         ))}
                     </div>
@@ -210,27 +251,28 @@ export default function Roulette({game} : {game: CasinoGame}) {
     const [currentSeat, setCurrentSeat] = useState<number>(game.data.seatId);
     const [seats, setSeats] = useState<RouletteSeat[]>(game.data.seats);
     const [stage, setStage] = useState<RouletteStage>(game.data.stage);
-    const [turnTimeLeft, setTurnTimeLeft] = useState<number>(0);
     const [performingAction, setPerformingAction] = useState<boolean>(false);
+    const [green, setGreen] = useState({
+        wager: 0,
+        value: 0,
+        color: "green",
+    });
+    const [rows, setRows] = useState(GetDefaultRouletteRows());
+    const [sections, setSections] = useState(GetDefaultRouletteSections());
+    const winningNumber = stage.winningNumber != undefined ? stage.winningNumber : -1;
+    const [lastNumbers, setLastNumbers] = useState<number[]>([24, 1, 0, 11, 8, 24, 1, 0, 11, 8]);
     useEffect(() => {
-        if (stage.type == "turn") {
-            if (turnTimeLeft > 0) {
-                const interval = setInterval(() => {
-                    setTurnTimeLeft(turnTimeLeft - 1);
-                }, 1000);
-                return () => clearInterval(interval);
-            }
-        }
-    }, [turnTimeLeft]);
+        setStage({
+            type: "winningNumber",
+            winningNumber: 35,
+        });
+    }, []);
     useNuiEvent("updateMoney", (data) => {
         setMoney(data.money);
     });
     useNuiEvent("updateRouletteStage", (data) => {
         setStage(data.stage);
         setPerformingAction(false);
-        if (data.stage.type == "turn") {
-            setTurnTimeLeft(data.stage.timeLeft);
-        }
     });
     useNuiEvent("updateRouletteSeats", (data) => {
         setSeats(data.seats);
@@ -252,6 +294,7 @@ export default function Roulette({game} : {game: CasinoGame}) {
     }
     return (
         <div className='flex flex-col bg-background/95 absolute w-full px-8 py-8' style={{ 
+            height: "460px",
             bottom: 0, 
             left: '0', 
             transition: "opacity 0.25s ease-in-out",
@@ -267,14 +310,47 @@ export default function Roulette({game} : {game: CasinoGame}) {
 
                         </div>
                         <div className="font-semibold text-md text-zinc-400"><Translate id="roulette_desc" /></div>
+                        {lastNumbers.length > 0 && (
+                            <div className="flex flex-row gap-2 items-center">
+                                <div className="font-semibold text-xl text-zinc-400"><Translate id="roulette_lastnumbers" /></div>
+                                <div className="flex flex-row gap-2 max-w-[475px] overflow-x-hidden">
+                                    {lastNumbers.map((number, index) => (
+                                        <div className="rounded-md border relative p-2 text-white" style={{
+                                            width: 40, 
+                                            height: 40,
+                                            minWidth: 40,
+                                            backgroundColor: GetRouletteColor(number),
+                                        }} key={index}>
+                                            <div className="absolute top-[50%] left-[50%] rounded-full z-1" style={{transform: "translate(-50%, -50%)"}}>
+                                                <div className="font-bold text-xl">{number}</div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
                 <div className="flex flex-col gap-2 items-center w-[33.333333%] px-8">
-                    <div className='font-bold text-md text-zinc-400'>
+                    <div className='font-bold text-xl text-zinc-400'>
                         {stage.type === "waiting" && <Translate id="roulette_nextround" args={[stage.time]} />}
-                        {stage.type === "dealing" && <Translate id="roulette_dealing" />}
-                        {stage.type === "displayCard" && <Translate id="roulette_displaycard" />}
-                        {stage.type === "turn" && (currentSeat == stage.seatId ? <Translate id="roulette_playerturn" args={[turnTimeLeft]} /> : <Translate id="roulette_otherturn" args={[stage.seatId]} />)}
+                        {stage.type === "rolling" && <Translate id="roulette_rolling" />}
+                        {stage.type === "winningNumber" && (
+                            <div className="flex flex-row gap-2 items-center">
+                                <Translate id="roulette_numberwinner" />
+                                <div className="rounded-md border relative p-2 text-white" style={{
+                                    width: 40, 
+                                    height: 40,
+                                    backgroundColor: GetRouletteColor(winningNumber),
+                                }}>
+                                    <div className="absolute top-[50%] left-[50%] rounded-full z-1" style={{transform: "translate(-50%, -50%)"}}>
+                                        <div className="font-bold text-xl">{winningNumber}</div>
+                                    </div>
+                                    <div className="scale-90 h-full" style={{ transformOrigin: "center" }}><ReactSparkle/></div>
+                                </div>
+                            </div>
+                            )
+                        }
                         {/* {stage.type === "results" && (
                             stage.seatResults[currentSeat].won > 0 ? (
                                 <div className="text-green-400">
@@ -294,34 +370,37 @@ export default function Roulette({game} : {game: CasinoGame}) {
                             });
                         }} />
                     ) : (
-                        <div className='flex flex-row items-center justify-between gap-2 border p-2 rounded-md w-full'>
-                            <div className="flex flex-row gap-2 items-center">
-                                <div className="font-bold text-lg">Dealer's Hand:</div>
-                            </div>
-                            {seats[0].hands[seats[0].currentHand].length > 0 ? <CardsDisplay cards={seats[0].hands[seats[0].currentHand]} stacked={false} direction="right" height={72} /> : <div style={{height: 72}}></div>}
-                        </div>
+                        <RouletteComponent roulette={{
+                            winningNumber: winningNumber,
+                            isPlaying: true,
+                            green: green,
+                            rows: rows,
+                            sections: sections,
+                            onClick: (type, index, row) => {
+                                if (performingAction) return;
+                                setPerformingAction(true);
+                                fetchNui("placeRouletteWager", {
+                                    type: type,
+                                    index: index,
+                                    row: row,
+                                });
+                            }
+                        }} />
                     )}
                 </div>
                 <div className="flex flex-col gap-2 w-[33.333333%]">
                     <div className="grid grid-cols-2 gap-2 w-full">
                         {seats.map((player, index) => {
-                            return (index > 0 && (player.source ? (<div className="flex flex-row gap-2 justify-between items-center w-full border p-2 rounded-md" key={index}>
+                            return ((player.source ? (<div className="flex flex-row gap-2 justify-between items-center w-full border p-2 rounded-md" key={index}>
                                 <div className="flex flex-col gap-2 w-full">
                                     <div className="flex flex-row gap-2 justify-between items-center">
-                                        <div className='font-bold text-lg truncate' style={{
-                                        maxWidth: 200 - (8 * (player.hands[player.currentHand].length - 1)),
-                                        }}>{player.name}</div>
+                                        <div className='font-bold text-lg truncate'>{player.name}</div>
                                     </div>
                                     <div className="font-semibold text-md text-zinc-400"><AnimatedValue value={player.wager} /></div>
                                 </div>
-                                <div className="flex flex-row justify-end gap-2 items-center">
-                                    <CardsDisplay cards={player.hands[player.currentHand]} height={48} direction="right" />
-                                </div>
                             </div>) : (
                                 <div className="flex flex-row gap-2 justify-center items-center w-full border p-2 rounded-md" key={index}>
-                                    <div className="font-bold text-lg truncate text-zinc-600" style={{
-                                        maxWidth: 200 - (8 * (player.hands[player.currentHand].length - 1)),
-                                    }}>Empty Seat</div>
+                                    <div className="font-bold text-lg truncate text-zinc-600">Empty Seat</div>
                                 </div>
                             )
                         ))

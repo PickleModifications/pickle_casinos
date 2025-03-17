@@ -59,6 +59,9 @@ export const ConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             "roulette_red": "Red",
             "roulette_black": "Black",
             "roulette_green": "Green",
+            "roulette_rolling": "The ball is spinning, good luck!",
+            "roulette_numberwinner": "The winning number is:",
+            "roulette_lastnumbers": "Recent Numbers:",
         },
     });
     useNuiEvent('setConfig', (data) => {

@@ -244,7 +244,6 @@ export function RouletteWagerComponent({wager, setWager, betRange, money, chips,
     const [selectedChip, setSelectedChip] = useState<Chip | null>(null);
     const [rows, setRows] = useState(GetDefaultRouletteRows());
     const [green, setGreen] = useState({
-        isWinner: false,
         wager: 0,
         value: 0,
         color: "green",
@@ -252,7 +251,7 @@ export function RouletteWagerComponent({wager, setWager, betRange, money, chips,
     const [sections, setSections] = useState(GetDefaultRouletteSections());
     return (
         <div className="flex flex-col gap-2 items-center justify-center">
-            <RouletteComponent roulette={{green, rows, sections, onClick: (type: "green" | "row" | "section", index: number, row?: number) => {
+            <RouletteComponent roulette={{winningNumber: -1, isPlaying: false, green, rows, sections, onClick: (type: "green" | "row" | "section", index: number, row?: number) => {
                 if (type === "green") {
                     if (selectedChip && attemptWagerUpdate(wager + selectedChip.value, true)) {
                         setGreen({
@@ -335,7 +334,6 @@ export function RouletteWagerComponent({wager, setWager, betRange, money, chips,
                         wager: 0,
                         value: 0,
                         color: "green",
-                        isWinner: false,
                     });
                     setSections(GetDefaultRouletteSections());
                 }}>
@@ -409,9 +407,14 @@ export function CasinoGameDisplay() {
         visible: true,
         data: {
             stage: {
-                type: "waiting"
+                type: "rolling"
             },
-            seats: []
+            seats: [
+                {source: 1, wager: 1000, name: "Felix Kjellberg"},
+                {source: 2, wager: 500, name: "Markiplier"},
+                {source: 3, wager: 250, name: "Ninja"},
+                {}
+            ]
         },
     });
     // const [currentGame, setCurrentGame] = useState<CasinoGame | null>({
@@ -425,7 +428,6 @@ export function CasinoGameDisplay() {
     const [isGameVisible, setGameVisible] = useState<boolean>(true);
     useNuiEvent("setCurrentGame", (data: any) => {
         if (data.game) {
-            console.log(data.game);
             setCurrentGame({
                 data: data.game.data,
                 visible: data.game.visible,
