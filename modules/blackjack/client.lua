@@ -261,7 +261,7 @@ function CreateBlackjackEntity(casinoId, entityId)
             end)
         end
     end
-    AttemptSeatAtBlackjackEntity(casinoId, entityId)
+    -- AttemptSeatAtBlackjackEntity(casinoId, entityId)
 end
 
 function DeleteBlackjackEntity(casinoId, entityId)

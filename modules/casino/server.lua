@@ -3,6 +3,8 @@ function InitializeCasinoEntities(casinoId, entities)
         local entity = entities[i]
         if entity.type == "blackjack" then
             entity = InitializeBlackjackEntity(casinoId, entity)
+        elseif entity.type == "roulette" then
+            entity = InitializeRouletteEntity(casinoId, entity)
         end
     end
     return entities
@@ -23,6 +25,8 @@ function JoinCasinoEntity(source, casinoId, entityId)
     if not entity then return end
     if entity.type == "blackjack" then
         JoinBlackjackEntity(source, casinoId, entityId)
+    elseif entity.type == "roulette" then
+        JoinRouletteEntity(source, casinoId, entityId)
     end
 end
 

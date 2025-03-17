@@ -251,16 +251,8 @@ export function RouletteWagerComponent({wager, setWager, betRange, money, chips,
     const [sections, setSections] = useState(GetDefaultRouletteSections());
     return (
         <div className="flex flex-col gap-2 items-center justify-center">
-            <RouletteComponent roulette={{winningNumber: -1, isPlaying: false, green, rows, sections, onClick: (type: "green" | "row" | "section", index: number, row?: number) => {
-                if (type === "green") {
-                    if (selectedChip && attemptWagerUpdate(wager + selectedChip.value, true)) {
-                        setGreen({
-                            ...green,
-                            wager: green.wager + selectedChip.value,
-                        });
-                    }
-                }
-                else if (type === "row" && row != undefined) {
+            <RouletteComponent roulette={{winningNumber: -1, isPlaying: false, rows, sections, onClick: (type: "green" | "row" | "section", index: number, row?: number) => {
+                if (type === "row" && row != undefined) {
                     if (selectedChip &&  attemptWagerUpdate(wager + selectedChip.value, true)) {
                         let newRows = rows;
                         newRows[row][index].wager += selectedChip.value;

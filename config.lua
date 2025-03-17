@@ -17,7 +17,17 @@ Config.Casinos = {
                     dealerModel = `s_f_y_casino_01`,
                     tableModel = `vw_prop_casino_blckjack_01b`,
                 }
-            }
+            },
+            {
+                id = "roulette-1",
+                type = "roulette",
+                coords = vector3(-964.8375, -3009.5615, 12.9451),
+                rotation = vector3(0.0, 0.0, 60.9669),
+                settings = {
+                    dealerModel = `s_f_y_casino_01`,
+                    tableModel = `vw_prop_casino_roulette_01`,
+                }
+            },
         }
     }
 }

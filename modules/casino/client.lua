@@ -6,6 +6,8 @@ function CreateCasinoEntity(casinoId, entityId)
     if not casino or not casinoEntity then return end
     if casinoEntity.type == "blackjack" then
         CreateBlackjackEntity(casinoId, entityId)
+    elseif casinoEntity.type == "roulette" then
+        CreateRouletteEntity(casinoId, entityId)
     end
 end
 
