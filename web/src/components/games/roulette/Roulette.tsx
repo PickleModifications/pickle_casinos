@@ -261,12 +261,6 @@ export default function Roulette({game} : {game: CasinoGame}) {
     const [sections, setSections] = useState(GetDefaultRouletteSections());
     const winningNumber = stage.winningNumber != undefined ? stage.winningNumber : -1;
     const [lastNumbers, setLastNumbers] = useState<number[]>([24, 1, 0, 11, 8, 24, 1, 0, 11, 8]);
-    useEffect(() => {
-        setStage({
-            type: "winningNumber",
-            winningNumber: 35,
-        });
-    }, []);
     useNuiEvent("updateMoney", (data) => {
         setMoney(data.money);
     });
@@ -280,18 +274,6 @@ export default function Roulette({game} : {game: CasinoGame}) {
     useNuiEvent("updateRouletteSeat", (data) => {
         setCurrentSeat(data.seatId);
     });
-    const canPlayerPerformAction = (action: "hit" | "stand" | "double" | "split") => {
-        if (stage.type !== "turn") return false;
-        if (currentSeat !== stage.seatId) return false;
-        let seat = seats[currentSeat];
-        return true
-    }
-    const performAction = (action: "hit" | "stand" | "double" | "split") => {
-        setPerformingAction(true);
-        fetchNui("performRouletteAction", {
-            action: action,
-        });
-    }
     return (
         <div className='flex flex-col bg-background/95 absolute w-full px-8 py-8' style={{ 
             height: "460px",

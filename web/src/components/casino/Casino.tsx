@@ -402,21 +402,7 @@ export function WagerComponent({wager, setWager, betRange, money, wagerType} : {
 }
 
 export function CasinoGameDisplay() {
-    const [currentGame, setCurrentGame] = useState<CasinoGame | null>({
-        type: "roulette",
-        visible: true,
-        data: {
-            stage: {
-                type: "rolling"
-            },
-            seats: [
-                {source: 1, wager: 1000, name: "Felix Kjellberg"},
-                {source: 2, wager: 500, name: "Markiplier"},
-                {source: 3, wager: 250, name: "Ninja"},
-                {}
-            ]
-        },
-    });
+    const [currentGame, setCurrentGame] = useState<CasinoGame | null>(null);
     // const [currentGame, setCurrentGame] = useState<CasinoGame | null>({
     //     type: "slots",
     //     visible: false,
