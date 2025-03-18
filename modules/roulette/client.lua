@@ -1,34 +1,28 @@
 local RouletteTables = {}
 local LocalRouletteTables = {}
 local PLAY_AREA_OFFSETS = {
-    [0] = {
-        seatOffset = {
-            coords = vector3(0.06, 0.22, 0.0),
-            rotation = vector3(0.0, 0.0, 0.0),
-        },
-    },
     [1] = {
         seatOffset = {
-            coords = vector3(0.06, 0.22, 0.0),
+            coords = vector3(-0.2, -0.3, 0.0),
             rotation = vector3(0.0, 0.0, 0.0),
         },
     },
     [2] = {
         seatOffset = {
-            coords = vector3(0.06, 0.22, 0.0),
+            coords = vector3(0.765, -0.3, 0.0),
             rotation = vector3(0.0, 0.0, 0.0),
         },
     },
     [3] = {
         seatOffset = {
-            coords = vector3(0.06, 0.22, 0.0),
-            rotation = vector3(0.0, 0.0, 0.0),
+            coords = vector3(0.895, -0.125, 0.0),
+            rotation = vector3(0.0, 0.0, 90.0),
         },
     },
     [4] = {
         seatOffset = {
-            coords = vector3(0.06, 0.22, 0.0),
-            rotation = vector3(0.0, 0.0, 0.0),
+            coords = vector3(0.765, 0.125, 0.0),
+            rotation = vector3(0.0, 0.0, 180.0),
         },
     },
 }
@@ -68,9 +62,9 @@ function GetCalculatedChips(amount)
     return chips
 end
 
-function GetSeatsForUI(currentHand)
+function GetRouletteSeatsForUI(currentHand)
     local seats = {}
-    for i=0, 4 do
+    for i=1, 4 do
         local seat = CurrentRouletteTable.seats[i]
         local wager = 0
         if (seat.wagers and seat.wagers[1]) then
@@ -99,7 +93,7 @@ function DisplayRouletteUI()
             type = "roulette",
             data = {
                 seatId = seatId,
-                seats = GetSeatsForUI(),
+                seats = GetRouletteSeatsForUI(),
                 money = CurrentRouletteTable.money,
                 wagerLimit = {10, 100000},
                 stage = {
@@ -163,7 +157,7 @@ function AttemptSeatAtRouletteEntity(casinoId, entityId)
                     NetworkStartSynchronisedScene(netScene)
                     Wait(100)
                 end
-                SetFollowPedCamViewMode(3)
+                -- SetFollowPedCamViewMode(3)
                 DisableIdleCamera(true)
                 Wait(0)
             end
@@ -208,9 +202,6 @@ function PerformRouletteSpin(casinoId, entityId, numberString)
     rouletteAnimation(rouletteTable.tableObject, "loop_wheel")
     rouletteAnimation(ballObject, "exit_"..numberIndex.."_ball")
     rouletteAnimation(rouletteTable.tableObject, "exit_"..numberIndex.."_wheel")
-    SetTimeout(10000, function()
-        PerformRouletteSpin(casinoId, entityId, math.random(1, 36) .. "")
-    end)
 end
 
 function CreateRouletteEntity(casinoId, entityId)
@@ -262,7 +253,7 @@ function CreateRouletteEntity(casinoId, entityId)
         end
     end
     SetTimeout(1000, function()
-        PerformRouletteSpin(casinoId, entityId, "11")
+        AttemptSeatAtRouletteEntity(casinoId, entityId)
     end)
     -- AttemptSeatAtRouletteEntity(casinoId, entityId)
 end
@@ -296,8 +287,8 @@ RegisterNUICallback("performRouletteAction", function(data, cb)
     cb("ok")
 end)
 
-RegisterNUICallback("setRouletteWager", function(data, cb)
-    TriggerServerEvent("pickle_casinos:roulette:setWager", data.wager)
+RegisterNUICallback("updateRouletteWagers", function(data, cb)
+    TriggerServerEvent("pickle_casinos:roulette:updateRouletteWagers", data.data)
     cb("ok")
 end)
 
@@ -319,7 +310,7 @@ RegisterNetEvent("pickle_casinos:roulette:updateSeatWager", function(casinoId, e
         end
         SendNUIMessage({
             type = "updateRouletteSeats",
-            seats = GetSeatsForUI(),
+            seats = GetRouletteSeatsForUI(),
         })
     end
     local rouletteTable = LocalRouletteTables[casinoId][entityId]
@@ -372,7 +363,7 @@ RegisterNetEvent("pickle_casinos:roulette:updateSeatCards", function(casinoId, e
     end
     SendNUIMessage({
         type = "updateRouletteSeats",
-        seats = GetSeatsForUI(handId),
+        seats = GetRouletteSeatsForUI(handId),
     })
 end)
 
@@ -381,7 +372,7 @@ RegisterNetEvent("pickle_casinos:roulette:updateSeat", function(casinoId, entity
     if CurrentRouletteTable and CurrentRouletteTable.casinoId == casinoId and CurrentRouletteTable.entityId == entityId then
         SendNUIMessage({
             type = "updateRouletteSeats",
-            seats = GetSeatsForUI(),
+            seats = GetRouletteSeatsForUI(),
         })
         CurrentRouletteTable.seats[seatId] = seatData
     end
@@ -447,16 +438,6 @@ RegisterNetEvent("pickle_casinos:roulette:updateStage", function(casinoId, entit
     local isCurrentTable = (CurrentRouletteTable and CurrentRouletteTable.casinoId == casinoId and CurrentRouletteTable.entityId == entityId)
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
     local dealerPed = rouletteTable.dealerPed
-    if not rouletteTable.lastDealerRotation then
-        rouletteTable.lastDealerRotation = casinoEntity.rotation + vector3(0.0, 0.0, 180.0)
-    end
-    local targetRotation = casinoEntity.rotation + vector3(0.0, 0.0, 180.0)
-    if (stage.handId and stage.handId == 2) then
-        print("handId is 2")
-        targetRotation = targetRotation + vector3(0.0, 0.0, 10.0)
-    end
-    SetEntitySmoothRotation(dealerPed, rouletteTable.lastDealerRotation, targetRotation) 
-    rouletteTable.lastDealerRotation = targetRotation
     if stage.type == "waiting" then
         CreateThread(function()
             while stage.time > 1 do
@@ -473,121 +454,22 @@ RegisterNetEvent("pickle_casinos:roulette:updateStage", function(casinoId, entit
                 Wait(1000)
             end
         end)
-    elseif stage.type == "dealing" then
-        if isCurrentTable then
-            SendNUIMessage({
-                type = "updateRouletteStage",
-                stage = {
-                    type = "dealing",
-                    seat = stage.seat,
-                    handId = stage.handId,
-                    card = stage.card,
-                }
-            })
-        end
-        local animation
-        -- if cardIndex == 1 then 
-        --     cardAnim = "deal_card_self_second_card"
-        -- elseif cardIndex == 2 then 
-        --     cardAnim = "deal_card_self"
-        -- else 
-        --     cardAnim = "deal_card_self_card_10"
-        -- end
-        if stage.seat < 1 then
-            animation = {
-                dict = "anim_casino_b@amb@casino@games@roulette@dealer",
-                name = stage.card.class == "hidden" and "deal_card_self" or "deal_card_self_second_card",
-                wait = 750,
+    elseif stage.type == "rolling" then
+        SendNUIMessage({
+            type = "updateRouletteStage",
+            stage = {
+                type = "rolling",
             }
-        else
-            animation = {
-                dict = "anim_casino_b@amb@casino@games@roulette@dealer",
-                name = (stage.isHit and "hit" or "deal") .. "_card_player_0" .. stage.seat,
-                wait = 750,
+        })
+        PerformRouletteSpin(casinoId, entityId, stage.targetNumber)
+    elseif stage.type == "winningNumber" then
+        SendNUIMessage({
+            type = "updateRouletteStage",
+            stage = {
+                type = "winningNumber",
+                winningNumber = stage.winningNumber,
             }
-        end
-        PlayAnim(dealerPed, animation.dict, animation.name, 3.0, 1.0, -1, 2, 0, 0, 0, 0 )
-        SetTimeout(600, function()
-            local cardModel = GetCardModel(stage.card.class, stage.card.value)
-            local card = CreateProp(cardModel, GetOffsetFromEntityInWorldCoords(rouletteTable.surfaceObject, 0.0, 0.0, 0.1), false, false, false)
-            AttachEntityToEntity(card, dealerPed, GetPedBoneIndex(dealerPed, 28422), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, false, false, false, false, 2, true)
-            Wait(animation.wait or 0)
-            DeleteEntity(card)
-        end)
-    elseif stage.type == "turn" then
-        if not stage.hasHit and not IsEntityPlayingAnim(dealerPed, "anim_casino_b@amb@casino@games@roulette@dealer", "dealer_focus_player_0" .. stage.seat .. "_idle_intro", 3) then 
-            PlayAnim(rouletteTable.dealerPed, "anim_casino_b@amb@casino@games@roulette@dealer", "dealer_focus_player_0" .. stage.seat .. "_idle_intro", 3.0, 1.0, -1, 2, 0, 0, 0, 0 )
-        end
-        if isCurrentTable then
-            SendNUIMessage({
-                type = "updateRouletteStage",
-                stage = {
-                    type = "turn",
-                    seatId = stage.seat,
-                    timeLeft = 10,
-                }
-            })
-            SendNUIMessage({
-                type = "updateRouletteSeats",
-                seats = GetSeatsForUI(stage.handId),
-            })
-        end
-    elseif stage.type == "displayCard" then 
-        if isCurrentTable then
-            SendNUIMessage({
-                type = "updateRouletteStage",
-                stage = {
-                    type = "displayCard",
-                }
-            })
-        end
-        local dealerPed = rouletteTable.dealerPed
-        local card = rouletteTable.playAreas[0].hands[1][1]
-        local coords = GetEntityCoords(card)
-        local rotation = GetEntityRotation(card)
-        DeleteEntity(card)
-        local card = CreateProp(GetCardModel(stage.card.class, stage.card.value), coords, false, false, false)
-        SetEntityRotation(card, rotation.x, rotation.y, rotation.z + 180.0, 2, true)
-        SetEntityCoords(card, coords)
-        PlayAnim(dealerPed, "anim_casino_b@amb@casino@games@roulette@dealer", "turn_card", 3.0, 1.0, -1, 2, 0, 0, 0, 0 )
-        Wait(500)
-        AttachEntityToEntity(card, dealerPed, GetPedBoneIndex(dealerPed, 28422), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, false, false, false, false, 2, true)
-        Wait(800)
-        DeleteEntity(card)
-    elseif stage.type == "cleanup" then
-        local dealerPed = rouletteTable.dealerPed
-        if stage.seat ~= 0 then
-            PlayAnim(dealerPed, "anim_casino_b@amb@casino@games@roulette@dealer", "retrieve_cards_player_0" .. stage.seat, 3.0, 1.0, -1, 2, 0, 0, 0, 0)
-            Wait(600)
-            for i=1, #rouletteTable.playAreas[stage.seat].hands do
-                for j=1, #rouletteTable.playAreas[stage.seat].hands[i] do
-                    DeleteEntity(rouletteTable.playAreas[stage.seat].hands[i][j])
-                end
-                rouletteTable.playAreas[stage.seat].hands[i] = {}
-            end
-            for i=1, #rouletteTable.playAreas[stage.seat].wagers do
-                for j=1, #rouletteTable.playAreas[stage.seat].wagers[i] do
-                    DeleteEntity(rouletteTable.playAreas[stage.seat].wagers[i][j])
-                end
-                rouletteTable.playAreas[stage.seat].wagers[i] = {}
-            end
-        else
-            PlayAnim(dealerPed, "anim_casino_b@amb@casino@games@roulette@dealer", "retrieve_own_cards_and_remove", 3.0, 1.0, -1, 2, 0, 0, 0, 0)
-            Wait(400)
-            for i=1, #rouletteTable.playAreas[0].hands do
-                for j=1, #rouletteTable.playAreas[0].hands[i] do
-                    DeleteEntity(rouletteTable.playAreas[0].hands[i][j])
-                end
-                rouletteTable.playAreas[0].hands[i] = {}
-            end
-        end
-        if isCurrentTable then
-            CurrentRouletteTable.seats[stage.seat].hands = {{}, {}}
-            SendNUIMessage({
-                type = "updateRouletteSeats",
-                seats = GetSeatsForUI(),
-            })
-        end
+        })
     end
 end)
 

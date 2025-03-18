@@ -88,7 +88,7 @@ function GetCalculatedChips(amount)
     return chips
 end
 
-function GetSeatsForUI(currentHand)
+function GetBlackjackSeatsForUI(currentHand)
     local seats = {}
     for i=0, 4 do
         local seat = CurrentBlackjackTable.seats[i]
@@ -119,7 +119,7 @@ function DisplayBlackjackUI()
             type = "blackjack",
             data = {
                 seatId = seatId,
-                seats = GetSeatsForUI(),
+                seats = GetBlackjackSeatsForUI(),
                 money = CurrentBlackjackTable.money,
                 wagerLimit = {10, 100000},
                 stage = {
@@ -325,7 +325,7 @@ RegisterNetEvent("pickle_casinos:blackjack:updateSeatWager", function(casinoId, 
         end
         SendNUIMessage({
             type = "updateBlackjackSeats",
-            seats = GetSeatsForUI(),
+            seats = GetBlackjackSeatsForUI(),
         })
     end
     local blackjackTable = LocalBlackjackTables[casinoId][entityId]
@@ -378,7 +378,7 @@ RegisterNetEvent("pickle_casinos:blackjack:updateSeatCards", function(casinoId, 
     end
     SendNUIMessage({
         type = "updateBlackjackSeats",
-        seats = GetSeatsForUI(handId),
+        seats = GetBlackjackSeatsForUI(handId),
     })
 end)
 
@@ -387,7 +387,7 @@ RegisterNetEvent("pickle_casinos:blackjack:updateSeat", function(casinoId, entit
     if CurrentBlackjackTable and CurrentBlackjackTable.casinoId == casinoId and CurrentBlackjackTable.entityId == entityId then
         SendNUIMessage({
             type = "updateBlackjackSeats",
-            seats = GetSeatsForUI(),
+            seats = GetBlackjackSeatsForUI(),
         })
         CurrentBlackjackTable.seats[seatId] = seatData
     end
@@ -535,7 +535,7 @@ RegisterNetEvent("pickle_casinos:blackjack:updateStage", function(casinoId, enti
             })
             SendNUIMessage({
                 type = "updateBlackjackSeats",
-                seats = GetSeatsForUI(stage.handId),
+                seats = GetBlackjackSeatsForUI(stage.handId),
             })
         end
     elseif stage.type == "displayCard" then 
@@ -591,7 +591,7 @@ RegisterNetEvent("pickle_casinos:blackjack:updateStage", function(casinoId, enti
             CurrentBlackjackTable.seats[stage.seat].hands = {{}, {}}
             SendNUIMessage({
                 type = "updateBlackjackSeats",
-                seats = GetSeatsForUI(),
+                seats = GetBlackjackSeatsForUI(),
             })
         end
     end

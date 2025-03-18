@@ -31,12 +31,15 @@ type RouletteComponentProps = {
     onClick: (type: "green" | "row" | "section", index: number, row?: number) => void
 }
 
-export function GetRouletteColor(number: number) {
-    if (number == 0) {
+export function GetRouletteColor(number: string | number) {
+    if (number == "0" || number == "00") {
         return "green";
     }
     const red = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
-    if (red.includes(number)) {
+    if (typeof number == "string" && red.includes(parseInt(number))) {
+        return "red";
+    }
+    if (typeof number == "number" && red.includes(number)) {
         return "red";
     }
     return "black";
@@ -45,8 +48,8 @@ export function GetRouletteColor(number: number) {
 export function GetDefaultRouletteRows() {
     let rows = [
         [
-            {wager: 0, value: "0", color: "green"},
             {wager: 0, value: "00", color: "green"},
+            {wager: 0, value: "0", color: "green"},
         ]
     ];
     for (let i=0; i <= 2; i++) {
@@ -99,7 +102,7 @@ export function GetDefaultRouletteSections() {
 }
 
 export function IsSectionWinner(winningNumber: number, sectionIndex: number, index: number) {
-    if (winningNumber == 0) return false;
+    if (winningNumber <= 0) return false;
     if (sectionIndex == 0 && index == 0) {
         return winningNumber >= 1 && winningNumber <= 12;
     }
@@ -140,39 +143,39 @@ export function RouletteComponent({roulette} : {roulette: RouletteComponentProps
     return (
         <div className="flex flex-col gap-2 items-center justify-center">
             <div className="flex flex-col gap-1 items-center">
-                <div className="flex flex-row gap-1">
-                    <div className="flex relative flex-col gap-1">
-                        <div className="flex flex-row gap-1 items-center">
-                            {rows[0].map((value, index) => (
-                                <div className="rounded-md border relative p-2" style={{
-                                    width: 50, 
-                                    height: 50,
-                                    backgroundColor: value.color,
-                                    filter: (isPlaying && winningNumber != value.value) ? "brightness(0.5)" : "unset",
-                                    cursor: (!isPlaying) ? "pointer" : "unset",
-                                }} key={index} onClick={() => {
-                                    roulette.onClick("row", index, 0);
-                                }}>
-                                    {value.wager > 0 && (
-                                        <div className="absolute z-10 top-[50%] left-[50%] rounded-full z-1" style={{transform: "translate(-50%, -50%)"}}>
-                                            <ChipDisplay chip={GetChipForValue(value.wager, chips, true)} size={48} />
-                                        </div>
-                                    )}
-                                    <div className="absolute top-[50%] left-[50%] rounded-full z-1" style={{transform: "translate(-50%, -50%)"}}>
-                                        <div className="font-bold text-xl">{value.value}</div>
+                <div className="flex flex-row ">
+                    <div className="flex flex-col items-center">
+                        {rows[0].map((value, index) => (
+                            <div className="rounded-md border relative p-2" style={{
+                                width: 30, 
+                                height: "100%",
+                                backgroundColor: value.color,
+                                filter: (isPlaying && winningNumber != value.value) ? "brightness(0.5)" : "unset",
+                                cursor: (!isPlaying) ? "pointer" : "unset",
+                            }} key={index} onClick={() => {
+                                roulette.onClick("row", index, 0);
+                            }}>
+                                {value.wager > 0 && (
+                                    <div className="absolute z-10 top-[50%] left-[50%] rounded-full z-1" style={{transform: "translate(-50%, -50%)"}}>
+                                        <ChipDisplay chip={GetChipForValue(value.wager, chips, true)} size={30} />
                                     </div>
-                                    {(value.value == winningNumber) && (
-                                        <div className="scale-90 h-full" style={{ transformOrigin: "center" }}><ReactSparkle/></div>
-                                    )}
+                                )}
+                                <div className="absolute top-[50%] left-[50%] rounded-full z-1" style={{transform: "translate(-50%, -50%)"}}>
+                                    <div className="font-bold text-lg rotate-90">{value.value}</div>
                                 </div>
-                            ))}
-                        </div>
+                                {(value.value == winningNumber) && (
+                                    <div className="scale-90 h-full" style={{ transformOrigin: "center" }}><ReactSparkle/></div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                    <div className="flex relative flex-col">
                         {rows.map((row, rowIndex) => (rowIndex > 0) && (
-                            <div className="flex flex-row gap-1 items-center" key={rowIndex}>
+                            <div className="flex flex-row items-center" key={rowIndex}>
                                 {row.map((value, index) => (index < row.length - 1) && (
                                     <div className="rounded-md border relative p-2" style={{
-                                        width: 50, 
-                                        height: 50,
+                                        width: 35, 
+                                        height: 35,
                                         backgroundColor: value.color,
                                         filter: (isPlaying && winningNumber != value.value) ? "brightness(0.5)" : "unset",
                                         cursor: (!isPlaying) ? "pointer" : "unset",
@@ -181,11 +184,11 @@ export function RouletteComponent({roulette} : {roulette: RouletteComponentProps
                                     }}>
                                         {value.wager > 0 && (
                                             <div className="absolute z-10 top-[50%] left-[50%] rounded-full z-1" style={{transform: "translate(-50%, -50%)"}}>
-                                                <ChipDisplay chip={GetChipForValue(value.wager, chips, true)} size={48} />
+                                                <ChipDisplay chip={GetChipForValue(value.wager, chips, true)} size={30} />
                                             </div>
                                         )}
                                         <div className="absolute top-[50%] left-[50%] rounded-full z-1" style={{transform: "translate(-50%, -50%)"}}>
-                                            <div className="font-bold text-xl">{value.value}</div>
+                                            <div className="font-bold text-md">{value.value}</div>
                                         </div>
                                         {(value.value == winningNumber) && (
                                             <div className="scale-90 h-full" style={{ transformOrigin: "center" }}><ReactSparkle/></div>
@@ -194,7 +197,7 @@ export function RouletteComponent({roulette} : {roulette: RouletteComponentProps
                                 ))}
                                 <div className="rounded-md border relative p-2 bg-background/95" style={{
                                     width: 30, 
-                                    height: 50,
+                                    height: 35,
                                     cursor: (!isPlaying) ? "pointer" : "unset",
                                     filter: (isPlaying) ? "brightness(0.5)" : "unset",
                                 }} key={rowIndex} onClick={() => {
@@ -202,7 +205,7 @@ export function RouletteComponent({roulette} : {roulette: RouletteComponentProps
                                 }}>
                                     {rows[rowIndex][rows[rowIndex].length - 1].wager > 0 && (
                                         <div className="absolute z-10 top-[50%] left-[50%] rounded-full z-1" style={{transform: "translate(-50%, -50%)"}}>
-                                            <ChipDisplay chip={GetChipForValue(rows[rowIndex][rows[rowIndex].length - 1].wager, chips, true)} size={48} />
+                                            <ChipDisplay chip={GetChipForValue(rows[rowIndex][rows[rowIndex].length - 1].wager, chips, true)} size={30} />
                                         </div>
                                     )}
                                     <div className="absolute top-[50%] left-[50%] rounded-full z-1" style={{transform: "translate(-50%, -50%)"}}>
@@ -216,9 +219,9 @@ export function RouletteComponent({roulette} : {roulette: RouletteComponentProps
                 {sections.map((section, sectionIndex) => (
                     <div className="flex flex-row justify-between items-center w-full" key={sectionIndex}>
                         {section.map((value, index) => (
-                            <div className="rounded-md border relative p-2 bg-background/95" style={{
+                            <div className="flex items-center justify-center rounded-md border relative py-2 bg-background/95" style={{
                                 width: "100%", 
-                                height: 40,
+                                height: 30,
                                 backgroundColor: value?.backgroundColor || "unset",
                                 filter: (isPlaying && !IsSectionWinner(winningNumber, sectionIndex, index)) ? "brightness(0.5)" : "unset",
                                 cursor: (!isPlaying) ? "pointer" : "unset",
@@ -227,16 +230,14 @@ export function RouletteComponent({roulette} : {roulette: RouletteComponentProps
                             }}>
                                 {value.wager > 0 && (
                                     <div className="absolute z-10 top-[50%] left-[50%] rounded-full z-1" style={{transform: "translate(-50%, -50%)"}}>
-                                        <ChipDisplay chip={GetChipForValue(value.wager, chips, true)} size={48} />
+                                        <ChipDisplay chip={GetChipForValue(value.wager, chips, true)} size={30} />
                                     </div>
                                 )}
-                                <div className="absolute top-[50%] left-[50%] rounded-full z-1" style={{
-                                    transform: "translate(-50%, -50%)",
-                                }}>
+                                <div className="absolute top-0 left-0 rounded-full w-full h-full z-1 flex flex-row items-center justify-center whitespace-nowrap overflow-hidden text-ellipsis" >
                                     {value.component}
                                 </div>
                                 {IsSectionWinner(winningNumber, sectionIndex, index) && (
-                                    <div className="scale-90 h-full" style={{ transformOrigin: "center" }}><ReactSparkle/></div>
+                                    <div className="scale-90 h-full w-full" style={{ transformOrigin: "center" }}><ReactSparkle/></div>
                                 )}
                             </div>    
                         ))}
@@ -279,13 +280,12 @@ export default function Roulette({game} : {game: CasinoGame}) {
     });
     return (
         <div className='flex flex-col bg-background/95 absolute w-full px-8 py-8' style={{ 
-            height: "460px",
             bottom: 0, 
             left: '0', 
             transition: "opacity 0.25s ease-in-out",
         }}>
             <div className="flex justify-between h-full items-center justify-between items-center w-full select-none">
-                <div className='flex flex-col gap-2 w-[33.333333%]'>
+                <div className='flex flex-col gap-2 h-full w-[33.333333%]'>
                     <div className="flex flex-col gap-2">
                         <div className='flex flex-row items-center justify-between gap-2'>
                             <div className='flex flex-row items-center gap-2'>
@@ -298,7 +298,7 @@ export default function Roulette({game} : {game: CasinoGame}) {
                         {lastNumbers.length > 0 && (
                             <div className="flex flex-row gap-2 items-center">
                                 <div className="font-semibold text-xl text-zinc-400"><Translate id="roulette_lastnumbers" /></div>
-                                <div className="flex flex-row gap-2 max-w-[475px] overflow-x-hidden">
+                                <div className="flex flex-row gap-2 max-w-[380px] overflow-x-hidden">
                                     {lastNumbers.map((number, index) => (
                                         <div className="rounded-md border relative p-2 text-white" style={{
                                             width: 40, 
@@ -316,7 +316,7 @@ export default function Roulette({game} : {game: CasinoGame}) {
                         )}
                     </div>
                 </div>
-                <div className="flex flex-col gap-2 items-center w-[33.333333%] px-8">
+                <div className="flex flex-col gap-2 h-full items-center w-[33.333333%] px-8">
                     <div className='font-bold text-xl text-zinc-400'>
                         {stage.type === "waiting" && <Translate id="roulette_nextround" args={[stage.time]} />}
                         {stage.type === "rolling" && <Translate id="roulette_rolling" />}
@@ -349,9 +349,10 @@ export default function Roulette({game} : {game: CasinoGame}) {
                         )} */}
                     </div>
                     {stage.type === "waiting" ? (
-                        <WagerComponent wagerType={"roulette"} betRange={wagerLimit} money={money} wager={0} setWager={(value) => {
-                            fetchNui("setRouletteWager", {
-                                wager: value
+                        <WagerComponent wagerType={"roulette"} betRange={wagerLimit} money={money} wager={0} setWager={(value, data) => {
+                            fetchNui("updateRouletteWagers", {
+                                wager: value,
+                                data: data,
                             });
                         }} />
                     ) : (
@@ -372,8 +373,8 @@ export default function Roulette({game} : {game: CasinoGame}) {
                         }} />
                     )}
                 </div>
-                <div className="flex flex-col gap-2 w-[33.333333%]">
-                    <div className="grid grid-cols-2 gap-2 w-full">
+                <div className="flex flex-col gap-2 h-full items-end w-[33.333333%]">
+                    <div className="grid grid-cols-2 gap-2 w-[80%]">
                         {seats.map((player, index) => {
                             return ((player.source ? (<div className="flex flex-row gap-2 justify-between items-center w-full border p-2 rounded-md" key={index}>
                                 <div className="flex flex-col gap-2 w-full">

@@ -37,14 +37,26 @@ function GetRouletteEntity(casinoId, entityId)
     }
 end
 
-function ProcessRouletteWager(casinoId, entityId, seat, handId)
+function ProcessRouletteWager(casinoId, entityId, seat)
     local casino = Casinos[casinoId]
     if not casino then return end
     local entity = GetCasinoEntity(casinoId, entityId)
     if not entity then return end
-    local wager = entity.seats[seat].wagers[handId]
-    if wager > GetMoney(entity.seats[seat].source) then
-        ShowNotification(entity.seats[seat].source, "You do not have enough money to place this wager.")
+    local totalWager = 0
+    for i=1, #entity.seats[seat].wagers.rows do
+        for j=1, #entity.seats[seat].wagers.rows[i] do
+            totalWager = totalWager + entity.seats[seat].wagers.rows[i][j].wager
+        end
+    end
+    for i=1, #entity.seats[seat].wagers.sections do
+        for j=1, #entity.seats[seat].wagers.sections[i] do
+            totalWager = totalWager + entity.seats[seat].wagers.sections[i][j].wager
+        end
+    end
+    if totalWager == 0 then return end
+    local wager = totalWager
+    if GetMoney(entity.seats[seat].source) < wager then
+        ShowNotification(entity.seats[seat].source, "You do not have enough money to place this bet.")
         return false
     end
     RemoveMoney(entity.seats[seat].source, wager)
@@ -57,7 +69,90 @@ function StartRouletteGame(casinoId, entityId)
     local entity = GetCasinoEntity(casinoId, entityId)
     if not entity then return end
     if entity.stage.type ~= "waiting" then return end
-
+    local hasAcceptedWager = false
+    for i=1, #entity.seats do
+        local totalWager = 0
+        for j=1, #entity.seats[i].wagers.rows do
+            for k=1, #entity.seats[i].wagers.rows[j] do
+                if entity.seats[i].wagers.rows[j][k].wager > 0 then
+                    totalWager = totalWager + entity.seats[i].wagers.rows[j][k].wager
+                end
+            end
+        end
+        for j=1, #entity.seats[i].wagers.sections do
+            for k=1, #entity.seats[i].wagers.sections[j] do
+                if entity.seats[i].wagers.sections[j][k].wager > 0 then
+                    totalWager = totalWager + entity.seats[i].wagers.sections[j][k].wager
+                end
+            end
+        end
+        if not ProcessRouletteWager(casinoId, entityId, i) then
+            entity.seats[i].wagers = GenerateRouletteDefaultWagers()
+            TriggerClientEvent("pickle_casinos:roulette:updateSeatWager", -1, casinoId, entityId, i, entity.seats[i].wagers)
+        else
+            print("BET ACCEPTED:", i, totalWager)
+            hasAcceptedWager = true
+        end
+    end
+    if not hasAcceptedWager then
+        StartRouletteLobby(casinoId, entityId)
+        return
+    end
+    CreateThread(function()
+        local numbers = {"00", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36"}
+        entity.stage = {type = "rolling", targetNumber = numbers[math.random(1, 38)]}
+        TriggerClientEvent("pickle_casinos:roulette:updateStage", -1, casinoId, entityId, entity.stage)
+        Wait(10000)
+        local winningNumber = entity.stage.targetNumber
+        for i=1, #entity.seats do 
+            local seat = entity.seats[i]
+            local wagers = seat.wagers
+            local totalWin = 0
+            for j=1, #wagers.rows do
+                for k=1, #wagers.rows[j] do
+                    if wagers.rows[j][k].value == entity.stage.winningNumber then
+                        totalWin = totalWin + (wagers.rows[j][k].wager * 36)
+                    end
+                end
+            end
+            local winningNumberParsed = tonumber(entity.stage.winningNumber)
+            if winningNumberParsed then
+                if wagers.sections[1][1].wager > 0 and winningNumberParsed >= 1 and winningNumberParsed <= 12 then
+                    totalWin = totalWin + (wagers.sections[1][1].wager * 3)
+                end
+                if wagers.sections[1][2].wager > 0 and winningNumberParsed >= 13 and winningNumberParsed <= 24 then
+                    totalWin = totalWin + (wagers.sections[1][2].wager * 3)
+                end
+                if wagers.sections[1][3].wager > 0 and winningNumberParsed >= 25 and winningNumberParsed <= 36 then
+                    totalWin = totalWin + (wagers.sections[1][3].wager * 3)
+                end
+                if wagers.sections[2][1].wager > 0 and winningNumberParsed >= 1 and winningNumberParsed <= 18 then
+                    totalWin = totalWin + (wagers.sections[2][1].wager * 2)
+                end
+                if wagers.sections[2][2].wager > 0 and winningNumberParsed % 2 == 0 then
+                    totalWin = totalWin + (wagers.sections[2][2].wager * 2)
+                end
+                if wagers.sections[2][3].wager > 0 and GetRouletteColor(winningNumberParsed) == "red" then
+                    totalWin = totalWin + (wagers.sections[2][3].wager * 2)
+                end
+                if wagers.sections[2][4].wager > 0 and GetRouletteColor(winningNumberParsed) == "black" then
+                    totalWin = totalWin + (wagers.sections[2][4].wager * 2)
+                end
+                if wagers.sections[2][5].wager > 0 and winningNumberParsed % 2 == 1 then
+                    totalWin = totalWin + (wagers.sections[2][5].wager * 2)
+                end
+            end
+            if totalWin > 0 then
+                AddMoney(seat.source, totalWin)
+            end
+            entity.seats[i].wagers = GenerateRouletteDefaultWagers()
+            TriggerClientEvent("pickle_casinos:roulette:updateSeatWager", -1, casinoId, entityId, i, entity.seats[i].wagers)
+        end
+        entity.stage = {type = "winningNumber", winningNumber = winningNumber, seats = seats}
+        TriggerClientEvent("pickle_casinos:roulette:updateStage", -1, casinoId, entityId, entity.stage)
+        Wait(6000)
+        StartRouletteLobby(casinoId, entityId)
+    end)
 end
 
 function StartRouletteLobby(casinoId, entityId)
@@ -73,9 +168,16 @@ function StartRouletteLobby(casinoId, entityId)
             Wait(1000)
         end
         local totalWagers = 0
-        for k,v in pairs(entity.seats) do
-            if v.wagers then
-                totalWagers = totalWagers + v.wagers[1]
+        for i=1, #entity.seats do
+            for j=1, #entity.seats[i].wagers.rows do
+                for k=1, #entity.seats[i].wagers.rows[j] do
+                    totalWagers = totalWagers + entity.seats[i].wagers.rows[j][k].wager
+                end
+            end
+            for j=1, #entity.seats[i].wagers.sections do
+                for k=1, #entity.seats[i].wagers.sections[j] do
+                    totalWagers = totalWagers + entity.seats[i].wagers.sections[j][k].wager
+                end
             end
         end
         if totalWagers > 0 then
@@ -199,13 +301,26 @@ RegisterCallback("pickle_casinos:roulette:requestSeat", function(source, cb, cas
     cb(seatId)
 end)
 
-RegisterNetEvent("pickle_casinos:roulette:setWager", function(wager)
+RegisterNetEvent("pickle_casinos:roulette:updateRouletteWagers", function(wagers)
+    if (not wagers) then return end
     local source = source
     local info = GetPlayerRouletteInfo(source)
     if not info then return end
     local entity = GetCasinoEntity(info.casinoId, info.entityId)
     if not entity then return end
     if not entity.stage.type == "waiting" then return end
-    entity.seats[info.seatId].wagers[1] = wager
-    TriggerClientEvent("pickle_casinos:roulette:updateSeatWager", -1, info.casinoId, info.entityId, info.seatId, 1, wager)
+    if wagers.rows then
+        for i=1, #wagers.rows do
+            for j=1, #wagers.rows[i] do
+                entity.seats[info.seatId].wagers.rows[i][j].wager = wagers.rows[i][j].wager
+            end
+        end
+    end
+    if wagers.sections then
+        for i=1, #wagers.sections do
+            for j=1, #wagers.sections[i] do
+                entity.seats[info.seatId].wagers.sections[i][j].wager = wagers.sections[i][j].wager
+            end
+        end
+    end
 end)

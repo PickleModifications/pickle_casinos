@@ -240,14 +240,9 @@ export function GetChipForValue(value: number, chips: Chip[], preserveNumber: bo
     return closestChip;
 }
 
-export function RouletteWagerComponent({wager, setWager, betRange, money, chips, attemptWagerUpdate, closestChip, config} : {wager: number, setWager: (value: number) => void, betRange?: [number, number], money: number, chips: Chip[], attemptWagerUpdate: (wager: number, strictMode?: boolean) => boolean, closestChip: Chip, config: Config}) {
+export function RouletteWagerComponent({wager, setWager, betRange, money, chips, attemptWagerUpdate, closestChip, config} : {wager: number, setWager: (value: number, data?: any) => void, betRange?: [number, number], money: number, chips: Chip[], attemptWagerUpdate: (wager: number, strictMode?: boolean) => boolean, closestChip: Chip, config: Config}) {
     const [selectedChip, setSelectedChip] = useState<Chip | null>(null);
     const [rows, setRows] = useState(GetDefaultRouletteRows());
-    const [green, setGreen] = useState({
-        wager: 0,
-        value: 0,
-        color: "green",
-    });
     const [sections, setSections] = useState(GetDefaultRouletteSections());
     return (
         <div className="flex flex-col gap-2 items-center justify-center">
@@ -257,6 +252,10 @@ export function RouletteWagerComponent({wager, setWager, betRange, money, chips,
                         let newRows = rows;
                         newRows[row][index].wager += selectedChip.value;
                         setRows(newRows);
+                        setWager(wager + selectedChip.value, {
+                            rows: newRows,
+                            sections: sections,
+                        });
                     }
                 }
                 else if (type === "section" && row != undefined) {
@@ -264,6 +263,10 @@ export function RouletteWagerComponent({wager, setWager, betRange, money, chips,
                         let newSections = sections;
                         newSections[row][index].wager += selectedChip.value;
                         setSections(newSections);
+                        setWager(wager + selectedChip.value, {
+                            rows: rows,
+                            sections: newSections,
+                        });
                     }
                 }
             }}}/>
@@ -279,30 +282,28 @@ export function RouletteWagerComponent({wager, setWager, betRange, money, chips,
             <div className="flex flex-row gap-2 items-center">
                 <div className="relative rounded-full bg-yellow-600 border-zinc-400 p-2 cursor-pointer hover:scale-90 transition-transform" style={{width: 48, height: 48}} onClick={() => { 
                     if (attemptWagerUpdate(wager * 2, true)) {
-                        setGreen({
-                            ...green,
-                            wager: green.wager * 2,
+                        const newRows = rows.map((row) => {
+                            return row.map((cell) => {
+                                return {
+                                    ...cell,
+                                    wager: cell.wager * 2,
+                                }
+                            })
+                        })
+                        const newSections = sections.map((section) => {
+                            return section.map((cell) => {
+                                return {
+                                    ...cell,
+                                    wager: cell.wager * 2,
+                                }
+                            })
+                        })
+                        setRows(newRows);
+                        setSections(newSections);
+                        setWager(wager * 2, {
+                            rows: newRows,
+                            sections: newSections,
                         });
-                        setRows(
-                            rows.map((row) => {
-                                return row.map((cell) => {
-                                    return {
-                                        ...cell,
-                                        wager: cell.wager * 2,
-                                    }
-                                })
-                            })
-                        );
-                        setSections(
-                            sections.map((section) => {
-                                return section.map((cell) => {
-                                    return {
-                                        ...cell,
-                                        wager: cell.wager * 2,
-                                    }
-                                })
-                            })
-                        );
                     }
                 }}>
                     <div className="absolute top-[50%] left-[50%] rounded-full z-1" style={{transform: "translate(-50%, -50%)"}}>
@@ -321,13 +322,14 @@ export function RouletteWagerComponent({wager, setWager, betRange, money, chips,
                 ))}
                 <div className="relative rounded-full bg-secondary/80 border-zinc-400 p-2 cursor-pointer hover:scale-90 transition-transform" style={{width: 48, height: 48}} onClick={() => { 
                     attemptWagerUpdate(0); 
-                    setRows(GetDefaultRouletteRows());
-                    setGreen({
-                        wager: 0,
-                        value: 0,
-                        color: "green",
+                    const newRows = GetDefaultRouletteRows();
+                    const newSections = GetDefaultRouletteSections();
+                    setRows(newRows);
+                    setSections(newSections);
+                    setWager(0, {
+                        rows: newRows,
+                        sections: newSections,
                     });
-                    setSections(GetDefaultRouletteSections());
                 }}>
                     <div className="absolute top-[50%] left-[50%] rounded-full z-1" style={{transform: "translate(-50%, -50%)"}}>
                         <Trash2 size={24}/>
@@ -338,7 +340,7 @@ export function RouletteWagerComponent({wager, setWager, betRange, money, chips,
     )
 }
 
-export function WagerComponent({wager, setWager, betRange, money, wagerType} : {wagerType?: string, wager: number, setWager: (value: number) => void, betRange?: [number, number], money: number}) {
+export function WagerComponent({wager, setWager, betRange, money, wagerType} : {wagerType?: string, wager: number, setWager: (value: number, data?: any) => void, betRange?: [number, number], money: number}) {
     const wagerTypeString = wagerType ? wagerType : "default";
     const {config} = useConfig();
     const [value, setValue] = useState(wager);
@@ -355,7 +357,9 @@ export function WagerComponent({wager, setWager, betRange, money, wagerType} : {
             num = money;
         }
         setValue(num);
-        setWager(num);
+        if (wagerTypeString !== "roulette") {
+            setWager(num);
+        }
         return num;
     }
     const attemptWagerUpdate = (wager: number, strictMode?: boolean) => {
@@ -394,7 +398,26 @@ export function WagerComponent({wager, setWager, betRange, money, wagerType} : {
 }
 
 export function CasinoGameDisplay() {
-    const [currentGame, setCurrentGame] = useState<CasinoGame | null>(null);
+    const [currentGame, setCurrentGame] = useState<CasinoGame | null>(
+        null
+        // {
+        //     type: "roulette",
+        //     visible: true,
+        //     data: {
+        //         seats: [
+        //             {wager: 0, name: "Pickle"},
+        //             {wager: 0, name: "Pickle a"},
+        //             {wager: 0, name: "Pickle vb"},
+        //             {wager: 0, name: "Pickle c"},
+        //         ],
+        //         stage: {
+        //             type: "waiting",
+        //         },
+        //         isPlaying: false,
+        //     }
+        // }
+    );
+
     // const [currentGame, setCurrentGame] = useState<CasinoGame | null>({
     //     type: "slots",
     //     visible: false,
