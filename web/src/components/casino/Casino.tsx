@@ -7,6 +7,7 @@ import Blackjack from "../games/blackjack/Blackjack";
 import { Translate } from "@/providers/locale/Locale";
 import Slots from "../games/slots/Slots";
 import Roulette, { GetDefaultRouletteConnections, GetDefaultRouletteRows, GetDefaultRouletteSections, RouletteComponent } from "../games/roulette/Roulette";
+import Results from "../games/results/Results";
 
 export type CasinoGame = {
     visible: boolean;
@@ -151,7 +152,7 @@ export function ChipDisplay({chip, size} : {chip: Chip, size?: number}) {
     )
 }
 
-export function AnimatedValue({ value }: { value: number }) {
+export function AnimatedValue({ value, time }: { value: number, time?: number }) {
     const [displayValue, setDisplayValue] = useState(value);
 
     useEffect(() => {
@@ -166,7 +167,7 @@ export function AnimatedValue({ value }: { value: number }) {
                     }
                     return newValue;
                 });
-            }, 5);
+            }, time || 5);
             return () => clearInterval(interval);
         }
     }, [value, displayValue]);
@@ -379,24 +380,24 @@ export function WagerComponent({wager, setWager, betRange, money, wagerData} : {
 
 export function CasinoGameDisplay() {
     const [currentGame, setCurrentGame] = useState<CasinoGame | null>(
-        null
-        // {
-        //     type: "roulette",
-        //     visible: true,
-        //     data: {
-        //         seats: [
-        //             {wager: 0, name: "Pickle"},
-        //             {wager: 0, name: "Pickle a"},
-        //             {wager: 0, name: "Pickle vb"},
-        //             {wager: 0, name: "Pickle c"},
-        //         ],
-        //         stage: {
-        //             type: "winningNumber",
-        //             winningNumber: "24",
-        //         },
-        //         isPlaying: false,
-        //     }
-        // }
+        // null
+        {
+            type: "roulette",
+            visible: true,
+            data: {
+                seats: [
+                    {wager: 0, name: "Pickle"},
+                    {wager: 0, name: "Pickle a"},
+                    {wager: 0, name: "Pickle vb"},
+                    {wager: 0, name: "Pickle c"},
+                ],
+                stage: {
+                    type: "winningNumber",
+                    winningNumber: "24",
+                },
+                isPlaying: false,
+            }
+        }
     );
 
     // const [currentGame, setCurrentGame] = useState<CasinoGame | null>({
@@ -432,6 +433,7 @@ export function CasinoGameDisplay() {
         <div className="w-screen h-screen absolute text-primary top-0 left-0" style={{
             opacity: isGameVisible ? 1 : 0,
         }}>
+            <Results/>
             {(currentGame.type == "blackjack") && <Blackjack game={currentGame}/>}
             {(currentGame.type == "slots") && <Slots game={currentGame}/>}
             {(currentGame.type == "roulette") && <Roulette game={currentGame}/>}
