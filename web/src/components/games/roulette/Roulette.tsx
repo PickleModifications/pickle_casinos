@@ -13,6 +13,7 @@ type RouletteSeat = {
     source?: string | number;
     wager: number;
     name: string;
+    connects: any[];
 }
 
 type RouletteComponentProps = {
@@ -554,7 +555,7 @@ export function RouletteComponent({roulette} : {roulette: RouletteComponentProps
                             </div>
                         ))}
                     </div>
-                    {connects.map((connect, index) => (
+                    {connects.map((connect, index) => (connect.x >= 0) && (
                         <div className="absolute cursor-pointer" style={{
                             top: connect.y,
                             left: connect.x,
@@ -643,6 +644,7 @@ export default function Roulette({game} : {game: CasinoGame}) {
     });
     useNuiEvent("updateRouletteSeats", (data) => {
         setSeats(data.seats);
+        setConnects(data.seats[currentSeat - 1].connects);
     });
     useNuiEvent("updateRouletteSeat", (data) => {
         setCurrentSeat(data.seatId);
@@ -706,7 +708,10 @@ export default function Roulette({game} : {game: CasinoGame}) {
                 </div>
                 <div className="flex flex-col gap-2 h-full items-center w-[33.333333%] px-8">
                     {stage.type === "waiting" ? (
-                        <WagerComponent wagerType={"roulette"} betRange={wagerLimit} money={money} wager={0} setWager={(value, data) => {
+                        <WagerComponent wagerData={{
+                            type: "roulette",
+                            connects: connects,
+                        }} betRange={wagerLimit} money={money} wager={0} setWager={(value, data) => {
                             fetchNui("updateRouletteWagers", {
                                 wager: value,
                                 data: data,

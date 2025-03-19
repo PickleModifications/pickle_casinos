@@ -16,7 +16,7 @@ function JoinRouletteEntity(source, casinoId, entityId, seatId)
     end
     entity.seats[seatId] = {
         source = source, 
-        wagers = GenerateRouletteDefaultWagers()
+        connects = GenerateRouletteDefaultWagers()
     }
     SetTimeout(100 * 1, function()
         TriggerClientEvent("pickle_casinos:roulette:updateSeat", -1, casinoId, entityId, seatId, entity.seats[seatId])
@@ -42,17 +42,7 @@ function ProcessRouletteWager(casinoId, entityId, seat)
     if not casino then return end
     local entity = GetCasinoEntity(casinoId, entityId)
     if not entity then return end
-    local totalWager = 0
-    for i=1, #entity.seats[seat].wagers.rows do
-        for j=1, #entity.seats[seat].wagers.rows[i] do
-            totalWager = totalWager + entity.seats[seat].wagers.rows[i][j].wager
-        end
-    end
-    for i=1, #entity.seats[seat].wagers.sections do
-        for j=1, #entity.seats[seat].wagers.sections[i] do
-            totalWager = totalWager + entity.seats[seat].wagers.sections[i][j].wager
-        end
-    end
+    local totalWager = GetRouletteTotalWager(entity.seats[seat].connects)
     if totalWager == 0 then return end
     local wager = totalWager
     if GetMoney(entity.seats[seat].source) < wager then
@@ -71,24 +61,10 @@ function StartRouletteGame(casinoId, entityId)
     if entity.stage.type ~= "waiting" then return end
     local hasAcceptedWager = false
     for i=1, #entity.seats do
-        local totalWager = 0
-        for j=1, #entity.seats[i].wagers.rows do
-            for k=1, #entity.seats[i].wagers.rows[j] do
-                if entity.seats[i].wagers.rows[j][k].wager > 0 then
-                    totalWager = totalWager + entity.seats[i].wagers.rows[j][k].wager
-                end
-            end
-        end
-        for j=1, #entity.seats[i].wagers.sections do
-            for k=1, #entity.seats[i].wagers.sections[j] do
-                if entity.seats[i].wagers.sections[j][k].wager > 0 then
-                    totalWager = totalWager + entity.seats[i].wagers.sections[j][k].wager
-                end
-            end
-        end
+        local totalWager = GetRouletteTotalWager(entity.seats[i].connects)
         if not ProcessRouletteWager(casinoId, entityId, i) then
-            entity.seats[i].wagers = GenerateRouletteDefaultWagers()
-            TriggerClientEvent("pickle_casinos:roulette:updateSeatWager", -1, casinoId, entityId, i, entity.seats[i].wagers)
+            entity.seats[i].connects = GenerateRouletteDefaultWagers()
+            TriggerClientEvent("pickle_casinos:roulette:updateSeatWager", -1, casinoId, entityId, i, entity.seats[i].connects)
         else
             print("BET ACCEPTED:", i, totalWager)
             hasAcceptedWager = true
@@ -106,47 +82,33 @@ function StartRouletteGame(casinoId, entityId)
         local winningNumber = entity.stage.targetNumber
         for i=1, #entity.seats do 
             local seat = entity.seats[i]
-            local wagers = seat.wagers
+            local connects = seat.connects
             local totalWin = 0
-            for j=1, #wagers.rows do
-                for k=1, #wagers.rows[j] do
-                    if wagers.rows[j][k].value == entity.stage.winningNumber then
-                        totalWin = totalWin + (wagers.rows[j][k].wager * 36)
+            -- TODO: Calculate winnings
+            local data = GetDefaultRouletteConnections()
+            for i=1, #data do 
+                local wager = connects[i].wager
+                if wager > 0 and data[i].numbers then
+                    local payRatio = math.floor(36 / #data[i].numbers)
+                    local hasNumber = false
+                    for j=1, #data[i].numbers do
+                        if data[i].numbers[j] == winningNumber then
+                            hasNumber = true
+                            break
+                        end
                     end
-                end
-            end
-            local winningNumberParsed = tonumber(entity.stage.winningNumber)
-            if winningNumberParsed then
-                if wagers.sections[1][1].wager > 0 and winningNumberParsed >= 1 and winningNumberParsed <= 12 then
-                    totalWin = totalWin + (wagers.sections[1][1].wager * 3)
-                end
-                if wagers.sections[1][2].wager > 0 and winningNumberParsed >= 13 and winningNumberParsed <= 24 then
-                    totalWin = totalWin + (wagers.sections[1][2].wager * 3)
-                end
-                if wagers.sections[1][3].wager > 0 and winningNumberParsed >= 25 and winningNumberParsed <= 36 then
-                    totalWin = totalWin + (wagers.sections[1][3].wager * 3)
-                end
-                if wagers.sections[2][1].wager > 0 and winningNumberParsed >= 1 and winningNumberParsed <= 18 then
-                    totalWin = totalWin + (wagers.sections[2][1].wager * 2)
-                end
-                if wagers.sections[2][2].wager > 0 and winningNumberParsed % 2 == 0 then
-                    totalWin = totalWin + (wagers.sections[2][2].wager * 2)
-                end
-                if wagers.sections[2][3].wager > 0 and GetRouletteColor(winningNumberParsed) == "red" then
-                    totalWin = totalWin + (wagers.sections[2][3].wager * 2)
-                end
-                if wagers.sections[2][4].wager > 0 and GetRouletteColor(winningNumberParsed) == "black" then
-                    totalWin = totalWin + (wagers.sections[2][4].wager * 2)
-                end
-                if wagers.sections[2][5].wager > 0 and winningNumberParsed % 2 == 1 then
-                    totalWin = totalWin + (wagers.sections[2][5].wager * 2)
+                    if hasNumber then 
+                        totalWin = totalWin + (wager * payRatio)
+                    end
                 end
             end
             if totalWin > 0 then
                 AddMoney(seat.source, totalWin)
             end
-            entity.seats[i].wagers = GenerateRouletteDefaultWagers()
-            TriggerClientEvent("pickle_casinos:roulette:updateSeatWager", -1, casinoId, entityId, i, entity.seats[i].wagers)
+            SetTimeout(6000, function()
+                entity.seats[i].connects = GenerateRouletteDefaultWagers()
+                TriggerClientEvent("pickle_casinos:roulette:updateSeatWager", -1, casinoId, entityId, i, entity.seats[i].connects)
+            end)
         end
         entity.stage = {type = "winningNumber", winningNumber = winningNumber, seats = seats}
         TriggerClientEvent("pickle_casinos:roulette:updateStage", -1, casinoId, entityId, entity.stage)
@@ -169,17 +131,9 @@ function StartRouletteLobby(casinoId, entityId)
         end
         local totalWagers = 0
         for i=1, #entity.seats do
-            for j=1, #entity.seats[i].wagers.rows do
-                for k=1, #entity.seats[i].wagers.rows[j] do
-                    totalWagers = totalWagers + entity.seats[i].wagers.rows[j][k].wager
-                end
-            end
-            for j=1, #entity.seats[i].wagers.sections do
-                for k=1, #entity.seats[i].wagers.sections[j] do
-                    totalWagers = totalWagers + entity.seats[i].wagers.sections[j][k].wager
-                end
-            end
+            totalWagers = totalWagers + GetRouletteTotalWager(entity.seats[i].connects)
         end
+        print("TOTAL WAGERS:", totalWagers) 
         if totalWagers > 0 then
             StartRouletteGame(casinoId, entityId)
         else
@@ -198,24 +152,30 @@ function GetRouletteColor(value)
     return "black"
 end
 
+function GetRouletteTotalWager(connects) 
+    local totalWager = 0
+    for i=1, #connects do
+        totalWager = totalWager + connects[i].wager
+    end
+    return totalWager
+end
+
 function GenerateRouletteRows(generateType)
     local rows = {
         {
-            {wager = 0, value = "0", color = "green"},
-            {wager = 0, value = "00", color = "none"},
+            {value = "0", color = "green"},
+            {value = "00", color = "none"},
         }
     }
     for i=0, 2 do
         local row = {}
         for j=0, 11 do
             row[#row + 1] = {
-                wager = 0,
                 value = (3 - i) + (j * 3),
                 color = GetRouletteColor((3 - i) + (j * 3)),
             }
         end
         row[#row + 1] = {
-            wager = 0,
             value = "2:1",
             color = "none",
         }
@@ -228,32 +188,29 @@ function GenerateRouletteSections(generateType)
     return {
         {
             -- 1st, 2nd, 3rd
-            {wager = 0},
-            {wager = 0},
-            {wager = 0},
+            {},
+            {},
+            {},
         },
         {
             -- 1-18
-            {wager = 0},
+            {},
             -- Even
-            {wager = 0},
+            {},
             -- Red
-            {wager = 0},
+            {},
             -- Black
-            {wager = 0},
+            {},
             -- Odd
-            {wager = 0},
+            {},
             -- 19-36
-            {wager = 0},
+            {},
         }
     }
 end
 
 function GenerateRouletteDefaultWagers()
-    return {
-        rows = GenerateRouletteRows("wager"),
-        sections = GenerateRouletteSections("wager"),
-    }
+    return GetDefaultRouletteConnections()
 end
 
 function InitializeRouletteEntity(casinoId, entity)
@@ -262,7 +219,7 @@ function InitializeRouletteEntity(casinoId, entity)
     for i=0, 4 do 
         entity.seats[i] = {
             source = nil,
-            wagers = GenerateRouletteDefaultWagers() 
+            connects = GenerateRouletteDefaultWagers() 
         }
     end
     SetTimeout(1000, function()
@@ -301,26 +258,17 @@ RegisterCallback("pickle_casinos:roulette:requestSeat", function(source, cb, cas
     cb(seatId)
 end)
 
-RegisterNetEvent("pickle_casinos:roulette:updateRouletteWagers", function(wagers)
-    if (not wagers) then return end
+RegisterNetEvent("pickle_casinos:roulette:updateRouletteWagers", function(connects)
     local source = source
     local info = GetPlayerRouletteInfo(source)
     if not info then return end
     local entity = GetCasinoEntity(info.casinoId, info.entityId)
     if not entity then return end
     if not entity.stage.type == "waiting" then return end
-    if wagers.rows then
-        for i=1, #wagers.rows do
-            for j=1, #wagers.rows[i] do
-                entity.seats[info.seatId].wagers.rows[i][j].wager = wagers.rows[i][j].wager
-            end
-        end
+    local data = GetDefaultRouletteConnections()
+    for i=1, #data do 
+        data[i].wager = (connects[i].wager and tonumber(connects[i].wager) and tonumber(connects[i].wager) > 0) and tonumber(connects[i].wager) or 0
     end
-    if wagers.sections then
-        for i=1, #wagers.sections do
-            for j=1, #wagers.sections[i] do
-                entity.seats[info.seatId].wagers.sections[i][j].wager = wagers.sections[i][j].wager
-            end
-        end
-    end
+    entity.seats[info.seatId].connects = data
+    TriggerClientEvent("pickle_casinos:roulette:updateSeatWager", -1, info.casinoId, info.entityId, info.seatId, connects)
 end)

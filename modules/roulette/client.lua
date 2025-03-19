@@ -67,14 +67,15 @@ function GetRouletteSeatsForUI(currentHand)
     for i=1, 4 do
         local seat = CurrentRouletteTable.seats[i]
         local wager = 0
-        if (seat.wagers and seat.wagers[1]) then
-            wager = seat.wagers[1] + (seat.wagers[2] or 0)
+        if (seat.connects) then
+            for j=1, #seat.connects do
+                wager = wager + seat.connects[j].wager
+            end
         end
         table.insert(seats, {
             source = seat.source,
             name = seat.name or "Unknown",
-            currentHand = (currentHand or 1) - 1,
-            hands = seat.hands,
+            connects = seat.connects or {},
             wager = wager,
         })
     end
@@ -138,7 +139,7 @@ function AttemptSeatAtRouletteEntity(casinoId, entityId)
             seatId = seatId,
             seats = entityInfo.seats,
             stage = entityInfo.stage,
-            wagers = entityInfo.wagers,
+            connects = entityInfo.connects,
             money = entityInfo.money,
         }
         DisplayRouletteUI()
@@ -288,7 +289,7 @@ RegisterNUICallback("performRouletteAction", function(data, cb)
 end)
 
 RegisterNUICallback("updateRouletteWagers", function(data, cb)
-    TriggerServerEvent("pickle_casinos:roulette:updateRouletteWagers", data.data)
+    TriggerServerEvent("pickle_casinos:roulette:updateRouletteWagers", data.data.connects)
     cb("ok")
 end)
 
@@ -302,12 +303,10 @@ RegisterNetEvent("pickle_casinos:roulette:updateMoney", function(money)
     end
 end)
 
-RegisterNetEvent("pickle_casinos:roulette:updateSeatWager", function(casinoId, entityId, seatId, handId, wager)
+RegisterNetEvent("pickle_casinos:roulette:updateSeatWager", function(casinoId, entityId, seatId, connects)
     if not DoesRouletteEntityExist(casinoId, entityId) then return end
     if CurrentRouletteTable and CurrentRouletteTable.casinoId == casinoId and CurrentRouletteTable.entityId == entityId then
-        if CurrentRouletteTable.seats[seatId].wagers then
-            CurrentRouletteTable.seats[seatId].wagers[handId] = wager
-        end
+        CurrentRouletteTable.seats[seatId].connects = connects
         SendNUIMessage({
             type = "updateRouletteSeats",
             seats = GetRouletteSeatsForUI(),
@@ -318,19 +317,7 @@ RegisterNetEvent("pickle_casinos:roulette:updateSeatWager", function(casinoId, e
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
     local heading = casinoEntity.rotation.z
     local chipOffset = PLAY_AREA_OFFSETS[seatId].chips
-    for i=1, #playArea.wagers[handId] do
-        DeleteEntity(playArea.wagers[handId][i])
-    end
-    playArea.wagers[handId] = {}
-    print(handId)
-    local chips = GetCalculatedChips(wager)
-    for i=1, #chips do
-        local chip = chips[i]
-        local chipObject = CreateProp(chip.model, GetOffsetFromEntityInWorldCoords(playArea.surfaceObject, vector3((handId == 2 and 0.1 or 0.0), -0.12, 1 + (i - 1) * 0.0065)), false, false, false)
-        FreezeEntityPosition(chipObject, true)
-        SetEntityRotation(chipObject, 0.0, 0.0, heading + chipOffset.rotation.z, 2, true)
-        table.insert(playArea.wagers[handId], chipObject)
-    end
+    -- TODO: CHIPS ON TABLE
 end)
 
 RegisterNetEvent("pickle_casinos:roulette:updateSeatCards", function(casinoId, entityId, seatId, handId, cards, extraData)
@@ -376,10 +363,7 @@ RegisterNetEvent("pickle_casinos:roulette:updateSeat", function(casinoId, entity
         })
         CurrentRouletteTable.seats[seatId] = seatData
     end
-    for i=1, 2 do
-        TriggerEvent("pickle_casinos:roulette:updateSeatWager", casinoId, entityId, seatId, i, seatData.wagers[i])
-        TriggerEvent("pickle_casinos:roulette:updateSeatCards", casinoId, entityId, seatId, i, seatData.hands[i])
-    end
+    -- TriggerEvent("pickle_casinos:roulette:updateSeatWager", casinoId, entityId, seatId, 1, seatData.wagers)
 end)
 
 function SetEntitySmoothRotation(entity, from, to, speed)

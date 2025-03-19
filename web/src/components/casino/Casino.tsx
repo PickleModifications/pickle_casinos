@@ -240,11 +240,14 @@ export function GetChipForValue(value: number, chips: Chip[], preserveNumber: bo
     return closestChip;
 }
 
-export function RouletteWagerComponent({wager, setWager, betRange, money, chips, attemptWagerUpdate, closestChip, config} : {wager: number, setWager: (value: number, data?: any) => void, betRange?: [number, number], money: number, chips: Chip[], attemptWagerUpdate: (wager: number, strictMode?: boolean) => boolean, closestChip: Chip, config: Config}) {
+export function RouletteWagerComponent({connects, wager, setWager, betRange, money, chips, attemptWagerUpdate, closestChip, config} : {connects: any, wager: number, setWager: (value: number, data?: any) => void, betRange?: [number, number], money: number, chips: Chip[], attemptWagerUpdate: (wager: number, strictMode?: boolean) => boolean, closestChip: Chip, config: Config}) {
     const [selectedChip, setSelectedChip] = useState<Chip | null>(null);
     const [rows, setRows] = useState(GetDefaultRouletteRows());
     const [sections, setSections] = useState(GetDefaultRouletteSections()); 
-    const [connects, setConnects] = useState(GetDefaultRouletteConnections());
+    useNuiEvent("setRouletteWager", (data: any) => {
+        if (data.wager) {
+        }
+    });
     return (
         <div className="flex flex-col gap-1 items-center justify-center">
             <RouletteComponent roulette={{
@@ -258,7 +261,6 @@ export function RouletteWagerComponent({wager, setWager, betRange, money, chips,
                         if (selectedChip && attemptWagerUpdate(wager + selectedChip.value, true)) {
                             let newConnects = connects;
                             newConnects[index].wager += selectedChip.value;
-                            setConnects(newConnects);
                             setWager(wager + selectedChip.value, {
                                 connects: newConnects,
                             });
@@ -278,15 +280,14 @@ export function RouletteWagerComponent({wager, setWager, betRange, money, chips,
             <div className="flex flex-row gap-1 items-center">
                 <div className="relative rounded-full bg-yellow-600 border-zinc-400 p-2 cursor-pointer hover:scale-90 transition-transform" style={{width: 30, height: 30}} onClick={() => { 
                     if (attemptWagerUpdate(wager * 2, true)) {
-                        const newConnects = connects.map((connect) => {
+                        const newConnects = connects.map((connect: any) => {
                             return {
                                 ...connect,
                                 wager: connect.wager * 2,
                             }
                         });
-                        setConnects(newConnects);
                         setWager(wager * 2, {
-                            sections: newConnects,
+                            connects: newConnects,
                         });
                     }
                 }}>
@@ -306,16 +307,8 @@ export function RouletteWagerComponent({wager, setWager, betRange, money, chips,
                 ))}
                 <div className="relative rounded-full bg-secondary/80 border-zinc-400 p-2 cursor-pointer hover:scale-90 transition-transform" style={{width: 30, height: 30}} onClick={() => { 
                     attemptWagerUpdate(0); 
-                    const newRows = GetDefaultRouletteRows();
-                    const newSections = GetDefaultRouletteSections();
-                    const newConnects = GetDefaultRouletteConnections();
-                    setRows(newRows);
-                    setSections(newSections);
-                    setConnects(newConnects);
                     setWager(0, {
-                        rows: newRows,
-                        sections: newSections,
-                        newConnects: newConnects,
+                        connects: GetDefaultRouletteConnections(),
                     });
                 }}>
                     <div className="absolute top-[50%] left-[50%] rounded-full z-1" style={{transform: "translate(-50%, -50%)"}}>
@@ -327,8 +320,8 @@ export function RouletteWagerComponent({wager, setWager, betRange, money, chips,
     )
 }
 
-export function WagerComponent({wager, setWager, betRange, money, wagerType} : {wagerType?: string, wager: number, setWager: (value: number, data?: any) => void, betRange?: [number, number], money: number}) {
-    const wagerTypeString = wagerType ? wagerType : "default";
+export function WagerComponent({wager, setWager, betRange, money, wagerData} : {wagerData?: any, wager: number, setWager: (value: number, data?: any) => void, betRange?: [number, number], money: number}) {
+    const wagerTypeString = (wagerData && wagerData.type) ? wagerData.type : "default";
     const {config} = useConfig();
     const [value, setValue] = useState(wager);
     const chips = config.chips || [];
@@ -379,7 +372,7 @@ export function WagerComponent({wager, setWager, betRange, money, wagerType} : {
     return (
         <>
             {wagerTypeString === "default" && ( <DefaultWagerComponent wager={value} setWager={setWager} betRange={betRange} money={money} chips={chips} attemptWagerUpdate={attemptWagerUpdate} closestChip={closestChip} config={config} /> )}
-            {wagerTypeString === "roulette" && ( <RouletteWagerComponent wager={value} setWager={setWager} betRange={betRange} money={money} chips={chips} attemptWagerUpdate={attemptWagerUpdate} closestChip={closestChip} config={config} /> )}
+            {wagerTypeString === "roulette" && ( <RouletteWagerComponent connects={wagerData.connects} wager={value} setWager={setWager} betRange={betRange} money={money} chips={chips} attemptWagerUpdate={attemptWagerUpdate} closestChip={closestChip} config={config} /> )}
         </>
     );
 }
