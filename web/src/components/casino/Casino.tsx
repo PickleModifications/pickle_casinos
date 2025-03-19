@@ -6,7 +6,7 @@ import { useEffect } from "react";
 import Blackjack from "../games/blackjack/Blackjack";
 import { Translate } from "@/providers/locale/Locale";
 import Slots from "../games/slots/Slots";
-import Roulette, { GetDefaultRouletteRows, GetDefaultRouletteSections, RouletteComponent } from "../games/roulette/Roulette";
+import Roulette, { GetDefaultRouletteConnections, GetDefaultRouletteRows, GetDefaultRouletteSections, RouletteComponent } from "../games/roulette/Roulette";
 
 export type CasinoGame = {
     visible: boolean;
@@ -243,33 +243,29 @@ export function GetChipForValue(value: number, chips: Chip[], preserveNumber: bo
 export function RouletteWagerComponent({wager, setWager, betRange, money, chips, attemptWagerUpdate, closestChip, config} : {wager: number, setWager: (value: number, data?: any) => void, betRange?: [number, number], money: number, chips: Chip[], attemptWagerUpdate: (wager: number, strictMode?: boolean) => boolean, closestChip: Chip, config: Config}) {
     const [selectedChip, setSelectedChip] = useState<Chip | null>(null);
     const [rows, setRows] = useState(GetDefaultRouletteRows());
-    const [sections, setSections] = useState(GetDefaultRouletteSections());
+    const [sections, setSections] = useState(GetDefaultRouletteSections()); 
+    const [connects, setConnects] = useState(GetDefaultRouletteConnections());
     return (
-        <div className="flex flex-col gap-2 items-center justify-center">
-            <RouletteComponent roulette={{winningNumber: -1, isPlaying: false, rows, sections, onClick: (type: "green" | "row" | "section", index: number, row?: number) => {
-                if (type === "row" && row != undefined) {
-                    if (selectedChip &&  attemptWagerUpdate(wager + selectedChip.value, true)) {
-                        let newRows = rows;
-                        newRows[row][index].wager += selectedChip.value;
-                        setRows(newRows);
-                        setWager(wager + selectedChip.value, {
-                            rows: newRows,
-                            sections: sections,
-                        });
+        <div className="flex flex-col gap-1 items-center justify-center">
+            <RouletteComponent roulette={{
+                winningNumber: "-1", 
+                isPlaying: false, 
+                rows, 
+                sections, 
+                connects,
+                onClick: (type: "row" | "section" | "connect", index: number, row?: number) => {
+                    if (type === "connect") {
+                        if (selectedChip && attemptWagerUpdate(wager + selectedChip.value, true)) {
+                            let newConnects = connects;
+                            newConnects[index].wager += selectedChip.value;
+                            setConnects(newConnects);
+                            setWager(wager + selectedChip.value, {
+                                connects: newConnects,
+                            });
+                        }
                     }
                 }
-                else if (type === "section" && row != undefined) {
-                    if (selectedChip && attemptWagerUpdate(wager + selectedChip.value, true)) {
-                        let newSections = sections;
-                        newSections[row][index].wager += selectedChip.value;
-                        setSections(newSections);
-                        setWager(wager + selectedChip.value, {
-                            rows: rows,
-                            sections: newSections,
-                        });
-                    }
-                }
-            }}}/>
+            }}/>
             {betRange && <div className="font-semibold text-zinc-400"><Translate id="casino_betrange" args={[GetCurrencyString(betRange[0], config), GetCurrencyString(betRange[1], config)]} /></div>}
             <div className="flex flex-col gap-0 items-center">
                 <div className="font-bold text-lg" style={{
@@ -279,35 +275,23 @@ export function RouletteWagerComponent({wager, setWager, betRange, money, chips,
                 </div>
                 <div className="font-semibold text-zinc-400"><Translate id="casino_money" args={[GetCurrencyString(money, config)]} /></div>
             </div>
-            <div className="flex flex-row gap-2 items-center">
-                <div className="relative rounded-full bg-yellow-600 border-zinc-400 p-2 cursor-pointer hover:scale-90 transition-transform" style={{width: 48, height: 48}} onClick={() => { 
+            <div className="flex flex-row gap-1 items-center">
+                <div className="relative rounded-full bg-yellow-600 border-zinc-400 p-2 cursor-pointer hover:scale-90 transition-transform" style={{width: 30, height: 30}} onClick={() => { 
                     if (attemptWagerUpdate(wager * 2, true)) {
-                        const newRows = rows.map((row) => {
-                            return row.map((cell) => {
-                                return {
-                                    ...cell,
-                                    wager: cell.wager * 2,
-                                }
-                            })
-                        })
-                        const newSections = sections.map((section) => {
-                            return section.map((cell) => {
-                                return {
-                                    ...cell,
-                                    wager: cell.wager * 2,
-                                }
-                            })
-                        })
-                        setRows(newRows);
-                        setSections(newSections);
+                        const newConnects = connects.map((connect) => {
+                            return {
+                                ...connect,
+                                wager: connect.wager * 2,
+                            }
+                        });
+                        setConnects(newConnects);
                         setWager(wager * 2, {
-                            rows: newRows,
-                            sections: newSections,
+                            sections: newConnects,
                         });
                     }
                 }}>
                     <div className="absolute top-[50%] left-[50%] rounded-full z-1" style={{transform: "translate(-50%, -50%)"}}>
-                        <div className="font-bold text-xl">x2</div>
+                        <div className="font-bold text-sm">x2</div>
                     </div>
                 </div>
                 {chips.map((chip, index) => (
@@ -317,22 +301,25 @@ export function RouletteWagerComponent({wager, setWager, betRange, money, chips,
                         playAudio("bet");
                         setSelectedChip(chip);
                      }} key={index}>
-                        <ChipDisplay chip={chip} size={48} />
+                        <ChipDisplay chip={chip} size={30} />
                     </div>
                 ))}
-                <div className="relative rounded-full bg-secondary/80 border-zinc-400 p-2 cursor-pointer hover:scale-90 transition-transform" style={{width: 48, height: 48}} onClick={() => { 
+                <div className="relative rounded-full bg-secondary/80 border-zinc-400 p-2 cursor-pointer hover:scale-90 transition-transform" style={{width: 30, height: 30}} onClick={() => { 
                     attemptWagerUpdate(0); 
                     const newRows = GetDefaultRouletteRows();
                     const newSections = GetDefaultRouletteSections();
+                    const newConnects = GetDefaultRouletteConnections();
                     setRows(newRows);
                     setSections(newSections);
+                    setConnects(newConnects);
                     setWager(0, {
                         rows: newRows,
                         sections: newSections,
+                        newConnects: newConnects,
                     });
                 }}>
                     <div className="absolute top-[50%] left-[50%] rounded-full z-1" style={{transform: "translate(-50%, -50%)"}}>
-                        <Trash2 size={24}/>
+                        <Trash2 size={16}/>
                     </div>
                 </div>
             </div>
@@ -411,7 +398,8 @@ export function CasinoGameDisplay() {
         //             {wager: 0, name: "Pickle c"},
         //         ],
         //         stage: {
-        //             type: "waiting",
+        //             type: "winningNumber",
+        //             winningNumber: "24",
         //         },
         //         isPlaying: false,
         //     }
