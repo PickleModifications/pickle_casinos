@@ -77,11 +77,14 @@ export const ConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             "baccarat_eitherpair": "Either Pair",
             "baccarat_eitherpair_desc": "5:1",
             "baccarat_player": "Player",
-            baccarat_player_desc: "1:1",
+            "baccarat_player_desc": "1:1",
             "baccarat_banker": "Banker",
             "baccarat_banker_desc": "0.95:1",
             "baccarat_tie": "Tie",
             "baccarat_tie_desc": "8:1",
+            "baccarat_win_player": "Player Wins!",
+            "baccarat_win_banker": "Banker Wins!",
+            "baccarat_win_tie": "It's a Tie!",
         },
     });
     useNuiEvent('setConfig', (data) => {

@@ -458,25 +458,34 @@ export function CasinoControls() {
 }
 
 export function CasinoGameDisplay() {
-    // const [currentGame, setCurrentGame] = useState<CasinoGame | null>(null);
-    const [currentGame, setCurrentGame] = useState<CasinoGame | null>(
-        {
-            type: "baccarat",
-            visible: true,
-            data: {
-                seatId: 1,
-                seats: [
-                    {wager: 0, name: "Pickle"},
-                    {wager: 0, name: "Pickle 2"},
-                    {wager: 0, name: "Pickle 3"},
-                    {wager: 0, name: "Pickle 4"},
-                ],
-                stage: {
-                    type: "waiting",
-                },
-            }
-        }
-    );
+    const [currentGame, setCurrentGame] = useState<CasinoGame | null>(null);
+    // const [currentGame, setCurrentGame] = useState<CasinoGame | null>(
+    //     {
+    //         type: "baccarat",
+    //         visible: true,
+    //         data: {
+    //             seatId: 1,
+    //             seats: [
+    //                 {wager: 0, name: "Pickle"},
+    //                 {wager: 0, name: "Pickle 2"},
+    //                 {wager: 0, name: "Pickle 3"},
+    //                 {wager: 0, name: "Pickle 4"},
+    //             ],
+    //             stage: {
+    //                 type: "results",
+    //                 winningWagers: {
+    //                     player: false,
+    //                     banker: false,
+    //                     tie: false,
+    //                     suitedPair: false,
+    //                     playerPair: false,
+    //                     bankerPair: false,
+    //                     eitherPair: false
+    //                 }
+    //             },
+    //         }
+    //     }
+    // );
     // const [currentGame, setCurrentGame] = useState<CasinoGame | null>(
     //     {
     //         type: "blackjack",
@@ -517,7 +526,7 @@ export function CasinoGameDisplay() {
     //         backgroundImage: "/nui/images/bananabonanza/background.png",
     //     },
     // });
-    const [isGameVisible, setGameVisible] = useState<boolean>(true);
+    const [isGameVisible, setGameVisible] = useState<boolean>(false);
     useNuiEvent("setCurrentGame", (data: any) => {
         if (data.game) {
             setCurrentGame({
