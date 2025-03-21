@@ -9,6 +9,7 @@ import Slots from "../games/slots/Slots";
 import Roulette, { GetDefaultRouletteConnections, GetDefaultRouletteRows, GetDefaultRouletteSections, RouletteComponent } from "../games/roulette/Roulette";
 import Results from "../games/results/Results";
 import { fetchNui } from "@/providers/nui/fetchNui";
+import Baccarat from "../games/baccarat/Baccarat";
 
 export type CasinoGame = {
     visible: boolean;
@@ -411,7 +412,25 @@ export function CasinoControls() {
 }
 
 export function CasinoGameDisplay() {
-    const [currentGame, setCurrentGame] = useState<CasinoGame | null>(null);
+    // const [currentGame, setCurrentGame] = useState<CasinoGame | null>(null);
+    const [currentGame, setCurrentGame] = useState<CasinoGame | null>(
+        {
+            type: "baccarat",
+            visible: true,
+            data: {
+                seatId: 1,
+                seats: [
+                    {wager: 0, name: "Pickle"},
+                    {wager: 0, name: "Pickle 2"},
+                    {wager: 0, name: "Pickle 3"},
+                    {wager: 0, name: "Pickle 4"},
+                ],
+                stage: {
+                    type: "waiting",
+                },
+            }
+        }
+    );
     // const [currentGame, setCurrentGame] = useState<CasinoGame | null>(
     //     {
     //         type: "blackjack",
@@ -452,7 +471,7 @@ export function CasinoGameDisplay() {
     //         backgroundImage: "/nui/images/bananabonanza/background.png",
     //     },
     // });
-    const [isGameVisible, setGameVisible] = useState<boolean>(false);
+    const [isGameVisible, setGameVisible] = useState<boolean>(true);
     useNuiEvent("setCurrentGame", (data: any) => {
         if (data.game) {
             setCurrentGame({
@@ -479,6 +498,7 @@ export function CasinoGameDisplay() {
         }}>
             <CasinoControls/>
             <Results/>
+            {(currentGame.type == "baccarat") && <Baccarat game={currentGame}/>}
             {(currentGame.type == "blackjack") && <Blackjack game={currentGame}/>}
             {(currentGame.type == "slots") && <Slots game={currentGame}/>}
             {(currentGame.type == "roulette") && <Roulette game={currentGame}/>}
