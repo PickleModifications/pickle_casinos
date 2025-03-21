@@ -231,7 +231,53 @@ export function DefaultWagerComponent({wager, setWager, betRange, money, chips, 
     )
 }
 
-const playAudio = (name: string) => {
+export function WagerControls({money, wager, chipValue, onClick, betRange } : {money: number, wager: number, chipValue: number, onClick: (data: any) => void, betRange?: [number, number]}) {
+    const {config} = useConfig();
+    const chips = config.chips || [];
+    const currentChip = chipValue > 0 ? GetChipForValue(chipValue, chips) : null;
+    return (
+        <div className="flex flex-col gap-2 items-center justify-center">
+            <div className="flex flex-col gap-0 items-center">
+                <div className="font-bold text-lg" style={{
+                    color: (betRange ? (wager >= betRange[0] ? "white" : "var(--color-red-400)") : undefined)
+                }}>
+                    <AnimatedValue value={wager} />
+                </div>
+                <div className="font-semibold text-zinc-400"><Translate id="casino_money" args={[GetCurrencyString(money, config)]} /></div>
+            </div>
+            <div className="flex flex-row gap-2 items-center">
+                <div className="relative rounded-full bg-yellow-600 border-zinc-400 p-2 cursor-pointer hover:scale-90 transition-transform" style={{width: 48, height: 48}} onClick={() => {
+                    onClick({type: "doubleWager"})
+                }}>
+                    <div className="absolute top-[50%] left-[50%] rounded-full z-1" style={{transform: "translate(-50%, -50%)"}}>
+                        <div className="font-bold text-xl">x2</div>
+                    </div>
+                </div>
+                {chips.map((chip, index) => (
+                    <div className="cursor-pointer hover:scale-90 transition-transform" style={{
+                        filter: (currentChip != null && currentChip.value == chip.value) ? "brightness(1.0)" : "brightness(0.8)",
+                    }} onClick={() => { onClick({type: "setCurrentChip", value: chip.value}); }} key={index}>
+                        <ChipDisplay chip={chip} size={48} />
+                    </div>
+                ))}
+                <div className="relative rounded-full bg-blue-600 border-zinc-400 p-2 cursor-pointer hover:scale-90 transition-transform" style={{width: 48, height: 48}} onClick={() => { 
+                    onClick({type: "repeatWager"})
+                }}>
+                    <div className="absolute top-[50%] left-[50%] rounded-full z-1" style={{transform: "translate(-50%, -50%)"}}>
+                        <RotateCw size={24}/>
+                    </div>
+                </div>
+                <div className="relative rounded-full bg-secondary/80 border-zinc-400 p-2 cursor-pointer hover:scale-90 transition-transform" style={{width: 48, height: 48}} onClick={() => { onClick({type: "clearWager"}); }}>
+                    <div className="absolute top-[50%] left-[50%] rounded-full z-1" style={{transform: "translate(-50%, -50%)"}}>
+                        <Trash2 size={24}/>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+export const playAudio = (name: string) => {
     const audio = new Audio('/nui/audio/chips_'+name+'.mp3');
     audio.play();
 };

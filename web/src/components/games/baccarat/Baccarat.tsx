@@ -1,4 +1,4 @@
-import { AnimatedValue, Card, CardsDisplay, CasinoGame, ChipDisplay, GameIcon, GetChipForValue, WagerComponent } from "@/components/casino/Casino";
+import { AnimatedValue, Card, CardsDisplay, CasinoGame, ChipDisplay, GameIcon, GetChipForValue, playAudio, WagerComponent, WagerControls } from "@/components/casino/Casino";
 import { useConfig } from "@/providers/config";
 import { Translate } from "@/providers/locale/Locale";
 import { fetchNui } from "@/providers/nui/fetchNui";
@@ -31,14 +31,14 @@ type BaccaratWager = {
 
 type BaccaratStructure = {
     cards: BaccaratCards;
-    wager: BaccaratWager;
+    wagers: BaccaratWager;
     isPlaying: boolean;
 }
 
 export function BaccaratComponent({baccarat, onClick} : {baccarat: BaccaratStructure, onClick?: (data: any) => void}) {
     const { config } = useConfig();
     const cards = baccarat.cards;
-    const baccaratWager = baccarat.wager;
+    const baccaratWager = baccarat.wagers;
     const isPlaying = baccarat.isPlaying;
     const chips = config.chips || [];
     return (
@@ -167,10 +167,24 @@ export default function Baccarat({game}: {game: CasinoGame}) {
     const wagerLimit = game.data.wagerLimit;
     const currentSeat = game.data.seatId;
     const [money, setMoney] = useState<number>(game.data.money || 0);
+    const [chipValue, setChipValue] = useState<number>(0);
     const [seats, setSeats] = useState<BaccaratSeat[]>(game.data.seats);
     const [stage, setStage] = useState<BaccaratStage>(game.data.stage);
     const [turnTimeLeft, setTurnTimeLeft] = useState<number>(0);
     const [performingAction, setPerformingAction] = useState<boolean>(false);
+    const [baccaratWagers, setBaccaratWagers] = useState<BaccaratWager>(game.data.wagers || {
+        player: 0,
+        banker: 0,
+        tie: 0,
+        suitedPair: 0,
+        playerPair: 0,
+        bankerPair: 0,
+        eitherPair: 0
+    });
+    const [baccaratCards, setBaccaratCards] = useState<BaccaratCards>(game.data.cards || {
+        player: [],
+        banker: []
+    });
     useEffect(() => {
         if (stage.type == "turn") {
             if (turnTimeLeft > 0) {
@@ -234,23 +248,55 @@ export default function Baccarat({game}: {game: CasinoGame}) {
                 </div>
                 <div className="flex flex-col gap-2 items-center w-[33.333333%] px-8">
                     {<BaccaratComponent baccarat={{
-                        cards: {
-                            player: [],
-                            banker: []
-                        },
-                        wager: {
-                            player: 0,
-                            banker: 0,
-                            tie: 0,
-                            suitedPair: 0,
-                            playerPair: 0,
-                            bankerPair: 0,
-                            eitherPair: 0
-                        },
+                        cards: baccaratCards,
+                        wagers: baccaratWagers,
                         isPlaying: stage.type !== "waiting"
                     }} onClick={(data: any) => {
                         if (stage.type !== "waiting") return;
+                        if (chipValue > 0) {
+                            if (data.type == "player") {
+                                playAudio("bet");
+                                setBaccaratWagers({...baccaratWagers, player: baccaratWagers.player + chipValue});
+                            }
+                            else if (data.type == "banker") {
+                                playAudio("bet");
+                                setBaccaratWagers({...baccaratWagers, banker: baccaratWagers.banker + chipValue});
+                            }
+                            else if (data.type == "tie") {
+                                playAudio("bet");
+                                setBaccaratWagers({...baccaratWagers, tie: baccaratWagers.tie + chipValue});
+                            }
+                            else if (data.type == "suited") {
+                                playAudio("bet");
+                                setBaccaratWagers({...baccaratWagers, suitedPair: baccaratWagers.suitedPair + chipValue});
+                            }
+                            else if (data.type == "playerpair") {
+                                playAudio("bet");
+                                setBaccaratWagers({...baccaratWagers, playerPair: baccaratWagers.playerPair + chipValue});
+                            }
+                            else if (data.type == "bankerpair") {
+                                playAudio("bet");
+                                setBaccaratWagers({...baccaratWagers, bankerPair: baccaratWagers.bankerPair + chipValue});
+                            }
+                            else if (data.type == "eitherpair") {
+                                playAudio("bet");
+                                setBaccaratWagers({...baccaratWagers, eitherPair: baccaratWagers.eitherPair + chipValue});
+                            }
+                        }
                     }}/>}
+                    <WagerControls chipValue={chipValue} money={money} wager={baccaratWagers.player} onClick={(data: any) => {
+                        if (data.type == "setCurrentChip") {
+                            playAudio("bet");
+                            setChipValue(data.value);
+                        }
+                        else if (data.type == "clearWager") {
+                            playAudio("clear");
+                            setBaccaratWagers(Object.keys(baccaratWagers).reduce((acc, key) => {
+                                acc[key as keyof BaccaratWager] = 0;
+                                return acc;
+                            }, {} as BaccaratWager));
+                        }
+                    }} />
                     {/* {stage.type === "waiting" ? (
                         <WagerComponent betRange={wagerLimit} money={money} wager={0} setWager={(value) => {
                             fetchNui("setBlackjackWager", {
