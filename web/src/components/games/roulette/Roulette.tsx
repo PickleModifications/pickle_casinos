@@ -486,7 +486,7 @@ export function RouletteComponent({roulette} : {roulette: RouletteComponentProps
                                 width: 30, 
                                 height: "100%",
                                 backgroundColor: value.color,
-                                filter: ((isPlaying && winningNumber != value.value) || hoveringNumbers.includes(value.value.toString())) ? "brightness(0.5)" : "unset",
+                                filter: ((isPlaying && winningNumber != value.value) || (!isPlaying && hoveringNumbers.includes(value.value.toString()))) ? "brightness(0.5)" : "unset",
                                 cursor: (!isPlaying) ? "pointer" : "unset",
                             }} onMouseEnter={() => {
                                 setHoveringNumbers([value.value.toString()]);
@@ -598,8 +598,8 @@ export function RouletteComponent({roulette} : {roulette: RouletteComponentProps
                             }} onClick={() => {
                                 roulette.onClick("connect", ((index) + 3) + (sectionIndex * 3));
                             }}>
-                                <div className="absolute top-[50%] left-[50%] rounded-full z-1" style={{transform: "translate(-50%, -50%)"}}>
-                                    <div className="font-bold text-xs text-nowrap">{value.component}</div>
+                                <div className="absolute top-[50%] left-[50%] w-full rounded-full z-1" style={{transform: "translate(-50%, -50%)"}}>
+                                    <div className="font-bold text-xs text-nowrap text-center">{value.component}</div>
                                 </div>
                                 <div className="absolute pointer-events-none top-[50%] left-[50%] z-10" style={{transform: "translate(-50%, -50%)"}}>
                                     {connects[((index) + 3) + (sectionIndex * 3)].wager > 0 && (
@@ -635,6 +635,9 @@ export default function Roulette({game} : {game: CasinoGame}) {
     const [connects, setConnects] = useState(GetDefaultRouletteConnections());
     const winningNumber = stage.winningNumber != undefined ? stage.winningNumber : -1;
     const [lastNumbers, setLastNumbers] = useState<number[]>([24, 1, 0, 11, 8, 24, 1, 0, 11, 8]);
+    useNuiEvent("updateRouletteWagers", (data) => {
+        setConnects(data.data.connects);
+    });
     useNuiEvent("updateMoney", (data) => {
         setMoney(data.money);
     });
@@ -644,7 +647,6 @@ export default function Roulette({game} : {game: CasinoGame}) {
     });
     useNuiEvent("updateRouletteSeats", (data) => {
         setSeats(data.seats);
-        setConnects(data.seats[currentSeat - 1].connects);
     });
     useNuiEvent("updateRouletteSeat", (data) => {
         setCurrentSeat(data.seatId);

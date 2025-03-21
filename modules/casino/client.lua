@@ -11,6 +11,25 @@ function CreateCasinoEntity(casinoId, entityId)
     end
 end
 
+function GetCasinoEntity(casinoId, entityId)
+    local casino = Casinos[casinoId]
+    if not casino then return end
+    for i=1, #casino.entities do
+        if casino.entities[i].id == entityId then
+            return casino.entities[i], i
+        end
+    end
+end
+
+function UpdateCasinoEntity(casinoId, entity)
+    local casino = Casinos[casinoId]
+    if not casino then return end
+    local casinoEntity, index = GetCasinoEntity(casinoId, entity.id)
+    if not casinoEntity then return end
+    print("Updating casino entity", casinoId, entity.id, index)
+    casino.entities[index] = entity
+end
+
 RegisterNUICallback("pageLoaded", function(data, cb)
     SendNUIMessage({
         type = "setConfig",
@@ -22,6 +41,15 @@ RegisterNUICallback("pageLoaded", function(data, cb)
     TriggerServerEvent("pickle_casinos:initializePlayer")
 end)
 
+RegisterNUICallback("exitGame", function(data, cb)
+    TriggerEvent("pickle_casinos:exitGame")
+    SetNuiFocus(false, false)
+    SendNUIMessage({
+        type = "setCurrentGame",
+        game = nil
+    })
+end)
+
 RegisterNetEvent("pickle_casinos:syncCasinos", function(data)
     for k,v in pairs(data) do
         Casinos[k] = v
@@ -29,6 +57,14 @@ RegisterNetEvent("pickle_casinos:syncCasinos", function(data)
             CreateCasinoEntity(k, v.entities[i].id)
         end
     end
+end)
+
+RegisterNetEvent("pickle_casinos:updateCasinoEntity", function(casinoId, entity)
+    local casino = Casinos[casinoId]
+    if not casino then return end
+    local casinoEntity = GetCasinoEntity(casinoId, entity.id)
+    if not casinoEntity then return end
+    UpdateCasinoEntity(casinoId, entity)
 end)
 
 RegisterNetEvent("pickle_casinos:updateMoney", function(money)

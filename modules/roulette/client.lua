@@ -26,40 +26,12 @@ local PLAY_AREA_OFFSETS = {
         },
     },
 }
-local CHIP_VALUATIONS = {
-    { value = 10, model = `vw_prop_chip_10dollar_x1` },
-    { value = 50, model = `vw_prop_chip_50dollar_x1` },
-    { value = 100, model = `vw_prop_chip_100dollar_x1` },
-    { value = 500, model = `vw_prop_chip_500dollar_x1` },
-    { value = 1000, model = `vw_prop_chip_1kdollar_x1` },
-    { value = 5000, model = `vw_prop_plaq_5kdollar_x1` },
-    { value = 10000, model = `vw_prop_plaq_10kdollar_x1` },
-}
 local CurrentRouletteTable = nil
 local playingRouletteAnimation = false
+local CurrentCamera = nil
+
 function DoesRouletteEntityExist(casinoId, entityId)
     return LocalRouletteTables[casinoId] and LocalRouletteTables[casinoId][entityId]
-end
-
-function GetCalculatedChips(amount)
-    if amount <= 0 then return {} end
-    local chips = {}
-    local remainingAmount = amount
-    repeat
-        local highestChip = CHIP_VALUATIONS[1]
-        for i=1, #CHIP_VALUATIONS do
-            local chip = CHIP_VALUATIONS[i]
-            if chip.value <= remainingAmount then
-                highestChip = chip
-            end
-        end
-        if highestChip then
-            table.insert(chips, highestChip)
-            remainingAmount = remainingAmount - highestChip.value
-        end
-        if remainingAmount < CHIP_VALUATIONS[1].value then break end
-    until (remainingAmount == 0 or #chips >= 2000)
-    return chips
 end
 
 function GetRouletteSeatsForUI(currentHand)
@@ -142,11 +114,34 @@ function AttemptSeatAtRouletteEntity(casinoId, entityId)
             connects = entityInfo.connects,
             money = entityInfo.money,
         }
-        DisplayRouletteUI()
+        local casinoId = CurrentRouletteTable.casinoId
+        local entityId = CurrentRouletteTable.entityId
+        local seatId = CurrentRouletteTable.seatId
+        SetNuiFocus(true, true)
+        SendNUIMessage({
+            type = "setCurrentGame",
+            game = {
+                type = "roulette",
+                data = {
+                    seatId = seatId,
+                    seats = GetRouletteSeatsForUI(),
+                    money = CurrentRouletteTable.money,
+                    wagerLimit = {10, 100000},
+                    stage = CurrentRouletteTable.stage,
+                }
+            }
+        })
+        if (CurrentRouletteTable.stage.type == "waiting") then
+            TriggerEvent("pickle_casinos:roulette:updateStage", casinoId, entityId, CurrentRouletteTable.stage)
+        end
         local playerPed = PlayerPedId()
         local playArea = rouletteTable.playAreas[seatId]
         PlayRouletteAnimation(playerPed, {dict = "anim_casino_b@amb@casino@games@shared@player@", name = "sit_enter_left"}, {time = 6000})
-        SetTableGamesCameraThisUpdate(`CASINO_ROULETTE_CAMERA`)
+        local initialCamSettings = {
+            coords = GetGameplayCamCoord(),
+            rotation = GetGameplayCamRot(),
+            fov = GetGameplayCamFov(),
+        }
         Wait(6000)
         local coords = GetOffsetFromEntityInWorldCoords(playArea.surfaceObject, 0.0, -0.5, 0.05)
         local rotation = GetEntityRotation(playArea.surfaceObject) + vector3(0.0, 0.0, 90.0)
@@ -169,7 +164,7 @@ end
 function PerformRouletteSpin(casinoId, entityId, numberString)
     local casino = Config.Casinos[casinoId]
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
-    if not casino or not casinoEntity then return end
+    if not casino or not casinoEntity then return end    
     local numberTranslation = {"00", "27", "10", "25", "29", "12", "8", "19", "31", "18", "6", "21", "33", "16", "4", "23", "35", "14", "2", "0", "28", "9", "26", "30", "11", "7", "20", "32", "17", "5", "22", "34", "15", "3", "24", "36", "13", "1"}
     local numberIndex = 1
     for i=1, #numberTranslation do
@@ -189,6 +184,16 @@ function PerformRouletteSpin(casinoId, entityId, numberString)
     end
     SetEntityCoordsNoOffset(ballObject, targetCoords, false, false, false)
     SetEntityRotation(ballObject, 0.0, 0.0, heading + 90.0, 2, true)
+    if CurrentRouletteTable and CurrentRouletteTable.casinoId == casinoId and CurrentRouletteTable.entityId == entityId then
+        EnsureRouletteCamera()
+        local wheelOffset = GetOffsetFromEntityGivenWorldCoords(rouletteTable.tableObject, targetCoords.x, targetCoords.y, targetCoords.z)
+        local camTarget = GetOffsetFromEntityInWorldCoords(rouletteTable.tableObject, wheelOffset + vector3(0.0, -0.12, 0.65))
+        SetCamParams(CurrentCamera, camTarget.x, camTarget.y, camTarget.z,
+            -90.0, 0.0, heading, 80.0, 
+            2000, 0, 0, 2
+        )
+    end
+
     local tableDict = "anim_casino_b@amb@casino@games@roulette@table"
     RequestAnimDict(tableDict)
     while not HasAnimDictLoaded(tableDict) do
@@ -229,9 +234,12 @@ function CreateRouletteEntity(casinoId, entityId)
     
     if not LocalRouletteTables[casinoId] then LocalRouletteTables[casinoId] = {} end
     LocalRouletteTables[casinoId][entityId] = {
+        coords = coords,
+        heading = heading,
         dealerPed = dealerPed,
         tableObject = tableObject,
         surfaceObject = surfaceObject,
+        connects = CreateEmptyRouletteConnections(),
         interacts = {},
         playAreas = {{},{},{},{}}
     }
@@ -254,7 +262,10 @@ function CreateRouletteEntity(casinoId, entityId)
         end
     end
     SetTimeout(1000, function()
-        AttemptSeatAtRouletteEntity(casinoId, entityId)
+        local casinoEntity = GetCasinoEntity(casinoId, entityId)
+        local positions = GetRouletteConnectPositions()
+        RenderRouletteChips(casinoId, entityId)
+        -- AttemptSeatAtRouletteEntity(casinoId, entityId)
     end)
     -- AttemptSeatAtRouletteEntity(casinoId, entityId)
 end
@@ -273,7 +284,43 @@ function DeleteRouletteEntity(casinoId, entityId)
         local playArea = rouletteTable.playAreas[i]
         DeleteEntity(playArea.surfaceObject)
     end
+    for i=1, #rouletteTable.connects do
+        for j=1, #rouletteTable.connects[i] do
+            DeleteEntity(rouletteTable.connects[i][j])
+        end
+    end
     LocalRouletteTables[casinoId][entityId] = nil
+end
+
+function RenderRouletteChips(casinoId, entityId)
+    local positions = GetRouletteConnectPositions()
+    local rouletteTable = LocalRouletteTables[casinoId][entityId]
+    local casinoEntity = GetCasinoEntity(casinoId, entityId)
+    for i=1, #rouletteTable.connects do
+        for j=1, #rouletteTable.connects[i] do
+            DeleteEntity(rouletteTable.connects[i][j])
+        end
+    end
+    local wagerPositions = {}
+    for i=1, #casinoEntity.seats do
+        local wagers = ConvertWagersToPositions(casinoEntity.seats[i].connects)
+        for j=1, #wagers do
+            wagerPositions[j] = wagers[j].wager + (wagerPositions[j] or 0)
+        end
+    end
+    for i=1, #wagerPositions do 
+        local chipStack = {}
+        if wagerPositions[i] > 0 then
+            local chips = GetCalculatedChips(wagerPositions[i], 1)
+            for j=1, #chips do
+                local chip = chips[j]
+                local chipObject = CreateProp(chip.model, GetOffsetFromEntityInWorldCoords(rouletteTable.surfaceObject, positions[i].x, positions[i].y, 1.0), false, false, false)
+                SetEntityHeading(chipObject, rouletteTable.heading)
+                table.insert(chipStack, chipObject)
+            end
+        end            
+        rouletteTable.connects[i] = chipStack
+    end
 end
 
 RegisterNUICallback("performRouletteAction", function(data, cb)
@@ -291,6 +338,33 @@ end)
 RegisterNUICallback("updateRouletteWagers", function(data, cb)
     TriggerServerEvent("pickle_casinos:roulette:updateRouletteWagers", data.data.connects)
     cb("ok")
+end)
+
+RegisterNUICallback("repeatWager", function(data, cb)
+    if not CurrentRouletteTable then return end
+    ServerCallback("pickle_casinos:repeatRouletteWager", function(data)
+        SendNUIMessage({
+            type = "updateRouletteWagers",
+            data = data,
+        })
+    end)
+    cb("ok")
+end)
+
+AddEventHandler("pickle_casinos:exitGame", function()
+    if not CurrentRouletteTable then return end
+    local casinoId = CurrentRouletteTable.casinoId
+    local entityId = CurrentRouletteTable.entityId
+    local seatId = CurrentRouletteTable.seatId
+    local playerPed = PlayerPedId()
+    PlayRouletteAnimation(playerPed, {dict = "anim_casino_b@amb@casino@games@shared@player@", name = "sit_exit_left"}, {time = 4000})
+    TriggerServerEvent("pickle_casinos:roulette:leaveTable", casinoId, entityId, seatId)
+    DestroyCam(CurrentCamera)
+    RenderScriptCams(false, true, 2000, false, false) 
+    CurrentRouletteTable = nil
+    CurrentCamera = nil
+    Wait(4000)
+    ClearPedTasks(playerPed)
 end)
 
 RegisterNetEvent("pickle_casinos:roulette:updateMoney", function(money)
@@ -311,47 +385,22 @@ RegisterNetEvent("pickle_casinos:roulette:updateSeatWager", function(casinoId, e
             type = "updateRouletteSeats",
             seats = GetRouletteSeatsForUI(),
         })
+        if seatId == CurrentRouletteTable.seatId then
+            SendNUIMessage({
+                type = "updateRouletteWagers",
+                data = {
+                    connects = connects,
+                    wager = GetRouletteTotalWager(connects),
+                },
+            })
+        end
     end
     local rouletteTable = LocalRouletteTables[casinoId][entityId]
     local playArea = rouletteTable.playAreas[seatId]
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
     local heading = casinoEntity.rotation.z
     local chipOffset = PLAY_AREA_OFFSETS[seatId].chips
-    -- TODO: CHIPS ON TABLE
-end)
-
-RegisterNetEvent("pickle_casinos:roulette:updateSeatCards", function(casinoId, entityId, seatId, handId, cards, extraData)
-    if not DoesRouletteEntityExist(casinoId, entityId) then return end
-    local extraData = extraData or {}
-    CurrentRouletteTable.seats[seatId].hands[handId] = cards
-    local rouletteTable = LocalRouletteTables[casinoId][entityId]
-    local playArea = rouletteTable.playAreas[seatId]
-    local casinoEntity = GetCasinoEntity(casinoId, entityId)
-    for i=1, #playArea.hands[handId] do
-        DeleteEntity(playArea.hands[handId][i])
-    end
-    playArea.hands[handId] = {}
-    local heading = casinoEntity.rotation.z
-    local cardOffset = PLAY_AREA_OFFSETS[seatId].cards
-    local isSplit = handId == 2
-    for i=1, #cards do
-        local card = cards[i]
-        local offset = vector3((i - 1) * 0.01, (i - 1) * 0.01, (i - 1) * 0.001)
-        if seatId == 0 then
-            offset = vector3(((i - 1) * (i <= 2 and -0.07 or -0.018) + (i > 2 and -0.06 or 0)), 0.0, (i <= 2 and 0 or 0.001) * (i - 1))
-        end
-        if isSplit then
-            offset = offset + vector3(0.1, 0.0, 0.0)
-        end
-        local cardProp = CreateProp(GetCardModel(card.class, card.value), GetOffsetFromEntityInWorldCoords(playArea.surfaceObject, offset + ((extraData.isDouble and i == #cards) and vector3(0.018, 0.02, 0.0) or 0)), false, false, false)
-        FreezeEntityPosition(cardProp, true)
-        SetEntityRotation(cardProp, 0.0, (card.class == "hidden") and 180.0 or 0.0, (heading + cardOffset.rotation.z) + ((extraData.isDouble and i == #cards) and 90.0 or 0.0), 2, true)
-        table.insert(playArea.hands[handId], cardProp)
-    end
-    SendNUIMessage({
-        type = "updateRouletteSeats",
-        seats = GetRouletteSeatsForUI(handId),
-    })
+    RenderRouletteChips(casinoId, entityId)
 end)
 
 RegisterNetEvent("pickle_casinos:roulette:updateSeat", function(casinoId, entityId, seatId, seatData)
@@ -363,21 +412,24 @@ RegisterNetEvent("pickle_casinos:roulette:updateSeat", function(casinoId, entity
         })
         CurrentRouletteTable.seats[seatId] = seatData
     end
+    RenderRouletteChips(casinoId, entityId)
     -- TriggerEvent("pickle_casinos:roulette:updateSeatWager", casinoId, entityId, seatId, 1, seatData.wagers)
 end)
 
-function SetEntitySmoothRotation(entity, from, to, speed)
-    local speed = speed or 4
-    local progress = 0
-    CreateThread(function()
-        while progress < 100 do
-            progress = progress + speed
-            if progress > 100 then progress = 100 end
-            local newCoords = lerp(from, to, progress / 100)
-            SetEntityRotation(entity, newCoords, 2, true)
-            Wait(10)
-        end
-    end)
+function EnsureRouletteCamera()
+    if not CurrentCamera then
+        local initialCamSettings = {
+            coords = GetGameplayCamCoord(),
+            rotation = GetGameplayCamRot(),
+            fov = GetGameplayCamFov(),
+        }
+        CurrentCamera = CreateCamWithParams("DEFAULT_SCRIPTED_CAMERA", 
+            initialCamSettings.coords.x, initialCamSettings.coords.y, initialCamSettings.coords.z, 
+            initialCamSettings.rotation.x, initialCamSettings.rotation.y, initialCamSettings.rotation.z, initialCamSettings.fov
+        )
+        SetCamActive(CurrentCamera, true)
+        RenderScriptCams(true, false, 0, true, true)
+    end
 end
 
 RegisterNetEvent("pickle_casinos:roulette:performAction", function(casinoId, entityId, action)
@@ -423,10 +475,16 @@ RegisterNetEvent("pickle_casinos:roulette:updateStage", function(casinoId, entit
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
     local dealerPed = rouletteTable.dealerPed
     if stage.type == "waiting" then
-        CreateThread(function()
-            while stage.time > 1 do
-                stage.time = stage.time - 1
-                if isCurrentTable then
+        if isCurrentTable then
+            EnsureRouletteCamera()
+            local tableCoords = GetOffsetFromEntityInWorldCoords(rouletteTable.surfaceObject, 0.0, -0.5, 3.0)
+            SetCamParams(CurrentCamera, tableCoords.x, tableCoords.y, tableCoords.z,
+                -90.0, 0.0, rouletteTable.heading, 80.0, 
+                2000, 0, 0, 2
+            )
+            CreateThread(function()
+                while stage.time > 1 do
+                    stage.time = stage.time - 1
                     SendNUIMessage({
                         type = "updateRouletteStage",
                         stage = {
@@ -434,26 +492,39 @@ RegisterNetEvent("pickle_casinos:roulette:updateStage", function(casinoId, entit
                             time = stage.time,
                         }
                     })
+                    Wait(1000)
                 end
-                Wait(1000)
-            end
-        end)
+            end)
+        end
     elseif stage.type == "rolling" then
-        SendNUIMessage({
-            type = "updateRouletteStage",
-            stage = {
-                type = "rolling",
-            }
-        })
+        if isCurrentTable then
+            SendNUIMessage({
+                type = "updateRouletteStage",
+                stage = {
+                    type = "rolling",
+                }
+            })
+        end
         PerformRouletteSpin(casinoId, entityId, stage.targetNumber)
     elseif stage.type == "winningNumber" then
-        SendNUIMessage({
-            type = "updateRouletteStage",
-            stage = {
-                type = "winningNumber",
-                winningNumber = stage.winningNumber,
-            }
-        })
+        if isCurrentTable then
+            SendNUIMessage({
+                type = "updateRouletteStage",
+                stage = {
+                    type = "winningNumber",
+                    winningNumber = stage.winningNumber,
+                }
+            })
+            if stage.seats and stage.seats[CurrentRouletteTable.seatId] then
+                local seatResult = stage.seats[CurrentRouletteTable.seatId]
+                if seatResult.totalWin > 0 then
+                    SendNUIMessage({
+                        type = "displayResults",
+                        results = {winnings = seatResult.totalWin},
+                    })
+                end
+            end
+        end
     end
 end)
 

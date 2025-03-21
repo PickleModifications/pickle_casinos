@@ -52,9 +52,9 @@ export function BlackjackCardValue(cards: Card[]) {
 
 export default function Blackjack({game} : {game: CasinoGame}) {
     const { config } = useConfig();
-    const wagerLimit = game.data.wagerLimit
+    const wagerLimit = game.data.wagerLimit;
+    const currentSeat = game.data.seatId;
     const [money, setMoney] = useState<number>(game.data.money || 0);
-    const [currentSeat, setCurrentSeat] = useState<number>(game.data.seatId);
     const [seats, setSeats] = useState<BlackjackSeat[]>(game.data.seats);
     const [stage, setStage] = useState<BlackjackStage>(game.data.stage);
     const [turnTimeLeft, setTurnTimeLeft] = useState<number>(0);
@@ -82,12 +82,9 @@ export default function Blackjack({game} : {game: CasinoGame}) {
     useNuiEvent("updateBlackjackSeats", (data) => {
         setSeats(data.seats);
     });
-    useNuiEvent("updateBlackjackSeat", (data) => {
-        setCurrentSeat(data.seatId);
-    });
     const canPlayerPerformAction = (action: "hit" | "stand" | "double" | "split") => {
         if (stage.type !== "turn") return false;
-        if (currentSeat !== stage.seatId) return false;
+        if (currentSeat !== stage.seat) return false;
         let seat = seats[currentSeat];
         if (action == "split" && !(IsSplittable(seat.hands[seat.currentHand]) && seat.hands[1].length == 0)) return false;
         if (action == "double" && seat.hands[seat.currentHand].length > 2) return false;
@@ -120,7 +117,7 @@ export default function Blackjack({game} : {game: CasinoGame}) {
                                 {stage.type === "waiting" && <Translate id="blackjack_nextround" args={[stage.time]} />}
                                 {stage.type === "dealing" && <Translate id="blackjack_dealing" />}
                                 {stage.type === "displayCard" && <Translate id="blackjack_displaycard" />}
-                                {stage.type === "turn" && (currentSeat == stage.seatId ? <Translate id="blackjack_playerturn" args={[turnTimeLeft]} /> : <Translate id="blackjack_otherturn" args={[stage.seatId]} />)}
+                                {stage.type === "turn" && (currentSeat == stage.seat ? <Translate id="blackjack_playerturn" args={[turnTimeLeft]} /> : <Translate id="blackjack_otherturn" args={[stage.seatId]} />)}
                                 {/* {stage.type === "results" && (
                                     stage.seatResults[currentSeat].won > 0 ? (
                                         <div className="text-green-400">

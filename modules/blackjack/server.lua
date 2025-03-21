@@ -4,6 +4,17 @@ function JoinBlackjackEntity(source, casinoId, entityId, seatId)
     if not casino then return end
     local entity = GetCasinoEntity(casinoId, entityId)
     if not entity then return end
+    if CurrentPlayers[source] then
+        for i=1, #entity.seats do
+            if entity.seats[i].source == source then
+                entity.seats[seatId].inSeat = true
+                print("PLAYER IS ALREADY IN SEAT", i)
+                return i
+            end
+        end
+        ShowNotification(source, "You are already playing another casino game.")
+        return
+    end
     if entity.seats[seatId].source then
         for i=1, #entity.seats do
             if entity.seats[i].source == nil then
@@ -11,15 +22,33 @@ function JoinBlackjackEntity(source, casinoId, entityId, seatId)
                 break
             end
         end
-        ShowNotification(source, "There are no available seats at this table.")
-        return 
+        if not seatId or seatId < 1 then
+            ShowNotification(source, "There are no available seats at this table.")
+            return 
+        end
     end
-    entity.seats[seatId] = {source = source, wagers = {0, 0}, hands = {{}, {}}}
+    CurrentPlayers[source] = {casinoId = casinoId, entityId = entityId, seatId = seatId}
+    entity.seats[seatId] = {source = source, wagers = {0, 0}, hands = {{}, {}}, inSeat = true}
     SetTimeout(100 * 1, function()
         TriggerClientEvent("pickle_casinos:blackjack:updateSeat", -1, casinoId, entityId, seatId, entity.seats[seatId])
     end)
     ShowNotification(source, "You have joined the table at seat " .. seatId .. ".")
     return seatId
+end
+
+function LeaveBlackjackEntity(source, casinoId, entityId, seatId)
+    local casino = Casinos[casinoId]
+    if not casino then return end
+    local entity = GetCasinoEntity(casinoId, entityId)
+    if not entity then return end
+    if entity.seats[seatId].source == source then
+        entity.seats[seatId] = GenerateDefaultBlackjackSeat()
+        SetTimeout(100 * 1, function()
+            TriggerClientEvent("pickle_casinos:blackjack:updateSeat", -1, casinoId, entityId, seatId, entity.seats[seatId])
+        end)
+        CurrentPlayers[source] = nil
+        ShowNotification(source, "You have left the blackjack table.")
+    end
 end
 
 function GetBlackjackEntity(casinoId, entityId)
@@ -271,6 +300,11 @@ function StartBlackjackLobby(casinoId, entityId)
     entity.stage = {type = "waiting", time = 11}
     TriggerClientEvent("pickle_casinos:blackjack:updateStage", -1, casinoId, entityId, entity.stage)
     CreateThread(function()
+        for i=1, #entity.seats do
+            if entity.seats[i].source and not entity.seats[i].inSeat then
+                LeaveBlackjackEntity(entity.seats[i].source, casinoId, entityId, i)
+            end
+        end
         while entity.stage.type == "waiting" and entity.stage.time > 1 do
             entity.stage.time = entity.stage.time - 1
             Wait(1000)
@@ -289,15 +323,15 @@ function StartBlackjackLobby(casinoId, entityId)
     end)
 end
 
+function GenerateDefaultBlackjackSeat()
+    return {source = nil, wagers = {0, 0}, hands = {{}, {}}, inSeat = false}
+end
+
 function InitializeBlackjackEntity(casinoId, entity)
     local entity = entity or { id = "ERR_BLACKJACK_ENTITY" }
     entity.seats = {}
     for i=0, 4 do 
-        entity.seats[i] = {
-            source = nil,
-            wager = 0,
-            hands = {{}, {}}
-        }
+        entity.seats[i] = GenerateDefaultBlackjackSeat()
     end
     SetTimeout(1000, function()
         StartBlackjackLobby(casinoId, entity.id)
@@ -333,6 +367,19 @@ RegisterCallback("pickle_casinos:blackjack:requestSeat", function(source, cb, ca
         })
     end
     cb(seatId)
+end)
+
+RegisterNetEvent("pickle_casinos:blackjack:leaveTable", function()
+    local source = source
+    local info = GetPlayerBlackjackInfo(source)
+    if not info then return end
+    local entity = GetCasinoEntity(info.casinoId, info.entityId)
+    if not entity then return end
+    if entity.stage.type == "waiting" then
+        LeaveBlackjackEntity(source, info.casinoId, info.entityId, info.seatId)
+    else 
+        entity.seats[info.seatId].inSeat = false
+    end
 end)
 
 RegisterNetEvent("pickle_casinos:blackjack:performAction", function(action)

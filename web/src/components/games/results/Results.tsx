@@ -7,7 +7,6 @@ function OutlinedText({children} : {children: any}) {
         <span style={{
             WebkitTextStroke: '2px black',
             color: 'white',
-            fontSize: '24px',
             fontWeight: 'bold',
         }}>{children}</span>
     )
@@ -73,8 +72,8 @@ export default function Results() {
                 transform: `scale(${scale})`,
                 transformOrigin: "top",
             }}>
-                <OutlinedText><div className="font-bold text-6xl">YOU WON</div></OutlinedText>
-                <OutlinedText><div className="font-bold text-5xl text-green-400"><AnimatedValue value={winnings} time={30}/></div></OutlinedText>
+                <OutlinedText><div className="font-bold text-7xl">YOU WON</div></OutlinedText>
+                <OutlinedText><div className="font-bold text-6xl text-green-400"><AnimatedValue value={winnings} time={30}/></div></OutlinedText>
             </div>
         </div>
     )

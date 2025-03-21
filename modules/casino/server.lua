@@ -1,3 +1,5 @@
+CurrentPlayers = {}
+
 function InitializeCasinoEntities(casinoId, entities)
     for i=1, #entities do
         local entity = entities[i]
@@ -35,6 +37,24 @@ function GenerateCard()
     local values = {"ace", "02", "03", "04", "05", "06", "07", "08", "09", "10", "jack", "queen", "king"}
     -- return { class = classes[1], value = values[1] }
     return { class = classes[math.random(1, #classes)], value = values[math.random(1, #values)] }
+end
+
+function GetCasinoEntity(casinoId, entityId)
+    local casino = Config.Casinos[casinoId]
+    if not casino then return end
+    for i=1, #casino.entities do
+        if casino.entities[i].id == entityId then
+            return casino.entities[i]
+        end
+    end
+end
+
+function SendCasinoEntityUpdate(casinoId, entityId)
+    local casino = Casinos[casinoId]
+    if not casino then return end
+    local entity = GetCasinoEntity(casinoId, entityId)
+    if not entity then return end
+    TriggerClientEvent("pickle_casinos:updateCasinoEntity", -1, casinoId, entity)
 end
 
 RegisterCallback("pickle_casinos:joinEntity", function(source, casinoId, entityId)

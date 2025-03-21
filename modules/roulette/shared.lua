@@ -321,3 +321,105 @@ function GetDefaultRouletteConnections()
     end
     return connects
 end
+
+function ConvertWagersToPositions(connects)
+    local numbers = {
+        {
+            {"00"}, {"0"},
+        },
+        {
+            {"1"}, {"4"}, {"7"}, {"10"}, {"13"}, {"16"}, {"19"}, {"22"}, {"25"}, {"28"}, {"31"}, {"34"}
+        },
+        {
+            {"2"}, {"5"}, {"8"}, {"11"}, {"14"}, {"17"}, {"20"}, {"23"}, {"26"}, {"29"}, {"32"}, {"35"}
+        },
+        {
+            {"3"}, {"6"}, {"9"}, {"12"}, {"15"}, {"18"}, {"21"}, {"24"}, {"27"}, {"30"}, {"33"}, {"36"}
+        },
+
+    }
+    local positions = {}
+    for i=1, #numbers do
+        for b=1, #numbers[i] do 
+            local currentNumber = numbers[i][b][1]
+            local totalWager = 0
+            for j=1, #connects do 
+                for k=1, #connects[j].numbers do
+                    if connects[j].numbers[k] == currentNumber then
+                        totalWager = totalWager + (connects[j].wager / #connects[j].numbers)
+                    end
+                end
+            end
+            positions[#positions + 1] = {
+                number = currentNumber,
+                wager = totalWager
+            }
+        end
+    end
+    return positions
+end
+
+function GetRouletteConnectPositions()
+    local connects = {
+        {
+            wager = 0,
+            numbers = {"00"},
+            x = -0.1525,
+            y = 0.11,
+            width = 26,
+            height = 48,
+        },
+        {
+            wager = 0,
+            numbers = {"0"},
+            x = -0.1525,
+            y = -0.15,
+            width = 26,
+            height = 48,
+        },
+    }
+
+    local numbers = {
+        {
+            {"3"}, {"6"}, {"9"}, {"12"}, {"15"}, {"18"}, {"21"}, {"24"}, {"27"}, {"30"}, {"33"}, {"36"}
+        },
+        {
+            {"2"}, {"5"}, {"8"}, {"11"}, {"14"}, {"17"}, {"20"}, {"23"}, {"26"}, {"29"}, {"32"}, {"35"}
+        },
+        {
+            {"1"}, {"4"}, {"7"}, {"10"}, {"13"}, {"16"}, {"19"}, {"22"}, {"25"}, {"28"}, {"31"}, {"34"}
+        }
+    }
+
+    for i = 1, #numbers do
+        for j = 1, #numbers[i] do
+            table.insert(connects, {
+                wager = 0,
+                numbers = numbers[i][j],
+                x = (-0.055) + ((j - 1) * 0.081),
+                y = (-0.19) + ((i - 1) * 0.165),
+                width = 30,
+                height = 30,
+            })
+        end
+    end
+
+    return connects
+end
+
+function CreateEmptyRouletteConnections()
+    local connects = GetDefaultRouletteConnections()
+    local data = {}
+    for i=1, #connects do
+        data[i] = {}
+    end
+    return data
+end
+
+function GetRouletteTotalWager(connects) 
+    local totalWager = 0
+    for i=1, #connects do
+        totalWager = totalWager + connects[i].wager
+    end
+    return totalWager
+end

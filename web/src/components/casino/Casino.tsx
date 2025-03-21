@@ -1,6 +1,6 @@
 import { Config, useConfig } from "@/providers/config";
 import { useNuiEvent } from "@/providers/nui/useNui";
-import { Repeat2Icon, Trash2 } from "lucide-react";
+import { Repeat2Icon, RotateCw, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useEffect } from "react";
 import Blackjack from "../games/blackjack/Blackjack";
@@ -8,6 +8,7 @@ import { Translate } from "@/providers/locale/Locale";
 import Slots from "../games/slots/Slots";
 import Roulette, { GetDefaultRouletteConnections, GetDefaultRouletteRows, GetDefaultRouletteSections, RouletteComponent } from "../games/roulette/Roulette";
 import Results from "../games/results/Results";
+import { fetchNui } from "@/providers/nui/fetchNui";
 
 export type CasinoGame = {
     visible: boolean;
@@ -210,6 +211,15 @@ export function DefaultWagerComponent({wager, setWager, betRange, money, chips, 
                         <ChipDisplay chip={chip} size={48} />
                     </div>
                 ))}
+                <div className="relative rounded-full bg-blue-600 border-zinc-400 p-2 cursor-pointer hover:scale-90 transition-transform" style={{width: 48, height: 48}} onClick={() => { 
+                    attemptWagerUpdate(0); 
+                    fetchNui("repeatWager", {});
+                    playAudio("bet");
+                }}>
+                    <div className="absolute top-[50%] left-[50%] rounded-full z-1" style={{transform: "translate(-50%, -50%)"}}>
+                        <RotateCw size={24}/>
+                    </div>
+                </div>
                 <div className="relative rounded-full bg-secondary/80 border-zinc-400 p-2 cursor-pointer hover:scale-90 transition-transform" style={{width: 48, height: 48}} onClick={() => { attemptWagerUpdate(0); }}>
                     <div className="absolute top-[50%] left-[50%] rounded-full z-1" style={{transform: "translate(-50%, -50%)"}}>
                         <Trash2 size={24}/>
@@ -245,10 +255,6 @@ export function RouletteWagerComponent({connects, wager, setWager, betRange, mon
     const [selectedChip, setSelectedChip] = useState<Chip | null>(null);
     const [rows, setRows] = useState(GetDefaultRouletteRows());
     const [sections, setSections] = useState(GetDefaultRouletteSections()); 
-    useNuiEvent("setRouletteWager", (data: any) => {
-        if (data.wager) {
-        }
-    });
     return (
         <div className="flex flex-col gap-1 items-center justify-center">
             <RouletteComponent roulette={{
@@ -306,6 +312,15 @@ export function RouletteWagerComponent({connects, wager, setWager, betRange, mon
                         <ChipDisplay chip={chip} size={30} />
                     </div>
                 ))}
+                <div className="relative rounded-full bg-blue-600 border-zinc-400 p-2 cursor-pointer hover:scale-90 transition-transform" style={{width: 30, height: 30}} onClick={() => { 
+                    attemptWagerUpdate(0); 
+                    fetchNui("repeatWager", {});
+                    playAudio("bet");
+                }}>
+                    <div className="absolute top-[50%] left-[50%] rounded-full z-1" style={{transform: "translate(-50%, -50%)"}}>
+                        <RotateCw size={16}/>
+                    </div>
+                </div>
                 <div className="relative rounded-full bg-secondary/80 border-zinc-400 p-2 cursor-pointer hover:scale-90 transition-transform" style={{width: 30, height: 30}} onClick={() => { 
                     attemptWagerUpdate(0); 
                     setWager(0, {
@@ -369,7 +384,11 @@ export function WagerComponent({wager, setWager, betRange, money, wagerData} : {
         setWagerValue(wager);
         return true; 
     }
-
+    if (wagerData && wagerData.type == "roulette") {
+        useNuiEvent("updateRouletteWagers", (data) => {
+            setValue(data.data.wager);
+        }); 
+    }
     return (
         <>
             {wagerTypeString === "default" && ( <DefaultWagerComponent wager={value} setWager={setWager} betRange={betRange} money={money} chips={chips} attemptWagerUpdate={attemptWagerUpdate} closestChip={closestChip} config={config} /> )}
@@ -378,28 +397,53 @@ export function WagerComponent({wager, setWager, betRange, money, wagerData} : {
     );
 }
 
-export function CasinoGameDisplay() {
-    const [currentGame, setCurrentGame] = useState<CasinoGame | null>(
-        // null
-        {
-            type: "roulette",
-            visible: true,
-            data: {
-                seats: [
-                    {wager: 0, name: "Pickle"},
-                    {wager: 0, name: "Pickle a"},
-                    {wager: 0, name: "Pickle vb"},
-                    {wager: 0, name: "Pickle c"},
-                ],
-                stage: {
-                    type: "winningNumber",
-                    winningNumber: "24",
-                },
-                isPlaying: false,
-            }
-        }
-    );
+export function CasinoControls() {
+    return (
+        <div className="bg-background/95 p-2 absolute top-[20px] left-[20px] flex items-center gap-2 rounded-md">
+            <div className="flex items-center justify-center gap-2">
+                <div className="font-bold text-sm p-[4px] text-black rounded-md bg-white">
+                    ESC
+                </div>
+                <div className="font-bold text-xl text-primary">Leave Game</div>
+            </div>
+        </div>
+    )
+}
 
+export function CasinoGameDisplay() {
+    const [currentGame, setCurrentGame] = useState<CasinoGame | null>(null);
+    // const [currentGame, setCurrentGame] = useState<CasinoGame | null>(
+    //     {
+    //         type: "blackjack",
+    //         visible: true,
+    //         data: {
+    //             seatId: 1,
+    //             seats: [
+    //                 {wager: 0, name: "Pickle", currentHand: 1, hands: [[], []]},
+    //                 {wager: 0, name: "Pickle", currentHand: 1, hands: [[], []]},
+    //                 {wager: 0, name: "Pickle a", currentHand: 1,  hands: [[], []]},
+    //                 {wager: 0, name: "Pickle vb", currentHand: 1,  hands: [[], []]},
+    //                 {wager: 0, name: "Pickle c", currentHand: 1,  hands: [[], []]},
+    //             ],
+    //             stage: {
+    //                 type: "waiting",
+    //             },
+    //         }
+    //     }
+    // );
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === "Escape" || event.key === "Backspace") {
+                fetchNui("exitGame", {});
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+
+        return () => {
+            window.removeEventListener("keydown", handleKeyDown);
+        };
+    });
     // const [currentGame, setCurrentGame] = useState<CasinoGame | null>({
     //     type: "slots",
     //     visible: false,
@@ -408,7 +452,7 @@ export function CasinoGameDisplay() {
     //         backgroundImage: "/nui/images/bananabonanza/background.png",
     //     },
     // });
-    const [isGameVisible, setGameVisible] = useState<boolean>(true);
+    const [isGameVisible, setGameVisible] = useState<boolean>(false);
     useNuiEvent("setCurrentGame", (data: any) => {
         if (data.game) {
             setCurrentGame({
@@ -424,15 +468,16 @@ export function CasinoGameDisplay() {
             setGameVisible(false);
             setTimeout(() => {
                 setCurrentGame(null);
-            }, 300);
+            }, 310);
         }
 
     });
 
     return currentGame != null && (
-        <div className="w-screen h-screen absolute text-primary top-0 left-0" style={{
+        <div className="w-screen h-screen absolute text-primary top-0 left-0 transition-opacity duration-300" style={{
             opacity: isGameVisible ? 1 : 0,
         }}>
+            <CasinoControls/>
             <Results/>
             {(currentGame.type == "blackjack") && <Blackjack game={currentGame}/>}
             {(currentGame.type == "slots") && <Slots game={currentGame}/>}
