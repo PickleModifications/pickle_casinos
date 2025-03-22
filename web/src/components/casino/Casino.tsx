@@ -458,7 +458,7 @@ export function CasinoControls() {
 }
 
 export function CasinoGameDisplay() {
-    const [currentGame, setCurrentGame] = useState<CasinoGame | null>(null);
+    // const [currentGame, setCurrentGame] = useState<CasinoGame | null>(null);
     // const [currentGame, setCurrentGame] = useState<CasinoGame | null>(
     //     {
     //         type: "baccarat",
@@ -518,15 +518,15 @@ export function CasinoGameDisplay() {
             window.removeEventListener("keydown", handleKeyDown);
         };
     });
-    // const [currentGame, setCurrentGame] = useState<CasinoGame | null>({
-    //     type: "slots",
-    //     visible: false,
-    //     data: {
-    //         headerTextImage: "/nui/images/bananabonanza/header_title.png",
-    //         backgroundImage: "/nui/images/bananabonanza/background.png",
-    //     },
-    // });
-    const [isGameVisible, setGameVisible] = useState<boolean>(false);
+    const [currentGame, setCurrentGame] = useState<CasinoGame | null>({
+        type: "slots",
+        visible: false,
+        data: {
+            headerTextImage: "/nui/images/bananabonanza/header_title.png",
+            backgroundImage: "/nui/images/bananabonanza/background.png",
+        },
+    });
+    const [isGameVisible, setGameVisible] = useState<boolean>(true);
     useNuiEvent("setCurrentGame", (data: any) => {
         if (data.game) {
             setCurrentGame({

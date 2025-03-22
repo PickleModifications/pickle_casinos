@@ -1,40 +1,84 @@
-import { CasinoGame } from "@/components/casino/Casino"
+import { AnimatedValue, CasinoGame } from "@/components/casino/Casino"
 import { Button } from "@/components/ui/button";
-import { Minus, Plus, PlusCircle, RotateCw } from "lucide-react";
+import { Minus, Plus, PlusCircle, RotateCw, X } from "lucide-react";
 import { useRef, useState } from "react"
 import { useEffect } from "react"
 
 import  "./Slots.modules.css"
 
 type SlotReel = string[]
-const reelCount = 5;
+
+type SlotSymbols = {
+    [key: string]: {
+        image: string;
+        reels: number[];
+    }
+}
+
 const reelSymbols = 3;
 
-const symbols: { [key: string]: { image: string } } = {
+const slotSymbols: SlotSymbols = {
     "Bonus Symbol": {
-        "image": "/nui/images/bananabonanza/bonus.png",
+        image: "/nui/images/bananabonanza/bonus.png",
+        reels: [5, 5, 1, 1, 1],
     },
     "Monkey": {
-        "image": "/nui/images/bananabonanza/monkey.png",
+        image: "/nui/images/bananabonanza/monkey.png",
+        reels: [2, 2, 2, 2, 2],
     },
     "Coconut": {
-        "image": "/nui/images/bananabonanza/coconut.png",
+        image: "/nui/images/bananabonanza/coconut.png",
+        reels: [3, 3, 3, 3, 3],
     },
     "Coconut Tree Bundle": {
-        "image": "/nui/images/bananabonanza/tree_2.png",
+        image: "/nui/images/bananabonanza/tree_2.png",
+        reels: [4, 4, 4, 4, 4],
     },
     "Coconut Tree": {
-        "image": "/nui/images/bananabonanza/tree_1.png",
+        image: "/nui/images/bananabonanza/tree_1.png",
+        reels: [5, 5, 5, 5, 5],
     },
     "Banana Bunch": {
-        "image": "/nui/images/bananabonanza/banana_2.png",
+        image: "/nui/images/bananabonanza/banana_2.png",
+        reels: [6, 6, 6, 6, 6],
     },
     "Banana": {
-        "image": "/nui/images/bananabonanza/banana_1.png",
+        image: "/nui/images/bananabonanza/banana_1.png",
+        reels: [7, 7, 7, 7, 7],
     },
 }
 
-const BonusSymbol = "Bonus Symbol";
+const paylines = [
+    [1, 1, 1, 1, 1],
+    [0, 0, 0, 0, 0],
+    [2, 2, 2, 2, 2],
+    [0, 1, 2, 1, 0],
+    [2, 1, 0, 1, 2],
+    [1, 0, 0, 0, 1],
+    [1, 2, 2, 2, 1],
+    [0, 0, 1, 2, 2],
+    [2, 2, 1, 0, 0],
+    [1, 2, 1, 0, 1],
+    [1, 0, 1, 2, 1],
+    [0, 1, 1, 1, 0],
+    [2, 1, 1, 1, 2],
+    [0, 1, 0, 1, 0],
+    [2, 1, 2, 1, 2],
+    [1, 1, 0, 1, 1],
+    [1, 1, 2, 1, 1],
+    [0, 0, 2, 0, 0],
+    [2, 2, 0, 2, 2],
+    [0, 2, 2, 2, 0],
+]
+
+const Bonus = {
+    symbol: "Bonus Symbol",
+    triggerCount: 3,
+    freeSpins: 10,
+}
+
+const BonusSymbol = Bonus.symbol;
+const BonusTriggerCount = Bonus.triggerCount;
 
 type SlotSpin = {
     spins: SlotReel[][];
@@ -121,7 +165,7 @@ function Reel({spinning, index, bonusIndex, fakeReel, reel, onSpinComplete}: {sp
                 const isCurrentReel = (currentReel.length > 0 && index < currentReel.length);
                 const isWin = isCurrentReel && currentReel[index] == BonusSymbol;
                 return (
-                    <img draggable={false} key={index} src={symbols[symbol].image} style={{
+                    <img draggable={false} key={index} src={slotSymbols[symbol].image} style={{
                         animation: isWin ? "shake 2s" : "unset",
                         animationIterationCount: isWin ? "infinite" : "unset",
                         width: 200,
@@ -140,7 +184,7 @@ function GenerateFakeReels(reelCount: number, reelSymbols: number): SlotReel[] {
     for (let i = 0; i < reelCount; i++) {
         const reel: SlotReel = [];
         for (let j = 0; j < reelSymbols; j++) {
-            const symbolKeys = Object.keys(symbols);
+            const symbolKeys = Object.keys(slotSymbols);
             reel.push(symbolKeys[Math.floor(Math.random() * symbolKeys.length)]);
         }
         fakeReels.push(reel);
@@ -148,10 +192,49 @@ function GenerateFakeReels(reelCount: number, reelSymbols: number): SlotReel[] {
     return fakeReels;
 }
 
+function GenerateSpin(reelLength: number, reelSymbols: number) {
+    let reelResults = [];
+    for (let i=0; i<reelLength; i++) {
+        let reelResult = []
+        let hasAddedBonus = false;
+        for (let j=0; j<reelSymbols; j++) {
+            let symbols = [];
+            for (const [slotSymbol, data] of Object.entries(slotSymbols)) {
+                for (let k = 0; k < data.reels[i]; k++) {
+                    symbols.push(slotSymbol);
+                }
+            }
+            let symbolIndex = Math.floor(Math.random() * symbols.length);
+            let symbol = symbols[symbolIndex];
+            if (symbol == BonusSymbol) {
+                if (hasAddedBonus) {
+                    while (symbol == BonusSymbol) {
+                        symbolIndex = Math.floor(Math.random() * symbols.length);
+                        symbol = symbols[symbolIndex];
+                    }
+                }
+                else {                
+                    hasAddedBonus = true;
+                }
+            }
+            reelResult.push(symbol);
+        }
+        reelResults.push(reelResult);
+    }
+    return {
+        spins: [
+            reelResults,
+        ]
+    }
+}
+
 export default function Slots({game} : {game: CasinoGame}) {
+    const reelLength = 5;
     const [currentSpin, setCurrentSpin] = useState<SlotSpin | null>(null);
     const [spinning, setSpinning] = useState<boolean>(false);
-    const [fakeReels, setFakeReels] = useState<SlotReel[]>(GenerateFakeReels(reelCount, reelSymbols));
+    const [fakeReels, setFakeReels] = useState<SlotReel[]>(GenerateFakeReels(reelLength, reelSymbols));
+    const [balance, setBalance] = useState<number>(1000);
+    const [bet, setBet] = useState<number>(10);
     const audio = useRef<HTMLAudioElement | null>(null);
     useEffect(() => {
         if (audio.current) {
@@ -176,6 +259,57 @@ export default function Slots({game} : {game: CasinoGame}) {
                 backgroundSize: "cover",
                 backgroundPosition: "center",
             }}>
+                {/* <div className="z-[20] absolute top-0 left-0 w-full h-full bg-background/85">
+                    <div className="absolute top-0 right-0 p-2">
+                        <X size={32} className="text-primary cursor-pointer hover:scale-95 transition-transform"/>
+                    </div>
+                    <div className="flex flex-row items-start justify-between p-8">
+                        <div className="flex flex-col gap-2 items-center">
+                            <div className="font-bold text-4xl">Paylines</div>
+                            <div className="grid grid-cols-4 gap-4">
+                                {paylines.map((payline, index) => {
+                                    return (
+                                        <div key={index} className="flex flex-col items-center gap-2">
+                                            <div className="font-bold text-2xl">{index + 1}</div>
+                                            <div className="flex flex-row gap-1">
+                                                {Array(reelLength).fill(0).map((_, reelIndex) => {
+                                                    return (
+                                                        <div className="flex flex-col items-center gap-1" key={reelIndex}>
+                                                            {Array(reelSymbols).fill(0).map((_, symbolIndex) => {
+                                                                return (
+                                                                    <div
+                                                                        key={symbolIndex}
+                                                                        style={{
+                                                                            width: 12,
+                                                                            height: 12,
+                                                                            background: payline[reelIndex] === symbolIndex ? "rgba(255,255,255,0.75)" : "rgba(64, 64, 64, 0.75)",
+                                                                            borderRadius: 2,
+                                                                        }}
+                                                                    ></div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>    
+                        <div className="flex font-semibold flex-col gap-2 items-center">
+                            <div className="font-bold text-4xl">Game Rules</div>
+                            <div className="flex flex-col gap-2 items-center">
+                                <div>Symbols pay left to right.</div>
+                                <div className="flex flex-row items-center gap-2">
+                                    <div>You must get {BonusTriggerCount}</div>
+                                    <img src={slotSymbols[BonusSymbol].image} className="h-12" />
+                                    <div>symbol(s) to trigger {Bonus.freeSpins} free spin(s).</div>
+                                </div>    
+                            </div>
+                        </div>
+                    </div>
+                </div> */}
                 <div className="flex flex-col items-center">
                     <img src={game.data.headerTextImage} className="max-h-24" />
                     <div className="flex flex-row relative p-2 bg-background/95">
@@ -207,15 +341,19 @@ export default function Slots({game} : {game: CasinoGame}) {
                     </div>
                 </div>
                 <div className="flex flex-row items-center justify-between w-full p-2">
-                    <div className="flex flex-col items-center">
-                        <div className="flex flex-row items-center gap-2">
+                    <div className="flex flex-row items-end gap-2">
+                        <div className="flex flex-col items-end gap-2">
                             <div className="font-bold text-3xl text-yellow-600">Bet</div>
-                            <div className="font-bold text-3xl">$10</div>
-                        </div>
-                        <div className="flex flex-row items-center gap-2">
                             <div className="font-bold text-3xl text-yellow-600">Balance</div>
-                            <div className="font-bold text-3xl">$10,000</div>
                         </div>
+                        <div className="flex flex-col items-start gap-2">
+                            <div className="font-bold text-3xl"><AnimatedValue value={bet} /></div>
+                            <div className="font-bold text-3xl"><AnimatedValue value={balance} /></div>
+                        </div>
+                    </div>
+                    <div className="flex flex-row items-center gap-2 font-bold text-4xl">
+                        <div className="text-yellow-600">WIN</div>
+                        <div><AnimatedValue value={1000}/></div>
                     </div>
                     <div className="flex flex-row items-center gap-2">
                         <div className="rounded-full border p-2 bg-background/50 hover:scale-105 cursor-pointer transition-transform">
@@ -223,11 +361,7 @@ export default function Slots({game} : {game: CasinoGame}) {
                         </div>
                         <div className="rounded-full border p-4 bg-background/95 hover:rotate-[45deg] hover:scale-105 cursor-pointer transition-transform" onClick={() => {
                             if (!spinning) {
-                                setCurrentSpin({
-                                    spins: [
-                                        GenerateFakeReels(reelCount, reelSymbols),
-                                    ]
-                                });
+                                setCurrentSpin(GenerateSpin(reelLength, reelSymbols));
                                 setSpinning(true);
                             }
                         }}>
