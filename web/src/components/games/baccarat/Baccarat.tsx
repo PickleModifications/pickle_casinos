@@ -11,8 +11,8 @@ type BaccaratStage = any;
 type BaccaratSeat = {
     source?: string | number;
     wager: number;
+    wagers: BaccaratWager;
     name: string;
-    connects: any[];
 }
 
 type BaccaratCards = {
@@ -45,6 +45,23 @@ type BaccaratStructure = {
     wagers: BaccaratWager;
     winningWagers?: BaccaratWagerWinners;
     isPlaying: boolean;
+}
+
+export function GetBaccaratCardsValue(cards: Card[]) {
+    let totalNumber = 0
+    for (let i = 0; i < cards.length; i++) {
+        let card = cards[i];
+        if (card.value == "ace") {
+            totalNumber = totalNumber + 1
+        }
+        else if (card.value == "jack" || card.value == "queen" || card.value == "king") {
+            totalNumber = totalNumber + 10
+        }
+        else {
+            totalNumber = totalNumber + parseInt(card.value)
+        }
+    }
+    return totalNumber % 10;
 }
 
 export function BaccaratComponent({baccarat, onClick} : {baccarat: BaccaratStructure, onClick?: (data: any) => void}) {
@@ -111,7 +128,7 @@ export function BaccaratComponent({baccarat, onClick} : {baccarat: BaccaratStruc
                         <div className="font-bold text-lg"><Translate id="baccarat_player" /></div>
                         <div className="font-semibold text-sm text-zinc-400"><Translate id="baccarat_player_desc" /></div>
                     </div>
-                    <div className="font-semibold text-lg text-zinc-400">9</div>
+                    {cards.player.length > 0 && (<div className="font-semibold text-lg text-zinc-400">{GetBaccaratCardsValue(cards.player)}</div>)}
                 </div>
                 <div className="p-2">
                     <CardsDisplay cards={cards.player} direction="right" height={80} />
@@ -158,11 +175,11 @@ export function BaccaratComponent({baccarat, onClick} : {baccarat: BaccaratStruc
                         <div className="font-bold text-lg"><Translate id="baccarat_banker" /></div>
                     </div>
                     <div className="flex justify-end">
-                        <div className="font-semibold text-lg text-zinc-400">9</div>
+                        {cards.banker.length > 0 && (<div className="font-semibold text-lg text-zinc-400">{GetBaccaratCardsValue(cards.banker)}</div>)}
                     </div>
                 </div>
                 <div className="flex justify-end p-2">
-                    <CardsDisplay cards={cards.player} direction="left" height={80} />
+                    <CardsDisplay cards={cards.banker} direction="left" height={80} />
                 </div>
                 <div className="absolute pointer-events-none top-[50%] left-[50%] z-10" style={{transform: "translate(-50%, -50%)"}}>
                     {baccaratWager.banker > 0 && (
@@ -236,7 +253,7 @@ export function GetBaccaratWinner(winningWagers: BaccaratWagerWinners) {
 export default function Baccarat({game}: {game: CasinoGame}) {
     const wagerLimit = game.data.wagerLimit;
     const currentSeat = game.data.seatId;
-    const [money, setMoney] = useState<number>(game.data.money || 1000);
+    const [money, setMoney] = useState<number>(game.data.money || 0);
     const [chipValue, setChipValue] = useState<number>(0);
     const [seats, setSeats] = useState<BaccaratSeat[]>(game.data.seats);
     const [stage, setStage] = useState<BaccaratStage>(game.data.stage);
@@ -268,15 +285,28 @@ export default function Baccarat({game}: {game: CasinoGame}) {
     useNuiEvent("updateMoney", (data) => {
         setMoney(data.money);
     });
-    useNuiEvent("updateBlackjackStage", (data) => {
+    useNuiEvent("updateBaccaratStage", (data) => {
         setStage(data.stage);
         setPerformingAction(false);
         if (data.stage.type == "turn") {
             setTurnTimeLeft(data.stage.timeLeft);
         }
     });
-    useNuiEvent("updateBlackjackSeats", (data) => {
+    useNuiEvent("updateBaccaratCards", (data) => {
+        setBaccaratCards(data.cards);
+    });
+    useNuiEvent("updateBaccaratSeats", (data) => {
+        console.log(data.seats)
         setSeats(data.seats);
+        setBaccaratWagers(data.seats[currentSeat - 1].wagers || {
+            player: 0,
+            banker: 0,
+            tie: 0,
+            suitedPair: 0,
+            playerPair: 0,
+            bankerPair: 0,
+            eitherPair: 0
+        });
     });
     const attemptBet = (type: string, value: number) => {
         let newWagers = {
@@ -285,11 +315,12 @@ export default function Baccarat({game}: {game: CasinoGame}) {
         };
         if (CalculateBaccaratWagers(newWagers) > money) { return; }
         playAudio("bet");
-        setBaccaratWagers(newWagers);
+        fetchNui("setBaccaratWager", {
+            wager: newWagers
+        });
     }
     return (
-        <div className='flex flex-col bg-background/95 absolute w-full px-8 py-8' style={{ 
-            height: 272,
+        <div className='flex flex-col bg-background/95 absolute w-full px-8 py-8' style={{
             bottom: 0, 
             left: '0', 
             transition: "opacity 0.25s ease-in-out",
@@ -299,7 +330,7 @@ export default function Baccarat({game}: {game: CasinoGame}) {
                     <div className="flex flex-col gap-2">
                         <div className='flex flex-row items-center justify-between gap-2'>
                             <div className='flex flex-row items-center gap-2'>
-                                <GameIcon name='blackjack' style={{fill: "yellow", width: 30, height: 30}} />
+                                <GameIcon name='baccarat' style={{fill: "yellow", width: 30, height: 30}} />
                                 <div className='font-bold text-2xl'><Translate id="baccarat_title" /></div>
                             </div>
                             <div className='font-bold text-md text-zinc-400'>
@@ -335,10 +366,17 @@ export default function Baccarat({game}: {game: CasinoGame}) {
                             }
                             else if (data.type == "clearWager") {
                                 playAudio("clear");
-                                setBaccaratWagers(Object.keys(baccaratWagers).reduce((acc, key) => {
-                                    acc[key as keyof BaccaratWager] = 0;
-                                    return acc;
-                                }, {} as BaccaratWager));
+                                fetchNui("setBaccaratWager", {
+                                    wager: {
+                                        player: 0,
+                                        banker: 0,
+                                        tie: 0,
+                                        suitedPair: 0,
+                                        playerPair: 0,
+                                        bankerPair: 0,
+                                        eitherPair: 0
+                                    }
+                                });
                             }
                             else if (data.type == "doubleWager") {
                                 let newWagers = Object.keys(baccaratWagers).reduce((acc, key) => {
@@ -347,13 +385,15 @@ export default function Baccarat({game}: {game: CasinoGame}) {
                                 }, {} as BaccaratWager);
                                 if (CalculateBaccaratWagers(newWagers) > money) { return; }
                                 playAudio("bet");
-                                setBaccaratWagers(newWagers);
+                                fetchNui("setBaccaratWager", {
+                                    wager: newWagers
+                                });
                             }
                         }} />
                     )}
                     {/* {stage.type === "waiting" ? (
                         <WagerComponent betRange={wagerLimit} money={money} wager={0} setWager={(value) => {
-                            fetchNui("setBlackjackWager", {
+                            fetchNui("setBaccaratWager", {
                                 wager: value
                             });
                         }} />

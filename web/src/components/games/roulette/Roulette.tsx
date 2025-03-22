@@ -625,7 +625,7 @@ export function RouletteComponent({roulette} : {roulette: RouletteComponentProps
 export default function Roulette({game} : {game: CasinoGame}) {
     const { config } = useConfig();
     const wagerLimit = game.data.wagerLimit
-    const [money, setMoney] = useState<number>(game.data.money || 1000);
+    const [money, setMoney] = useState<number>(game.data.money || 0);
     const [currentSeat, setCurrentSeat] = useState<number>(game.data.seatId);
     const [seats, setSeats] = useState<RouletteSeat[]>(game.data.seats);
     const [stage, setStage] = useState<RouletteStage>(game.data.stage);

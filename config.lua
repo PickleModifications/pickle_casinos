@@ -28,6 +28,16 @@ Config.Casinos = {
                     tableModel = `vw_prop_casino_roulette_01`,
                 }
             },
+            {
+                id = "baccarat-1",
+                type = "baccarat",
+                coords = vector3(-959.4362, -3008.0134, 12.9451),
+                rotation = vector3(0.0, 0.0, 240.9669),
+                settings = {
+                    dealerModel = `s_f_y_casino_01`,
+                    tableModel = `fury_p_baccarat`,
+                }
+            },
         }
     }
 }

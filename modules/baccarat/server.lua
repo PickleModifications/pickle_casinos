@@ -1,0 +1,420 @@
+function JoinBaccaratEntity(source, casinoId, entityId, seatId)
+    local seatId = seatId or 1
+    local casino = Casinos[casinoId]
+    if not casino then return end
+    local entity = GetCasinoEntity(casinoId, entityId)
+    if not entity then return end
+    if CurrentPlayers[source] then
+        for i=1, #entity.seats do
+            if entity.seats[i].source == source then
+                entity.seats[seatId].inSeat = true
+                print("PLAYER IS ALREADY IN SEAT", i)
+                return i
+            end
+        end
+        ShowNotification(source, "You are already playing another casino game.")
+        return
+    end
+    if seatId == 0 then seatId = 1 end
+    if entity.seats[seatId].source then
+        for i=1, #entity.seats do
+            if entity.seats[i].source == nil then
+                seatId = i
+                break
+            end
+        end
+        if not seatId or seatId < 1 then
+            ShowNotification(source, "There are no available seats at this table.")
+            return 
+        end
+    end
+    CurrentPlayers[source] = {casinoId = casinoId, entityId = entityId, seatId = seatId}
+    entity.seats[seatId] = {source = source, wagers = GenerateBaccaratDefaultWagers(), hands = {{}, {}}, inSeat = true}
+    SetTimeout(100 * 1, function()
+        TriggerClientEvent("pickle_casinos:baccarat:updateSeat", -1, casinoId, entityId, seatId, entity.seats[seatId])
+    end)
+    ShowNotification(source, "You have joined the table at seat " .. seatId .. ".")
+    return seatId
+end
+
+function LeaveBaccaratEntity(source, casinoId, entityId, seatId)
+    local casino = Casinos[casinoId]
+    if not casino then return end
+    local entity = GetCasinoEntity(casinoId, entityId)
+    if not entity then return end
+    if entity.seats[seatId].source == source then
+        entity.seats[seatId] = GenerateDefaultBaccaratSeat()
+        SetTimeout(100 * 1, function()
+            TriggerClientEvent("pickle_casinos:baccarat:updateSeat", -1, casinoId, entityId, seatId, entity.seats[seatId])
+        end)
+        CurrentPlayers[source] = nil
+        ShowNotification(source, "You have left the baccarat table.")
+    end
+end
+
+function GetBaccaratEntity(casinoId, entityId)
+    local casino = Casinos[casinoId]
+    if not casino then return end
+    local entity = GetCasinoEntity(casinoId, entityId)
+    if not entity then return end
+    return {
+        id = entity.id,
+        seats = entity.seats,
+        stage = entity.stage
+    }
+end
+
+function GetBaccaratCardsValue(cards)
+    local totalNumber = 0
+    for i=1, #cards do
+        local card = cards[i]
+        if card.value == "ace" then
+            totalNumber = totalNumber + 1
+        elseif card.value == "jack" or card.value == "queen" or card.value == "king" then
+            totalNumber = totalNumber + 10
+        else
+            totalNumber = totalNumber + tonumber(card.value)
+        end
+    end
+    return totalNumber % 10
+end
+
+function ProcessBaccaratWager(casinoId, entityId, seat, handId)
+    local casino = Casinos[casinoId]
+    if not casino then return end
+    local entity = GetCasinoEntity(casinoId, entityId)
+    if not entity then return end
+    local wager = GetBaccaratTotalWager(entity.seats[seat].wagers)
+    if wager > GetMoney(entity.seats[seat].source) then
+        ShowNotification(entity.seats[seat].source, "You do not have enough money to place this wager.")
+        return false
+    end
+    RemoveMoney(entity.seats[seat].source, wager)
+    return true
+end
+
+function StartBaccaratGame(casinoId, entityId)
+    local casino = Casinos[casinoId]
+    if not casino then return end
+    local entity = GetCasinoEntity(casinoId, entityId)
+    if not entity then return end
+    if entity.stage.type ~= "waiting" then return end
+    local hiddenCard = GenerateCard()
+    for i=1, 4 do
+        if entity.seats[i].source then
+            if not ProcessBaccaratWager(casinoId, entityId, i, 1) then
+                entity.seats[i].wagers = GenerateBaccaratDefaultWagers()
+                TriggerClientEvent("pickle_casinos:baccarat:updateSeat", -1, casinoId, entityId, i, entity.seats[i])
+            end
+        end
+    end
+    CreateThread(function()
+        local round = 0
+        repeat
+            round = round + 1
+            local sides = {"player", "banker"}
+            for i=1, 2 do
+                entity.stage = {type = "dealing", side = sides[i], card = GenerateCard(), cardIndex = #entity.cards[sides[i]] + 1}
+                entity.cards[sides[i]][#entity.cards[sides[i]] + 1] = entity.stage.card
+                TriggerClientEvent("pickle_casinos:baccarat:updateStage", -1, casinoId, entityId, entity.stage)
+                SetTimeout(1300, function()
+                    TriggerClientEvent("pickle_casinos:baccarat:updateCards", -1, casinoId, entityId, sides[i], entity.cards[sides[i]])
+                end)
+                Wait(2000)
+            end
+        until round == 2
+        local playerValue = GetBaccaratCardsValue(entity.cards.player)
+        local bankerValue = GetBaccaratCardsValue(entity.cards.banker)
+        local playerThirdCard = nil
+        local done = false
+
+        if playerValue == 8 or playerValue == 9 or bankerValue == 8 or bankerValue == 9 then
+            done = true
+        elseif playerValue <= 5 then
+            playerThirdCard = GenerateCard()
+            entity.stage = {type = "dealing", side = "player", card = GenerateCard(), cardIndex = #entity.cards.player + 1}
+            entity.cards.player[#entity.cards.player + 1] = entity.stage.card
+            TriggerClientEvent("pickle_casinos:baccarat:updateStage", -1, casinoId, entityId, entity.stage)
+            SetTimeout(1300, function()
+                TriggerClientEvent("pickle_casinos:baccarat:updateCards", -1, casinoId, entityId, "player", entity.cards.player)
+            end)
+            Wait(2000)
+        end
+        if not done then
+            if not playerThirdCard then
+                if bankerValue <= 5 then
+                    entity.stage = {type = "dealing", side = "banker", card = GenerateCard(), cardIndex = #entity.cards.banker + 1}
+                    entity.cards.banker[#entity.cards.banker + 1] = entity.stage.card
+                    TriggerClientEvent("pickle_casinos:baccarat:updateStage", -1, casinoId, entityId, entity.stage)
+                    SetTimeout(1300, function()
+                        TriggerClientEvent("pickle_casinos:baccarat:updateCards", -1, casinoId, entityId, "banker", entity.cards.banker)
+                    end)
+                    Wait(2000)
+                end
+            else
+                if (bankerValue <= 2) then
+                    entity.stage = {type = "dealing", side = "banker", card = GenerateCard(), cardIndex = #entity.cards.banker + 1}
+                    entity.cards.banker[#entity.cards.banker + 1] = entity.stage.card
+                    TriggerClientEvent("pickle_casinos:baccarat:updateStage", -1, casinoId, entityId, entity.stage)
+                    SetTimeout(1300, function()
+                        TriggerClientEvent("pickle_casinos:baccarat:updateCards", -1, casinoId, entityId, "banker", entity.cards.banker)
+                    end)
+                    Wait(2000)
+                elseif (playerThirdCard.value ~= 8 and (bankerValue >= 3 and bankerValue <= 6)) then
+                    entity.stage = {type = "dealing", side = "banker", card = GenerateCard(), cardIndex = #entity.cards.banker + 1}
+                    entity.cards.banker[#entity.cards.banker + 1] = entity.stage.card
+                    TriggerClientEvent("pickle_casinos:baccarat:updateStage", -1, casinoId, entityId, entity.stage)
+                    SetTimeout(1300, function()
+                        TriggerClientEvent("pickle_casinos:baccarat:updateCards", -1, casinoId, entityId, "banker", entity.cards.banker)
+                    end)
+                    Wait(2000)
+                end
+            end
+            done = true
+        end
+        local playerValue = GetBaccaratCardsValue(entity.cards.player)
+        local bankerValue = GetBaccaratCardsValue(entity.cards.banker)
+        local winner = "tie"
+        if playerValue > bankerValue then
+            winner = "player"
+        elseif playerValue < bankerValue then
+            winner = "banker"
+        end
+        local winningWagers = {
+            player = (winner == "player"),
+            banker = (winner == "banker"),
+            tie = (winner == "tie"),
+            playerPair = false,
+            bankerPair = false,
+            eitherPair = false,
+            suitedPair = false,
+            bothSuitedPair = false,
+        }
+        local winMultipliers = {
+            player = 1,
+            banker = 0.95,
+            tie = 8,
+            playerPair = 11,
+            bankerPair = 11,
+            eitherPair = 5,
+            suitedPair = 20,
+            bothSuitedPair = 200,
+        }
+        -- Set player pair
+        if entity.cards.player[1].value == entity.cards.player[2].value then
+            winningWagers.playerPair = true
+        end
+        -- Set banker pair
+        if entity.cards.banker[1].value == entity.cards.banker[2].value then
+            winningWagers.bankerPair = true
+        end
+        -- Set either pair
+        if winningWagers.playerPair or winningWagers.bankerPair then
+            winningWagers.eitherPair = true
+        end
+        -- Set suited pair
+        if (entity.cards.player[1].class == entity.cards.player[2].class and winningWagers.playerPair) or (entity.cards.banker[1].class == entity.cards.banker[2].class and winningWagers.bankerPair) then
+            winningWagers.suitedPair = true
+        end
+        -- Set both suited pair
+        if (entity.cards.player[1].class == entity.cards.player[2].class and winningWagers.playerPair) and (entity.cards.banker[1].class == entity.cards.banker[2].class and winningWagers.bankerPair) then
+            winningWagers.bothSuitedPair = true
+        end
+        local seatResults = {}
+        for i=1, #entity.seats do 
+            seatResults[i] = {won = 0, money = 0}
+            if (entity.seats[i].source) then
+                for k,isWinner in pairs(winningWagers) do
+                    local wager = entity.seats[i].wagers[k]
+                    if wager and wager > 0 and isWinner then
+                        local winMultiplier = winMultipliers[k]
+                        if (k == "suitedPair" and winningWagers.bothSuitedPair) then
+                            winMultiplier = winMultipliers["bothSuitedPair"]
+                        end
+                        seatResults[i].won = seatResults[i].won + (wager + (wager * winMultiplier))
+                    end
+                end
+                seatResults[i].won = math.floor(seatResults[i].won)
+                seatResults[i].money = GetMoney(entity.seats[i].source) + seatResults[i].won
+                if seatResults[i].won > 0 then
+                    AddMoney(entity.seats[i].source, seatResults[i].won)
+                end
+            end
+        end
+        TriggerClientEvent("pickle_casinos:baccarat:updateResults", -1, casinoId, entityId, {
+            type = "results", 
+            winningWagers = winningWagers,
+        }, seatResults)
+        -- local seatResults = {}
+        -- for i=1, 4 do 
+        --     seatResults[i] = {won = 0, money = 0}
+        --     if entity.seats[i].source and entity.seats[i].wagers[1] > 0 then
+        --         for j=1, 2 do
+        --             local wager = entity.seats[i].wagers[j]
+        --             local hand = entity.seats[i].hands[j]
+        --             local value, secondaryValue = GetValueOfCards(hand)
+        --             if secondaryValue > 0 then
+        --                 value = secondaryValue
+        --             end
+        --             print("COMPARING", "seat" .. i, "hand" .. j, value, dealerValue)
+        --             if wager > 0 and value <= 21 then
+        --                 if value == dealerValue then
+        --                     seatResults[i].won = seatResults[i].won + wager
+        --                 elseif (dealerValue > 21 or (value > dealerValue)) then
+        --                     seatResults[i].won = seatResults[i].won + (wager * (value == 21 and 2.5 or 2))
+        --                 end
+        --             end
+        --         end
+        --     end
+        -- end
+        -- for i=1, 4 do
+        --     if entity.seats[i].source  then
+        --         seatResults[i].money = GetMoney(entity.seats[i].source) + seatResults[i].won
+        --         if entity.seats[i].wagers[1] > 0 then
+        --             AddMoney(entity.seats[i].source, seatResults[i].won)
+        --         end
+        --     end
+        -- end
+        -- TriggerClientEvent("pickle_casinos:baccarat:updateResults", -1, casinoId, entityId, seatResults)
+        entity.cards = {player = {}, banker = {}}
+        entity.stage = {type = "cleanup", seat = 0}
+        TriggerClientEvent("pickle_casinos:baccarat:updateStage", -1, casinoId, entityId, entity.stage)
+        Wait(2000)
+        TriggerClientEvent("pickle_casinos:baccarat:updateCards", -1, casinoId, entityId, "player", entity.cards["player"])
+        TriggerClientEvent("pickle_casinos:baccarat:updateCards", -1, casinoId, entityId, "banker", entity.cards["banker"])
+        for k,v in pairs(entity.seats) do
+            entity.seats[k].wagers = GenerateBaccaratDefaultWagers()
+            TriggerClientEvent("pickle_casinos:baccarat:updateSeat", -1, casinoId, entityId, k, entity.seats[k])
+        end
+        StartBaccaratLobby(casinoId, entityId)
+    end)
+end
+
+function StartBaccaratLobby(casinoId, entityId)
+    local casino = Casinos[casinoId]
+    if not casino then return end
+    local entity = GetCasinoEntity(casinoId, entityId)
+    if not entity then return end
+    entity.stage = {type = "waiting", time = 11}
+    TriggerClientEvent("pickle_casinos:baccarat:updateStage", -1, casinoId, entityId, entity.stage)
+    CreateThread(function()
+        for i=1, #entity.seats do
+            if entity.seats[i].source and not entity.seats[i].inSeat then
+                LeaveBaccaratEntity(entity.seats[i].source, casinoId, entityId, i)
+            end
+        end
+        while entity.stage.type == "waiting" and entity.stage.time > 1 do
+            entity.stage.time = entity.stage.time - 1
+            Wait(1000)
+        end
+        local totalWagers = 0
+        for k,v in pairs(entity.seats) do
+            totalWagers = totalWagers + GetBaccaratTotalWager(v.wagers)
+        end
+        if totalWagers > 0 then
+            StartBaccaratGame(casinoId, entityId)
+        else
+            StartBaccaratLobby(casinoId, entityId)
+        end
+    end)
+end
+
+function GetBaccaratTotalWager(wagers)
+    local total = 0
+    for k,v in pairs(wagers) do
+        total = total + v
+    end
+    return total
+end
+
+function GenerateBaccaratDefaultWagers()
+    return {
+        player = 0,
+        banker = 0,
+        tie = 0,
+        playerPair = 0,
+        bankerPair = 0,
+        eitherPair = 0,
+        suitedPair = 0,
+    }
+end
+
+function GenerateDefaultBaccaratSeat()
+    return {source = nil, wagers = GenerateBaccaratDefaultWagers(), inSeat = false}
+end
+
+function InitializeBaccaratEntity(casinoId, entity)
+    local entity = entity or { id = "ERR_BACCARAT_ENTITY" }
+    entity.seats = {}
+    for i=1, 4 do 
+        entity.seats[i] = GenerateDefaultBaccaratSeat()
+    end
+    entity.cards = {player = {}, banker = {}}
+    SetTimeout(1000, function()
+        StartBaccaratLobby(casinoId, entity.id)
+    end)
+    return entity
+end
+
+function GetPlayerBaccaratInfo(source)
+    if not source or source < 1 then return end
+    for k,v in pairs(Casinos) do
+        for i=1, #v.entities do
+            local entity = v.entities[i]
+            if entity.type == "baccarat" then
+                for j, v in pairs(entity.seats) do
+                    if entity.seats[j].source and tonumber(entity.seats[j].source) == tonumber(source) then
+                        return {casinoId = k, entityId = entity.id, seatId = j}
+                    end
+                end
+            end
+        end
+    end
+end
+
+RegisterCallback("pickle_casinos:baccarat:requestSeat", function(source, cb, casinoId, entityId, seatId)
+    local seatId = JoinBaccaratEntity(source, casinoId, entityId, seatId)
+    local entity = GetBaccaratEntity(casinoId, entityId)
+    if seatId then
+        return cb(seatId, {
+            id = entity.id,
+            seats = entity.seats,
+            stage = entity.stage,
+            money = GetMoney(source)
+        })
+    end
+    cb(seatId)
+end)
+
+RegisterNetEvent("pickle_casinos:baccarat:leaveTable", function()
+    local source = source
+    local info = GetPlayerBaccaratInfo(source)
+    if not info then return end
+    local entity = GetCasinoEntity(info.casinoId, info.entityId)
+    if not entity then return end
+    if entity.stage.type == "waiting" then
+        LeaveBaccaratEntity(source, info.casinoId, info.entityId, info.seatId)
+    else 
+        entity.seats[info.seatId].inSeat = false
+    end
+end)
+
+RegisterNetEvent("pickle_casinos:baccarat:setWager", function(wager)
+    if not wager or type(wager) ~= "table" then return end
+    local source = source
+    local info = GetPlayerBaccaratInfo(source)
+    if not info then return end
+    local entity = GetCasinoEntity(info.casinoId, info.entityId)
+    if not entity then return end
+    if not entity.stage.type == "waiting" then return end
+    entity.seats[info.seatId].wagers = {
+        player = wager.player or 0,
+        banker = wager.banker or 0,
+        tie = wager.tie or 0,
+        playerPair = wager.playerPair or 0,
+        bankerPair = wager.bankerPair or 0,
+        eitherPair = wager.eitherPair or 0,
+        suitedPair = wager.suitedPair or 0,
+    }
+    TriggerClientEvent("pickle_casinos:baccarat:updateSeatWager", -1, info.casinoId, info.entityId, info.seatId, entity.seats[info.seatId].wagers)
+end)

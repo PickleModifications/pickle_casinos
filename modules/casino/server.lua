@@ -7,6 +7,8 @@ function InitializeCasinoEntities(casinoId, entities)
             entity = InitializeBlackjackEntity(casinoId, entity)
         elseif entity.type == "roulette" then
             entity = InitializeRouletteEntity(casinoId, entity)
+        elseif entity.type == "baccarat" then
+            entity = InitializeBaccaratEntity(casinoId, entity)
         end
     end
     return entities
@@ -29,8 +31,12 @@ function JoinCasinoEntity(source, casinoId, entityId)
         JoinBlackjackEntity(source, casinoId, entityId)
     elseif entity.type == "roulette" then
         JoinRouletteEntity(source, casinoId, entityId)
+    elseif entity.type == "baccarat" then
+        JoinBaccaratEntity(source, casinoId, entityId)
     end
 end
+
+local inc = 0
 
 function GenerateCard() 
     local classes = {"spd", "club", "dia", "hrt"}
