@@ -81,6 +81,7 @@ const BonusSymbol = Bonus.symbol;
 const BonusTriggerCount = Bonus.triggerCount;
 
 type SlotSpin = {
+    spinIndex: number;
     spins: SlotReel[][];
 }
 
@@ -120,7 +121,6 @@ function Reel({spinning, index, bonusIndex, fakeReel, reel, onSpinComplete}: {sp
                             if (hasBonus) {
                                 new Audio("/nui/audio/bananabonanza/bonus_"+ (bonusIndex || 1) +".mp3").play();
                             }
-                            console.log("STOPPED", index)
                             new Audio("/nui/audio/bananabonanza/reel.mp3").play();
                             if (onSpinComplete) {
                                 onSpinComplete();
@@ -128,7 +128,7 @@ function Reel({spinning, index, bonusIndex, fakeReel, reel, onSpinComplete}: {sp
                             return;
                         }
                     }
-                    if (rotations >= 5) {
+                    if (rotations >= 3) {
                         if (!isShowingCurrent) {
                             setIsShowingCurrent(true);
                             setCurrentReel(reel);
@@ -141,7 +141,7 @@ function Reel({spinning, index, bonusIndex, fakeReel, reel, onSpinComplete}: {sp
                     requestAnimationFrame(scrollReel);
                 };
                 scrollReel();
-            }, (!isShowingCurrent ? 300 * index : 0));
+            }, (!isShowingCurrent ? 200 * index : 0));
         }
     }, [reel, isShowingCurrent]);
     useEffect(() => {
@@ -192,7 +192,7 @@ function GenerateFakeReels(reelCount: number, reelSymbols: number): SlotReel[] {
     return fakeReels;
 }
 
-function GenerateSpin(reelLength: number, reelSymbols: number) {
+function GenerateSpin(reelLength: number, reelSymbols: number, forceBonus?: boolean, removeBonus?: boolean): SlotSpin {
     let reelResults = [];
     for (let i=0; i<reelLength; i++) {
         let reelResult = []
@@ -201,6 +201,9 @@ function GenerateSpin(reelLength: number, reelSymbols: number) {
             let symbols = [];
             for (const [slotSymbol, data] of Object.entries(slotSymbols)) {
                 for (let k = 0; k < data.reels[i]; k++) {
+                    if (removeBonus && slotSymbol == BonusSymbol) {
+                        continue;
+                    }
                     symbols.push(slotSymbol);
                 }
             }
@@ -219,11 +222,22 @@ function GenerateSpin(reelLength: number, reelSymbols: number) {
             }
             reelResult.push(symbol);
         }
+        if (forceBonus) {
+            reelResult[0] = BonusSymbol;
+        }
         reelResults.push(reelResult);
     }
+    let additionalSpins: SlotSpin[] = [];
+    if (forceBonus) {
+        for (let i=0; i<10; i++) {
+            additionalSpins.push(GenerateSpin(reelLength, reelSymbols, undefined, true));
+        }
+    }
     return {
+        spinIndex: 0,
         spins: [
             reelResults,
+            ...additionalSpins.map(spin => spin.spins[0]),
         ]
     }
 }
@@ -236,6 +250,7 @@ export default function Slots({game} : {game: CasinoGame}) {
     const [balance, setBalance] = useState<number>(1000);
     const [bet, setBet] = useState<number>(10);
     const audio = useRef<HTMLAudioElement | null>(null);
+    const bonusAudio = useRef<HTMLAudioElement | null>(null);
     useEffect(() => {
         if (audio.current) {
             audio.current.pause();
@@ -252,6 +267,50 @@ export default function Slots({game} : {game: CasinoGame}) {
             }
         }
     }, [spinning]);
+    useEffect(() => {
+        if (currentSpin) {
+            let bonusSymbols = 0;
+            if (currentSpin) {
+                const spin = currentSpin.spins[0];
+                for (let i = 0; i < spin.length; i++) {
+                    if (spin[i].includes(BonusSymbol)) {
+                        bonusSymbols += 1;
+                    }
+                }
+            }
+            if (bonusSymbols >= BonusTriggerCount && currentSpin.spinIndex > 0) {
+                if (!bonusAudio.current) {
+                    bonusAudio.current = new Audio("/nui/audio/bananabonanza/bonus_loop.mp3");
+                    bonusAudio.current.loop = true;
+                    bonusAudio.current.play();
+                }
+            }
+        }
+        else {
+            if (bonusAudio.current) {
+                bonusAudio.current.pause();
+                bonusAudio.current = null;
+            }
+        }
+    }, [spinning, currentSpin]);
+    let bonusSymbols = 0;
+    if (currentSpin) {
+        const spin = currentSpin.spins[currentSpin.spinIndex];
+        for (let i = 0; i < spin.length; i++) {
+            if (spin[i].includes(BonusSymbol)) {
+                bonusSymbols += 1;
+            }
+        }
+    }
+    const startNextSpin = () => {
+        if (!currentSpin || !currentSpin.spins[currentSpin.spinIndex + 1]) {
+            return;
+        }
+        setCurrentSpin({
+            spinIndex: currentSpin.spinIndex + 1,
+            spins: currentSpin.spins,
+        });
+    }
     return (
         <div className="absolute top-[50%] left-[50%] transform translate-x-[-50%] translate-y-[-50%] select-none">
             <div className="flex flex-col items-center px-16 gap-2" style={{
@@ -317,7 +376,7 @@ export default function Slots({game} : {game: CasinoGame}) {
                             background: "linear-gradient(0deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 5%, rgba(0,0,0,0) 95%, rgba(0,0,0,0.5) 100%)",
                         }}/>
                         {fakeReels.map((reel, index) => {
-                            const spin = currentSpin?.spins[0];
+                            const spin = currentSpin?.spins[currentSpin.spinIndex];
                             const actualReel = spin ? spin[index] : undefined;
                             let hasBonus = actualReel?.includes(BonusSymbol);
                             let bonusIndex = undefined;
@@ -332,10 +391,17 @@ export default function Slots({game} : {game: CasinoGame}) {
                                     bonusIndex = 4;
                                 }
                             }
-                            console.log("BONUS INDEX", bonusIndex);
-                            return <Reel bonusIndex={bonusIndex} spinning={spinning} index={index} key={index} fakeReel={reel} reel={currentSpin?.spins[0][index]} onSpinComplete={index == (fakeReels.length - 1) ? () => {
+                            return <Reel bonusIndex={bonusIndex} spinning={spinning} index={index} key={index} fakeReel={reel} reel={currentSpin?.spins[currentSpin.spinIndex][index]} onSpinComplete={index == (fakeReels.length - 1) ? () => {
+                                if (bonusSymbols >= BonusTriggerCount) {
+                                    setTimeout(() => {
+                                        new Audio("/nui/audio/bananabonanza/bonus_win.mp3").play();
+                                    }, 500);
+                                }
+                                setTimeout(() => {
+                                    startNextSpin();
+                                }, 2500);
                                 setSpinning(false);
-                                setFakeReels(currentSpin?.spins[0] || fakeReels);
+                                setFakeReels(currentSpin?.spins[currentSpin.spinIndex] || fakeReels);
                             }: undefined}/>
                         })}
                     </div>
@@ -351,9 +417,11 @@ export default function Slots({game} : {game: CasinoGame}) {
                             <div className="font-bold text-3xl"><AnimatedValue value={balance} /></div>
                         </div>
                     </div>
-                    <div className="flex flex-row items-center gap-2 font-bold text-4xl">
-                        <div className="text-yellow-600">WIN</div>
-                        <div><AnimatedValue value={1000}/></div>
+                    <div className="font-bold text-4xl">
+                        {(currentSpin?.spins && currentSpin.spinIndex > 0 && currentSpin?.spins.length > 0) && <div className="flex flex-row items-center gap-2">
+                            <div className="text-yellow-600">FREE SPINS:</div>
+                            <div>{(currentSpin?.spins.length) - currentSpin.spinIndex}</div>
+                        </div>}
                     </div>
                     <div className="flex flex-row items-center gap-2">
                         <div className="rounded-full border p-2 bg-background/50 hover:scale-105 cursor-pointer transition-transform">
@@ -361,7 +429,15 @@ export default function Slots({game} : {game: CasinoGame}) {
                         </div>
                         <div className="rounded-full border p-4 bg-background/95 hover:rotate-[45deg] hover:scale-105 cursor-pointer transition-transform" onClick={() => {
                             if (!spinning) {
-                                setCurrentSpin(GenerateSpin(reelLength, reelSymbols));
+                                if (currentSpin) {
+                                    setCurrentSpin({
+                                        spinIndex: currentSpin.spinIndex + 1,
+                                        spins: currentSpin.spins,
+                                    });
+                                }
+                                else {
+                                    setCurrentSpin(GenerateSpin(reelLength, reelSymbols, true));
+                                }
                                 setSpinning(true);
                             }
                         }}>
