@@ -206,7 +206,11 @@ function GetPaylineResults(slotSpin: SlotSpin, game: SlotGame): {symbol: string 
             let firstSymbol = spin[0][payline[0]];
             let count = 1;
             for (let j=1; j < payline.length; j++) {
-                const symbol = spin[j][payline[j]];
+                const spinColumn = spin[j];
+                if (!spinColumn) {
+                    continue;
+                }
+                const symbol = spinColumn[payline[j]];
                 if (symbol == firstSymbol) {
                     count += 1;
                 }
