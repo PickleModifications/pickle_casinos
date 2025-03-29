@@ -72,7 +72,6 @@ function EnsureBaccaratCamera()
     end
 end
 
-
 function DoesBaccaratEntityExist(casinoId, entityId)
     return LocalBaccaratTables[casinoId] and LocalBaccaratTables[casinoId][entityId]
 end
@@ -266,7 +265,7 @@ function CreateBaccaratEntity(casinoId, entityId)
             end)
         end
     end
-    AttemptSeatAtBaccaratEntity(casinoId, entityId)
+    -- AttemptSeatAtBaccaratEntity(casinoId, entityId)
 end
 
 function DeleteBaccaratEntity(casinoId, entityId)

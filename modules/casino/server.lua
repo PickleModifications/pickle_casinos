@@ -9,6 +9,8 @@ function InitializeCasinoEntities(casinoId, entities)
             entity = InitializeRouletteEntity(casinoId, entity)
         elseif entity.type == "baccarat" then
             entity = InitializeBaccaratEntity(casinoId, entity)
+        elseif entity.type == "slot" then
+            entity = InitializeSlotEntity(casinoId, entity)
         end
     end
     return entities

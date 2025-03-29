@@ -29,3 +29,7 @@ end
 function GetItemLabel(name)
     return (Inventory.Items[name] and Inventory.Items[name].label or name)
 end
+
+function GetCurrencyString(amount)
+    return NumberWithCommas(amount)
+end

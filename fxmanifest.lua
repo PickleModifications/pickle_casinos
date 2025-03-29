@@ -1,8 +1,8 @@
 fx_version "cerulean"
 game "gta5"
 author "Pickle Mods"
-description "The best system for in-game monetization using Tebex."
-version "v1.1.3"
+description "The best system for player-owned casinos."
+version "v1.0.0"
 
 ui_page "nui/index.html"
 
@@ -11,6 +11,7 @@ files {
 	"nui/images/*.*",
 	"nui/images/**/*.*",
 	"nui/audio/*.*",
+	"nui/audio/**/*.*",
 	"nui/assets/**/*.*",
 	"nui/debug.js",
 	"components/**/*.*",
