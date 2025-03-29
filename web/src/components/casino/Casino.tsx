@@ -458,7 +458,7 @@ export function CasinoControls() {
 }
 
 export function CasinoGameDisplay() {
-    const [currentGame, setCurrentGame] = useState<CasinoGame | null>(null);
+    // const [currentGame, setCurrentGame] = useState<CasinoGame | null>(null);
     // const [currentGame, setCurrentGame] = useState<CasinoGame | null>(
     //     {
     //         type: "baccarat",
@@ -505,81 +505,81 @@ export function CasinoGameDisplay() {
     //         }
     //     }
     // );
-    // const [currentGame, setCurrentGame] = useState<CasinoGame | null>({
-    //     type: "slots",
-    //     visible: false,
-    //     data: {
-    //         foldername: "bananabonanza",
-    //         headerTextImage: "header_title.png",
-    //         backgroundImage: "background.png",
-    //         reelCount: 5,
-    //         reelSymbols: 3,
-    //         paylineWinThreshold: 3,
-    //         bonusTriggerCount: 3,
-    //         bonusFreeSpins: 10,
-    //         bonusSymbol: "Bonus Symbol",
-    //         slotSymbols: {
-    //             "Bonus Symbol": {
-    //                 image: "bonus.png",
-    //                 reels: [5, 5, 1, 1, 1],
-    //                 pay: [0, 0, 0, 0, 0],
-    //             },
-    //             "Monkey": {
-    //                 image: "monkey.png",
-    //                 reels: [2, 2, 2, 2, 2],
-    //                 pay: [0, 0, 3, 7, 30],
-    //             },
-    //             "Coconut": {
-    //                 image: "coconut.png",
-    //                 reels: [3, 3, 3, 3, 3],
-    //                 pay: [0, 0, 1.5, 3.5, 10],
-    //             },
-    //             "Coconut Tree Bundle": {
-    //                 image: "tree_2.png",
-    //                 reels: [4, 4, 4, 4, 4],
-    //                 pay: [0, 0, 1.2, 2, 6],
-    //             },
-    //             "Coconut Tree": {
-    //                 image: "tree_1.png",
-    //                 reels: [5, 5, 5, 5, 5],
-    //                 pay: [0, 0, 0.8, 1.5, 4],
-    //             },
-    //             "Banana Bunch": {
-    //                 image: "banana_2.png",
-    //                 reels: [6, 6, 6, 6, 6],
-    //                 pay: [0, 0, 0.35, 0.6, 1.75],
-    //             },
-    //             "Banana": {
-    //                 image: "banana_1.png",
-    //                 reels: [7, 7, 7, 7, 7],
-    //                 pay: [0, 0, 0.2, 0.35, 1.25],
-    //             },
-    //         },
-    //         paylines: [
-    //             [1, 1, 1, 1, 1],
-    //             [0, 0, 0, 0, 0],
-    //             [2, 2, 2, 2, 2],
-    //             [0, 1, 2, 1, 0],
-    //             [2, 1, 0, 1, 2],
-    //             [1, 0, 0, 0, 1],
-    //             [1, 2, 2, 2, 1],
-    //             [0, 0, 1, 2, 2],
-    //             [2, 2, 1, 0, 0],
-    //             [1, 2, 1, 0, 1],
-    //             [1, 0, 1, 2, 1],
-    //             [0, 1, 1, 1, 0],
-    //             [2, 1, 1, 1, 2],
-    //             [0, 1, 0, 1, 0],
-    //             [2, 1, 2, 1, 2],
-    //             [1, 1, 0, 1, 1],
-    //             [1, 1, 2, 1, 1],
-    //             [0, 0, 2, 0, 0],
-    //             [2, 2, 0, 2, 2],
-    //             [0, 2, 2, 2, 0],
-    //         ],
-    //     },
-    // });
-    const [isGameVisible, setGameVisible] = useState<boolean>(false);
+    const [currentGame, setCurrentGame] = useState<CasinoGame | null>({
+        type: "slots",
+        visible: false,
+        data: {
+            foldername: "spacewarriors",
+            headerTextImage: "header_title.png",
+            backgroundImage: "background.png",
+            reelCount: 5,
+            reelSymbols: 3,
+            paylineWinThreshold: 3,
+            bonusTriggerCount: 3,
+            bonusFreeSpins: 10,
+            bonusSymbol: "Bonus Symbol",
+            slotSymbols: {
+                "Bonus Symbol": {
+                    image: "bonus.png",
+                    reels: [5, 5, 1, 1, 1],
+                    pay: [0, 0, 0, 0, 0],
+                },
+                "Monkey": {
+                    image: "monkey.png",
+                    reels: [2, 2, 2, 2, 2],
+                    pay: [0, 0, 3, 7, 30],
+                },
+                "Coconut": {
+                    image: "coconut.png",
+                    reels: [3, 3, 3, 3, 3],
+                    pay: [0, 0, 1.5, 3.5, 10],
+                },
+                "Coconut Tree Bundle": {
+                    image: "tree_2.png",
+                    reels: [4, 4, 4, 4, 4],
+                    pay: [0, 0, 1.2, 2, 6],
+                },
+                "Coconut Tree": {
+                    image: "tree_1.png",
+                    reels: [5, 5, 5, 5, 5],
+                    pay: [0, 0, 0.8, 1.5, 4],
+                },
+                "Banana Bunch": {
+                    image: "banana_2.png",
+                    reels: [6, 6, 6, 6, 6],
+                    pay: [0, 0, 0.35, 0.6, 1.75],
+                },
+                "Banana": {
+                    image: "banana_1.png",
+                    reels: [7, 7, 7, 7, 7],
+                    pay: [0, 0, 0.2, 0.35, 1.25],
+                },
+            },
+            paylines: [
+                [1, 1, 1, 1, 1],
+                [0, 0, 0, 0, 0],
+                [2, 2, 2, 2, 2],
+                [0, 1, 2, 1, 0],
+                [2, 1, 0, 1, 2],
+                [1, 0, 0, 0, 1],
+                [1, 2, 2, 2, 1],
+                [0, 0, 1, 2, 2],
+                [2, 2, 1, 0, 0],
+                [1, 2, 1, 0, 1],
+                [1, 0, 1, 2, 1],
+                [0, 1, 1, 1, 0],
+                [2, 1, 1, 1, 2],
+                [0, 1, 0, 1, 0],
+                [2, 1, 2, 1, 2],
+                [1, 1, 0, 1, 1],
+                [1, 1, 2, 1, 1],
+                [0, 0, 2, 0, 0],
+                [2, 2, 0, 2, 2],
+                [0, 2, 2, 2, 0],
+            ],
+        },
+    });
+    const [isGameVisible, setGameVisible] = useState<boolean>(true);
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
             if (event.key === "Escape" || event.key === "Backspace") {
