@@ -11,6 +11,8 @@ function InitializeCasinoEntities(casinoId, entities)
             entity = InitializeBaccaratEntity(casinoId, entity)
         elseif entity.type == "slot" then
             entity = InitializeSlotEntity(casinoId, entity)
+        elseif entity.type == "poker" then
+            entity = InitializePokerEntity(casinoId, entity)
         end
     end
     return entities

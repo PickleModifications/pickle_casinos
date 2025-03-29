@@ -48,6 +48,16 @@ Config.Casinos = {
                     betRange = {min = 1000, max = 10000},
                 }
             },
+            {
+                id = "poker-1",
+                type = "poker",
+                coords = vector3(-960.8425, -3011.2959, 12.7451),
+                rotation = vector3(0.0, 0.0, 64.7923),
+                settings = {
+                    dealerModel = `s_f_y_casino_01`,
+                    tableModel = `fury_p_poker_table`,
+                }
+            }
         }
     }
 }
@@ -141,33 +151,33 @@ Config.Slots = {
                 reels = {8, 8, 1, 1, 1},
                 pay = {0, 0, 0, 0, 0},
             },
-            ["Monkey"] = {
-                image = "monkey.png",
+            ["Spaceship"] = {
+                image = "spaceship.png",
                 reels = {15, 12, 10, 10, 15},
                 pay = {0, 0, 3, 7, 30},
             },
-            ["Coconut"] = {
-                image = "coconut.png",
+            ["Rocket"] = {
+                image = "rocket.png",
                 reels = {15, 15, 10, 10, 15},
                 pay = {0, 0, 1.5, 3.5, 10},
             },
-            ["Coconut Tree Bundle"] = {
-                image = "tree_2.png",
+            ["Blaster"] = {
+                image = "blaster.png",
                 reels = {15, 12, 10, 10, 12},
                 pay = {0, 0, 1.2, 2, 6},
             },
-            ["Coconut Tree"] = {
-                image = "tree_1.png",
+            ["Mars"] = {
+                image = "mars.png",
                 reels = {11, 11, 10, 10, 11},
                 pay = {0, 0, 0.8, 1.5, 4},
             },
-            ["Banana Bunch"] = {
-                image = "banana_2.png",
+            ["Earth"] = {
+                image = "earth.png",
                 reels = {10, 10, 10, 10, 10},
                 pay = {0, 0, 0.35, 0.6, 1.75},
             },
-            ["Banana"] = {
-                image = "banana_1.png",
+            ["Asteroid"] = {
+                image = "asteroid.png",
                 reels = {10, 10, 10, 10, 10},
                 pay = {0, 0, 0.2, 0.35, 1.25},
             },
