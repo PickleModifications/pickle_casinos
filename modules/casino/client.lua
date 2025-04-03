@@ -14,6 +14,8 @@ function CreateCasinoEntity(casinoId, entityId)
         CreateSlotEntity(casinoId, entityId)
     elseif casinoEntity.type == "poker" then
         CreatePokerEntity(casinoId, entityId)
+    elseif casinoEntity.type == "wheel" then
+        CreateWheelEntity(casinoId, entityId)
     end
 end
 

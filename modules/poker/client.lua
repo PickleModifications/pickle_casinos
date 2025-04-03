@@ -7,6 +7,7 @@ end
 
 function AttemptSeatAtPokerEntity(casinoId, entityId)
     ServerCallback("pickle_casinos:poker:requestSeat", function(seatId, entityInfo)
+        print(seatId, entityInfo)
         if not seatId then return end
         CurrentPokerTable = {
             casinoId = casinoId,
@@ -19,7 +20,8 @@ function AttemptSeatAtPokerEntity(casinoId, entityId)
         local casinoId = CurrentPokerTable.casinoId
         local entityId = CurrentPokerTable.entityId
         local seatId = CurrentPokerTable.seatId
-    end, casinoId, entityId)
+        print("SITTING")
+    end, casinoId, entityId, 1)
 end
 
 function CreatePokerEntity(casinoId, entityId)
@@ -35,7 +37,7 @@ function CreatePokerEntity(casinoId, entityId)
     SetEntityHeading(tableObject, heading)
     FreezeEntityPosition(surfaceObject, true)
     SetEntityHeading(surfaceObject, heading)
-    local dealerCoords = GetOffsetFromEntityInWorldCoords(surfaceObject, 0.0, -0.75, 0.3)
+    local dealerCoords = GetOffsetFromEntityInWorldCoords(surfaceObject, 0.0, -0.75, 0.27)
     local dealerPed = CreateNPC(casinoEntity.settings.dealerModel, dealerCoords, heading, false, false)
     SetEntityInvincible(dealerPed, true)
     SetBlockingOfNonTemporaryEvents(dealerPed, true)
@@ -57,6 +59,7 @@ function CreatePokerEntity(casinoId, entityId)
             AttemptSeatAtPokerEntity(casinoId, entityId)
         end)
     }
+    AttemptSeatAtPokerEntity(casinoId, entityId)
 end
 
 function DeletePokerEntity(casinoId, entityId)

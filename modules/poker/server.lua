@@ -27,5 +27,5 @@ RegisterCallback("pickle_casinos:poker:requestSeat", function(source, cb, casino
     if not casino then return end
     local entity = GetCasinoEntity(casinoId, entityId)
     if not entity then return end
-    cb(seatId)
+    cb(seatId, entity)
 end)

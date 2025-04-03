@@ -57,6 +57,13 @@ Config.Casinos = {
                     dealerModel = `s_f_y_casino_01`,
                     tableModel = `fury_p_poker_table`,
                 }
+            },
+            {
+                id = "wheel-1",
+                type = "wheel",
+                coords = vector3(-964.3455, -3013.3254, 12.9451),
+                rotation = vector3(0.0, 0.0, 331.0281),
+                settings = {}
             }
         }
     }
