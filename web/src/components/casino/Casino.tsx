@@ -579,19 +579,20 @@ export function CasinoGameDisplay() {
     //         ],
     //     },
     // });
-    const [currentGame, setCurrentGame] = useState<CasinoGame | null>({
-        type: "wheel",
-        visible: false,
-        data: {
-            money: 1000,
-            stage: {
-                type: "winner",
-                section: "bonus"
-            },
-        }
-    });
-    // const [currentGame, setCurrentGame] = useState<CasinoGame | null>(null);
-    const [isGameVisible, setGameVisible] = useState<boolean>(true);
+    // const [currentGame, setCurrentGame] = useState<CasinoGame | null>({
+    //     type: "wheel",
+    //     visible: false,
+    //     data: {
+    //         money: 1000,
+    //         stage: {
+    //             type: "winner",
+    //             section: "bonus",
+    //             multiplier: 100,
+    //         },
+    //     }
+    // });
+    const [currentGame, setCurrentGame] = useState<CasinoGame | null>(null);
+    const [isGameVisible, setGameVisible] = useState<boolean>(false);
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
             if (event.key === "Escape" || event.key === "Backspace") {

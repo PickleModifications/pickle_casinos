@@ -4,6 +4,8 @@ import { Translate } from "@/providers/locale/Locale";
 import { fetchNui } from "@/providers/nui/fetchNui";
 import { useEffect, useState } from "react";
 import BonusWheel from "./BonusWheel";
+import ReactSparkle from "react-sparkle";
+import { useNuiEvent } from "@/providers/nui/useNui";
 
 type WheelStage = any;
 type WheelWager = {
@@ -83,7 +85,7 @@ function WheelNumber({numberKey, style}: {numberKey: string, style: "selection" 
     )
 }
 
-function WheelComponent({wheelWagers, isPlaying, onClick} : {wheelWagers: WheelWager, isPlaying: boolean, onClick: (data: any) => void}) {
+function WheelComponent({wheelWagers, isPlaying, onClick, winningSection} : {wheelWagers: WheelWager, isPlaying: boolean, winningSection?: string, onClick: (data: any) => void}) {
     const {config} = useConfig();
     const chips = config.chips || [];
     const wheelStructure = [
@@ -118,19 +120,23 @@ function WheelComponent({wheelWagers, isPlaying, onClick} : {wheelWagers: WheelW
     ]
     return (
         <div className="flex flex-col gap-2" style={{
-            filter: isPlaying ? "brightness(0.5)" : "none",
             pointerEvents: isPlaying ? "none" : "auto",
         }}>
             {wheelStructure.map((row, rowIndex) => (
                 <div key={rowIndex} className="flex flex-row gap-2">
                     {row.map((column, columnIndex) => (
                         <div key={columnIndex} className="flex flex-col gap-2">
-                            <div className="relative flex flex-row items-center justify-center gap-2 cursor-pointer scale-100 hover:scale-95 transition-transform" onClick={() => {
+                            <div className="relative flex flex-row items-center justify-center gap-2 cursor-pointer scale-100 hover:scale-95 transition-transform" style={{
+                                filter: (isPlaying && winningSection != column.id) ? "brightness(0.5)" : "none",
+                            }} onClick={() => {
                                 onClick({
                                     type: "attemptWager",
                                     id: column.id,
                                 });
                             }}>
+                                {winningSection == column.id && (
+                                    <div className="absolute top-0 left-0 w-full scale-90 h-full" style={{ transformOrigin: "center" }}><ReactSparkle/></div>
+                                )}
                                 {column.display}
                                 {wheelWagers[column.id as keyof WheelWager] > 0 && (
                                     <div className="absolute top-[50%] right-[2%] translate-x-[-2%] translate-y-[-50%]">
@@ -169,24 +175,35 @@ export default function Wheel({game}: {game: CasinoGame}) {
         "two", "three", "five", "eleven", "twentyThree", "bonus",
     ]);
     const [isBonusSpinning, setIsBonusSpinning] = useState(false);
+    useNuiEvent("updateMoney", (data) => {
+        setMoney(data.money);
+    });
+    useNuiEvent("updateWheelStage", (data) => {
+        setStage(data.stage);
+    });
     useEffect(() => {
-        setTimeout(() => {
-            setIsBonusSpinning(true);
-        }, 1000);
-    }, []);
+        if (stage.type == "bonus") {
+            setIsBonusSpinning(false);
+            setTimeout(() => {
+                setIsBonusSpinning(true);
+            }, 1000);
+        }
+    }, [stage]);
     return (
         <>
-            <div className="absolute w-full h-full flex items-center justify-center">
-                <div className="absolute w-[600px]">
-                    <div className="flex flex-col items-center">
-                        <img style={{height: "75px"}} src="nui/images/wheel/header.gif" />
-                    </div>
-                    <div className="relative">
-                        <BonusWheel prizeWon={"bonus_1"} isSpinning={isBonusSpinning}/>
-                        <div className="h-full w-1 z-10 bg-white absolute top-[0] left-[50%] translate-x-[-50%]"/>
+            {stage.type == "bonus" && (
+                <div className="absolute w-full h-full flex items-center justify-center">
+                    <div className="absolute w-[600px]">
+                        <div className="flex flex-col items-center">
+                            <img style={{height: "75px"}} src="nui/images/wheel/header.gif" />
+                        </div>
+                        <div className="relative">
+                                <BonusWheel prizeWon={stage.prizeId} isSpinning={isBonusSpinning}/>
+                            <div className="h-full w-1 z-10 bg-white absolute top-[0] left-[50%] translate-x-[-50%]"/>
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
             <div className='flex flex-col bg-background/95 absolute w-full px-8 py-8' style={{
                 bottom: 0, 
                 left: '0', 
@@ -206,9 +223,15 @@ export default function Wheel({game}: {game: CasinoGame}) {
                                     {stage.type === "winner" && (
                                         <div className="flex flex-row items-center gap-2">
                                             <Translate id="wheel_sectionwinner"/>
-                                            <div className="w-12">
+                                            <div className="relative w-12">
+                                                {stage.multiplier && (
+                                                    <div className="flex items-center justify-center absolute top-0 left-0 text-lg w-full h-full rounded-md text-white bg-background/75">
+                                                        <div>x{stage.multiplier}</div>
+                                                    </div>
+                                                )}
                                                 <WheelNumber style="history" numberKey={stage.section} />
                                             </div>
+
                                         </div>
                                     )}
                                 </div>
@@ -217,7 +240,7 @@ export default function Wheel({game}: {game: CasinoGame}) {
                         </div>
                     </div>
                     <div className="flex flex-col gap-2 h-full items-center w-[33.333333%] px-8">
-                        <WheelComponent isPlaying={stage.type !== "waiting"} wheelWagers={wheelWagers} onClick={(data: { type: string; id: keyof WheelWager }) => {
+                        <WheelComponent winningSection={stage.section} isPlaying={stage.type !== "waiting"} wheelWagers={wheelWagers} onClick={(data: { type: string; id: keyof WheelWager }) => {
                             console.log("Wagering", data);
                             if (data.type == "attemptWager") {
                                 playAudio("bet");
