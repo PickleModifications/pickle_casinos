@@ -10,6 +10,7 @@ import Roulette, { GetDefaultRouletteConnections, GetDefaultRouletteRows, GetDef
 import Results from "../games/results/Results";
 import { fetchNui } from "@/providers/nui/fetchNui";
 import Baccarat from "../games/baccarat/Baccarat";
+import Wheel from "../games/wheel/Wheel";
 
 export type CasinoGame = {
     visible: boolean;
@@ -37,7 +38,7 @@ export function GetCurrencyString(value: number, config: Config) {
 }
 
 export function GameIcon({name, style}: {name: string, style?: React.CSSProperties}) {
-    if (name === "blackjack" || name === "roulette" || name === "baccarat" || name === "slots") {
+    if (name === "blackjack" || name === "roulette" || name === "baccarat" || name === "slots" || name === "wheel") {
       return (
         <svg xmlns="http://www.w3.org/2000/svg" width={20} height={20} viewBox="0 0 15 15" version="1.1" style={style}>
           <path xmlns="http://www.w3.org/2000/svg" d="M8.5,10c0.4561,0.6072,1.1821,1,2,1c1.3807,0,2.5-1.1193,2.5-2.5c0-0.5642-0.1938-1.0789-0.509-1.4973L12.5,7l-5-6l-5,6&#10;&#9;l0.009,0.0027C2.1938,7.4211,2,7.9358,2,8.5C2,9.8807,3.1193,11,4.5,11c0.8179,0,1.5439-0.3928,2-1&#10;&#9;C6.5997,9.8672,6.7902,9.6135,7,9.3337V11.5C7,13,4.5,13,4.5,13C4.2239,13,4,13.2238,4,13.5C4,13.7761,4.2239,14,4.5,14H7h1h2.5&#10;&#9;c0.2761,0,0.5-0.2239,0.5-0.5c0-0.2762-0.2239-0.5-0.5-0.5c0,0-2.5,0-2.5-1.5V9.3337C8.2098,9.6135,8.4003,9.8672,8.5,10z"/>
@@ -578,8 +579,19 @@ export function CasinoGameDisplay() {
     //         ],
     //     },
     // });
-    const [currentGame, setCurrentGame] = useState<CasinoGame | null>(null);
-    const [isGameVisible, setGameVisible] = useState<boolean>(false);
+    const [currentGame, setCurrentGame] = useState<CasinoGame | null>({
+        type: "wheel",
+        visible: false,
+        data: {
+            money: 1000,
+            stage: {
+                type: "winner",
+                section: "bonus"
+            },
+        }
+    });
+    // const [currentGame, setCurrentGame] = useState<CasinoGame | null>(null);
+    const [isGameVisible, setGameVisible] = useState<boolean>(true);
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
             if (event.key === "Escape" || event.key === "Backspace") {
@@ -617,6 +629,7 @@ export function CasinoGameDisplay() {
     return currentGame != null && (
         <div className="w-screen h-screen absolute text-primary top-0 left-0 transition-opacity duration-300" style={{
             opacity: isGameVisible ? 1 : 0,
+            backgroundColor: "var(--background-color)",
         }}>
             <CasinoControls/>
             <Results/>
@@ -624,6 +637,7 @@ export function CasinoGameDisplay() {
             {(currentGame.type == "blackjack") && <Blackjack game={currentGame}/>}
             {(currentGame.type == "slots") && <Slots game={currentGame}/>}
             {(currentGame.type == "roulette") && <Roulette game={currentGame}/>}
+            {(currentGame.type == "wheel") && <Wheel game={currentGame}/>}
             <div className="transform transform-z-0 rounded-md" id='dialog-container' style={{position: "absolute", top: 0, left: 0, width: "100%", height: "100%", overflow: "hidden", pointerEvents: "none", zIndex: 100}}></div>
         </div>
     )

@@ -3,6 +3,10 @@ import { useNuiEvent } from './nui/useNui';
 import { Chip } from '@/components/casino/Casino';
 
 export type Config = {
+    bonusWheelMultipliers: {
+        id: string;
+        multiplier: number;
+    }[];
     identifier: string;
     locale?: Record<string, string>;
     countryCode?: string;
@@ -28,6 +32,28 @@ export const ConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             {color: "#BE185D", value: 10},
             {color: "#3F3F46", value: 100},
             {color: "#0369A1", value: 1000},
+        ],
+        bonusWheelMultipliers: [
+            {
+                id: "bonus_1",
+                multiplier: 30,
+            },
+            {
+                id: "bonus_2",
+                multiplier: 40,
+            },
+            {
+                id: "bonus_3",
+                multiplier: 50,
+            },
+            {
+                id: "bonus_4",
+                multiplier: 75,
+            },
+            {
+                id: "bonus_5",
+                multiplier: 100,
+            },
         ],
         locale: {
             "casino_money": "Balance: %s",
@@ -85,6 +111,11 @@ export const ConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             "baccarat_win_player": "Player Wins!",
             "baccarat_win_banker": "Banker Wins!",
             "baccarat_win_tie": "It's a Tie!",
+            "wheel_desc": "Choose numbers and bonuses to bet on!",
+            "wheel_title": "Wheel",
+            "wheel_nextround": "Next Round: %s",
+            "wheel_spinning": "The wheel is spinning, good luck!",
+            "wheel_sectionwinner": "The winning section is:",
         },
     });
     useNuiEvent('setConfig', (data) => {
