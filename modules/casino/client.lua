@@ -38,12 +38,25 @@ function UpdateCasinoEntity(casinoId, entity)
     casino.entities[index] = entity
 end
 
+function GenerateWheelBonusConfig()
+    local entries = {}
+    for i=1, #Config.WheelBonus do 
+        entries[i] = {
+            id = "bonus_" .. i,
+            multiplier = Config.WheelBonus[i].multiplier,
+            chance = Config.WheelBonus[i].chance,
+        }
+    end
+    return entries
+end
+
 RegisterNUICallback("pageLoaded", function(data, cb)
     SendNUIMessage({
         type = "setConfig",
         config = {
             currency = "USD",
             countryCode = "en-US",
+            bonusWheelMultipliers = GenerateWheelBonusConfig(),
         }
     })
     TriggerServerEvent("pickle_casinos:initializePlayer")
@@ -65,6 +78,17 @@ RegisterNetEvent("pickle_casinos:syncCasinos", function(data)
             CreateCasinoEntity(k, v.entities[i].id)
         end
     end
+end)
+
+RegisterNetEvent("pickle_casinos:displayResults", function(totalWin, balance)
+    SendNUIMessage({
+        type = "displayResults",
+        results = {winnings = totalWin},
+    })
+    SendNUIMessage({
+        type = "updateBalance",
+        balance = balance,
+    })
 end)
 
 RegisterNetEvent("pickle_casinos:updateCasinoEntity", function(casinoId, entity)

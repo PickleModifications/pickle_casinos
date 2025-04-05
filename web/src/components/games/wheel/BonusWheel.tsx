@@ -51,7 +51,7 @@ export default function BonusWheel({isSpinning, prizeWon, onSpinComplete} : {isS
             prizeIndex={prizeIndex}
             spinningTime={5}
             options={{stopInCenter: true}}
-            soundWhileSpinning={"nui/audio/wheel/tick.mp3"}
+            soundWhileSpinning={"/nui/audio/wheel/tick.mp3"}
             designPlugin={() => ({
                 prizeItemWidth: prizeItemWidth,
                 prizeItemHeight: prizeItemHeight,

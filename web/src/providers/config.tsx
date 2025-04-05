@@ -33,28 +33,7 @@ export const ConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             {color: "#3F3F46", value: 100},
             {color: "#0369A1", value: 1000},
         ],
-        bonusWheelMultipliers: [
-            {
-                id: "bonus_1",
-                multiplier: 30,
-            },
-            {
-                id: "bonus_2",
-                multiplier: 40,
-            },
-            {
-                id: "bonus_3",
-                multiplier: 50,
-            },
-            {
-                id: "bonus_4",
-                multiplier: 75,
-            },
-            {
-                id: "bonus_5",
-                multiplier: 100,
-            },
-        ],
+        bonusWheelMultipliers: [],
         locale: {
             "casino_money": "Balance: %s",
             "casino_betrange": "Limit: %s - %s",

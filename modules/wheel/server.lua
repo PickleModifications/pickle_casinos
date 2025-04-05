@@ -1,7 +1,13 @@
 local PendingSpins = {}
+local LastWagers = {}
 
 function InitializeWheelEntity(casinoId, data)
     local entity = data or { id = "ERR_NO_ID_POKER" }
+    entity.players = {}
+    entity.history = {}
+    SetTimeout(1000, function()
+        StartWheelLobby(casinoId, entity.id)
+    end)
     return entity
 end
 
@@ -10,16 +16,142 @@ function GetPlayerWheelInfo(source)
     for k,v in pairs(Casinos) do
         for i=1, #v.entities do
             local entity = v.entities[i]
-            -- if entity.type == "slot" and entity.currentPlayer and entity.currentPlayer.source == source then
-            --     return {casinoId = k, entityId = entity.id, seatId = 1}
-            -- end
+            if entity.type == "wheel" and entity.players[source] then
+                return {casinoId = k, entityId = entity.id, seatId = 1}
+            end
         end
     end
+end
+
+function StartWheelGame(casinoId, entityId)
+    local casino = Casinos[casinoId]
+    if not casino then return end
+    local entity = GetCasinoEntity(casinoId, entityId)
+    if not entity then return end
+    if entity.stage.type ~= "waiting" then return end
+    local hasSuccessWager = false
+    for k,v in pairs(entity.players) do
+        local total = 0
+        for a, b in pairs(v.wagers) do
+            total = total + b
+        end
+        local money = GetMoney(k)
+        if total > 0 and money - total >= 0 then
+            LastWagers[k] = v.wagers
+            RemoveMoney(k, total)
+            hasSuccessWager = true
+        else
+            entity.players[k].wagers = GenerateDefaultWheelWagers()
+            LastWagers[k] = entity.players[k].wagers
+            TriggerClientEvent("pickle_casinos:wheel:updateWager", k, entity.players[k].wagers)
+            ShowNotification(k, "You don't have enough money to place this wager.")
+        end
+    end
+    if not hasSuccessWager then
+        StartWheelLobby(casinoId, entityId)
+        return
+    end
+    local result = GetSafeDegrees((21 * 9) + 4.5) --GetSafeDegrees((21 * 9) + 4.5) --math.random(0, 360)
+    local section = GetSectionForDegrees(result)
+    entity.stage = {type = "spinning", degrees = result}
+    TriggerClientEvent("pickle_casinos:wheel:updateStage", -1, casinoId, entityId, entity.stage)
+    CreateThread(function()
+        Wait(15000)
+        local multiplier = 1
+        if section == "bonus" then
+            local bonusIndex, bonusMultiplier = GetRandomMultiplier()
+            multiplier = bonusMultiplier
+            entity.stage = {type = "bonus", prizeId = "bonus_" .. bonusIndex}
+            TriggerClientEvent("pickle_casinos:wheel:updateStage", -1, casinoId, entityId, entity.stage)
+            Wait(8000)
+        end
+        for k, v in pairs(entity.players) do
+            local sectionBet = v.wagers[section] or 0
+            local money = GetMoney(k)
+            if sectionBet > 0 then
+                local payout = 0
+                if section == "bonus" then
+                    payout = math.floor(sectionBet * multiplier)
+                else
+                    payout = math.floor(sectionBet * Config.WheelMultiplier[section])
+                end
+                money = money + payout
+                AddMoney(k, payout)
+                TriggerClientEvent("pickle_casinos:displayResults", k, payout, money)
+            end
+        end
+        entity.stage = {type = "winner", section = section, multiplier = section == "bonus" and multiplier or nil}
+        TriggerClientEvent("pickle_casinos:wheel:updateStage", -1, casinoId, entityId, entity.stage)
+        Wait(5000)
+        table.insert(entity.history, 1, {section = section, multiplier = section == "bonus" and multiplier or nil})
+        if #entity.history > 30 then
+            table.remove(entity.history, #entity.history)
+        end
+        TriggerClientEvent("pickle_casinos:wheel:updateHistory", -1, casinoId, entityId, entity.history)
+        for k,v in pairs(entity.players) do
+            entity.players[k].wagers = GenerateDefaultWheelWagers()
+            TriggerClientEvent("pickle_casinos:wheel:updateWager", k, entity.players[k].wagers)
+        end
+        StartWheelLobby(casinoId, entityId)
+    end)
+    -- CreateThread(function()
+    --     while entity.stage.type == "spinning" and entity.stage.time > 1 do
+    --         entity.stage.time = entity.stage.time - 1
+    --         Wait(1000)
+    --     end
+    --     StartWheelLobby(casinoId, entityId)
+    -- end)
+end
+
+function StartWheelLobby(casinoId, entityId)
+    local casino = Casinos[casinoId]
+    if not casino then return end
+    local entity = GetCasinoEntity(casinoId, entityId)
+    if not entity then return end
+    entity.stage = {type = "waiting", time = 11}
+    TriggerClientEvent("pickle_casinos:wheel:updateStage", -1, casinoId, entityId, entity.stage)
+    CreateThread(function()
+        while entity.stage.type == "waiting" and entity.stage.time > 1 do
+            entity.stage.time = entity.stage.time - 1
+            Wait(1000)
+        end
+        local totalWagers = 0
+        for k,v in pairs(entity.players) do
+            if v.wagers then
+                local total = 0
+                for a, b in pairs(v.wagers) do
+                    total = total + b
+                end
+                totalWagers = totalWagers + total
+            end
+        end
+        if totalWagers > 0 then
+            StartWheelGame(casinoId, entityId)
+        else
+            StartWheelLobby(casinoId, entityId)
+        end
+    end)
+end
+
+function GenerateDefaultWheelWagers()
+    return {
+        two = 0,
+        three = 0,
+        five = 0,
+        eleven = 0,
+        twentyThree = 0,
+        bonus = 0,
+    }
 end
 
 RegisterNetEvent("pickle_casinos:wheel:leaveTable", function()
     local playerInfo = GetPlayerWheelInfo(source)
     if not playerInfo then return end
+    local entity = GetCasinoEntity(playerInfo.casinoId, playerInfo.entityId)
+    if not entity then return end
+    local player = entity.players[source]
+    if not player then return end
+    entity.players[source] = nil
 end)
 
 RegisterCallback("pickle_casinos:wheel:requestSeat", function(source, cb, casinoId, entityId, seatId)
@@ -27,5 +159,109 @@ RegisterCallback("pickle_casinos:wheel:requestSeat", function(source, cb, casino
     if not casino then return end
     local entity = GetCasinoEntity(casinoId, entityId)
     if not entity then return end
-    cb(seatId, entity)
+    entity.players[source] = {
+        wagers = GenerateDefaultWheelWagers(),
+    }
+    cb(1, {
+        stage = entity.stage,
+        history = entity.history,
+        money = GetMoney(source),
+    })
 end)
+
+function GetRandomMultiplier()
+    local wheelBonus = Config.WheelBonus
+    local options = {}
+    for i=1, #wheelBonus do
+        local option = wheelBonus[i]
+        for j=1, option.chance do 
+            table.insert(options, {index = i, multiplier = option.multiplier})
+        end
+    end
+    local result = options[math.random(1, #options)]
+    return result.index, result.multiplier
+end
+
+RegisterNetEvent("pickle_casinos:wheel:setWager", function(wagers)
+    if not wagers or type(wagers) ~= "table" then return end
+    local source = source
+    local info = GetPlayerWheelInfo(source)
+    if not info then return end
+    local entity = GetCasinoEntity(info.casinoId, info.entityId)
+    if not entity then return end
+    if not entity.stage.type == "waiting" then return end
+    local player = entity.players[source]
+    if not player then return end
+    local newWagers = {
+        two = wagers.two or 0,
+        three = wagers.three or 0,
+        five = wagers.five or 0,
+        eleven = wagers.eleven or 0,
+        twentyThree = wagers.twentyThree or 0,
+        bonus = wagers.bonus or 0,
+    }
+    local totalWager = 0
+    for k,v in pairs(newWagers) do
+        if v < 0 then
+            newWagers[k] = 0
+        end
+        totalWager = totalWager + newWagers[k]
+    end
+    local money = GetMoney(source)
+    if money - totalWager < 0 then
+        local money = GetMoney(source)
+        ShowNotification(source, "You don't have enough money to place this wager.")
+    else
+        player.wagers = newWagers
+    end
+    TriggerClientEvent("pickle_casinos:wheel:updateWager", source, player.wagers)
+end)
+
+RegisterNetEvent("pickle_casinos:wheel:repeatWager", function()
+    local source = source
+    local info = GetPlayerWheelInfo(source)
+    if not info then return end
+    local entity = GetCasinoEntity(info.casinoId, info.entityId)
+    if not entity then return end
+    if not entity.stage.type == "waiting" then return end
+    local player = entity.players[source]
+    if not player then return end
+    local newWagers = LastWagers[source] or GenerateDefaultWheelWagers()
+    local totalWager = 0
+    for k,v in pairs(newWagers) do
+        if v < 0 then
+            newWagers[k] = 0
+        end
+        totalWager = totalWager + newWagers[k]
+    end
+    local money = GetMoney(source)
+    if money - totalWager < 0 then
+        local money = GetMoney(source)
+        ShowNotification(source, "You don't have enough money to place this wager.")
+    else
+        player.wagers = newWagers
+        if totalWager > 0 then
+            LastWagers[source] = player.wagers
+        end
+    end
+    TriggerClientEvent("pickle_casinos:wheel:updateWager", source, player.wagers)
+end)
+
+
+RegisterCommand("wheelrtp", function(source, args, rawCommand)
+    if source and source > 0 then return end
+    local spinsLeft = 10000
+    local maxSpins = 10000
+    local results = {}
+    while spinsLeft > 0 do
+        spinsLeft = spinsLeft - 1
+        local index, multiplier = GetRandomMultiplier()
+        results[multiplier] = (results[multiplier] or 0) + 1
+        if spinsLeft % 1000 == 0 then
+            Wait(0)
+        end
+    end
+    for k,v in pairs(results) do
+        print(k, "Chance:", (v / maxSpins) * 100)
+    end
+end, false)

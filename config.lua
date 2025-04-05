@@ -69,6 +69,42 @@ Config.Casinos = {
     }
 }
 
+Config.WheelMultiplier = {
+    two = 2,
+    three = 3,
+    five = 5,
+    eleven = 11,
+    twentyThree = 23,
+    -- Bonus is handled in Config.WheelBonus
+}
+
+Config.WheelBonus = {
+    {
+        multiplier = 5,
+        chance = 115,
+    },
+    {
+        multiplier = 10,
+        chance = 110,
+    },
+    {
+        multiplier = 25,
+        chance = 105,
+    },
+    {
+        multiplier = 50,
+        chance = 100,
+    },
+    {
+        multiplier = 100,
+        chance = 25,
+    },
+    {
+        multiplier = 1000,
+        chance = 1,
+    },
+}
+
 Config.Slots = {
     ["bananabonanza"] = {
         model = `vw_prop_casino_slot_05a`,

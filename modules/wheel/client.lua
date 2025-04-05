@@ -1,5 +1,22 @@
 local LocalWheels = {}
 local CurrentWheel = nil
+local CurrentCamera = nil
+
+function EnsureWheelCamera()
+    if not CurrentCamera then
+        local initialCamSettings = {
+            coords = GetGameplayCamCoord(),
+            rotation = GetGameplayCamRot(),
+            fov = GetGameplayCamFov(),
+        }
+        CurrentCamera = CreateCamWithParams("DEFAULT_SCRIPTED_CAMERA", 
+            initialCamSettings.coords.x, initialCamSettings.coords.y, initialCamSettings.coords.z, 
+            initialCamSettings.rotation.x, initialCamSettings.rotation.y, initialCamSettings.rotation.z, initialCamSettings.fov
+        )
+        SetCamActive(CurrentCamera, true)
+        RenderScriptCams(true, false, 0, true, true)
+    end
+end
 
 function DoesWheelEntityExist(casinoId, entityId) 
     return LocalWheels[casinoId] and LocalWheels[casinoId][entityId]
@@ -8,19 +25,122 @@ end
 function AttemptSeatAtWheelEntity(casinoId, entityId)
     ServerCallback("pickle_casinos:wheel:requestSeat", function(seatId, entityInfo)
         if not seatId then return end
+        local localWheel = LocalWheels[casinoId][entityId]
+        if not localWheel then return end
+        local tickCoords = GetOffsetFromEntityInWorldCoords(localWheel.tickObject, 0.0, -2.25, 1.9)
         CurrentWheel = {
             casinoId = casinoId,
             entityId = entityId,
-            seatId = seatId,
-            game = entityInfo.game,
-            bets = entityInfo.bets,
             money = entityInfo.money,
+            history = entityInfo.history or {},
+            stage = entityInfo.stage or {type = "waiting", time = 10},
         }
         local casinoId = CurrentWheel.casinoId
         local entityId = CurrentWheel.entityId
-        local seatId = CurrentWheel.seatId
-        print("SITTING")
+        local stage = CurrentWheel.stage
+        if (stage.type == "waiting") then
+            CurrentWheel.waitingTime = stage.time
+        end
+        SetNuiFocus(true, true)
+        SendNUIMessage({
+            type = "setCurrentGame",
+            game = {
+                type = "wheel",
+                data = {
+                    money = CurrentWheel.money,
+                    history = CurrentWheel.history,
+                    wagerLimit = {10, 100000},
+                    stage = stage,
+                }
+            }
+        })
+        EnsureWheelCamera()
+        SetCamParams(CurrentCamera, tickCoords.x, tickCoords.y, tickCoords.z,
+            -15.0, 0.0, localWheel.heading + 180.0, 90.0, 
+            2000, 0, 0, 2
+        )
+        CreateThread(function()
+            while CurrentWheel do
+                if CurrentWheel.waitingTime > 1 and CurrentWheel.stage.type == "waiting" then
+                    CurrentWheel.waitingTime = CurrentWheel.waitingTime - 1
+                    print("Waiting Time: ", CurrentWheel.waitingTime)
+                    SendNUIMessage({
+                        type = "updateWheelStage",
+                        stage = {
+                            type = "waiting",
+                            time = CurrentWheel.waitingTime
+                        }
+                    })
+                end
+                Wait(1000)
+            end
+        end)
     end, casinoId, entityId, 1)
+end
+
+function SpinWheelEntity(casinoId, entityId, targetDegrees)
+    local localWheel = LocalWheels[casinoId][entityId]
+    if not localWheel then return end
+    CreateThread(function()
+        local rotation = GetEntityRotation(localWheel.wheelObject, 2).y
+        local rotations = 0
+        local targetSection = GetSectionForDegrees(targetDegrees)
+        local totalDegrees = 0.0
+        local maxDegrees = (1 * 360.0)
+        local stage = {type = "start", progress = 0.0}
+        local baseSpeed = 3.0
+        local spinComplete = false
+        local reachedSlowdown = false
+        local remainingRotation = 360.0
+        local lastSection = targetSection
+        while not spinComplete do
+            local currentSection  = GetSectionForDegrees(rotation)
+            if currentSection ~= lastSection then
+                lastSection = currentSection
+                SendNUIMessage({
+                    type = "playAudio",
+                    file = "audio/wheel/wheel_tick.mp3",
+                })
+            end
+            if stage.type == "start" then
+                stage.progress = stage.progress + 0.01
+                rotation = rotation - lerp(0.0, baseSpeed, stage.progress)
+                if stage.progress >= 1.0 then
+                    stage.type = "spin"
+                    stage.spins = 1
+                end
+            elseif stage.type == "spin" then
+                if stage.spins > 0 then
+                    stage.progress = stage.progress + 0.01
+                    rotation = rotation - baseSpeed
+                else
+                    local degreeDistance = math.abs(rotation - targetDegrees)
+                    if not reachedSlowdown then
+                        rotation = rotation - baseSpeed
+                        if (targetDegrees - 2) > rotation then
+                            reachedSlowdown = true
+                        end
+                    else
+                        local speed = lerp(0.02, baseSpeed, remainingRotation / 360.0)
+                        rotation = rotation - speed
+                        remainingRotation = remainingRotation - speed
+                        if degreeDistance <= 0.25 then
+                            spinComplete = true
+                        end
+                    end
+                end
+            end
+            if rotation <= 0 then
+                rotation = 360 - math.abs(rotation)
+                if stage.spins and stage.spins > 0 then
+                    stage.spins = stage.spins - 1
+                end
+            end
+            SetEntityRotation(localWheel.wheelObject, 0.0, rotation, localWheel.heading + 180.0, 2, true)
+            Wait(0)
+        end
+        print("SPIN COMPLETE")
+    end)
 end
 
 function CreateWheelEntity(casinoId, entityId)
@@ -54,66 +174,13 @@ function CreateWheelEntity(casinoId, entityId)
         tickObject = tickObject,
         interact = CreateInteraction({
             label = _L("interact_wheel"),
-            coords = GetOffsetFromEntityInWorldCoords(wheelObject, 0.0, 0.0, 1.0),
+            coords = GetOffsetFromEntityInWorldCoords(wheelObject, 0.0, -0.5, 0.0),
             heading = heading,
         }, function(selected)
             AttemptSeatAtWheelEntity(casinoId, entityId)
         end)
     }
     AttemptSeatAtWheelEntity(casinoId, entityId)
-    CreateThread(function()
-        local rotation = 0.0
-        local rotations = 0
-        local targetDegrees = 13.0
-        local totalDegrees = 0.0
-        local maxDegrees = (1 * 360.0)
-        local stage = {type = "start", progress = 0.0}
-        local baseSpeed = 3.0
-        local spinComplete = false
-        local reachedSlowdown = false
-        local remainingRotation = 360.0
-        while not spinComplete do
-            if stage.type == "start" then
-                stage.progress = stage.progress + 0.01
-                rotation = rotation - lerp(0.0, baseSpeed, stage.progress)
-                if stage.progress >= 1.0 then
-                    stage.type = "spin"
-                    stage.spins = 1
-                end
-            elseif stage.type == "spin" then
-                if stage.spins > 0 then
-                    stage.progress = stage.progress + 0.01
-                    rotation = rotation - baseSpeed
-                else
-                    local degreeDistance = math.abs(rotation - targetDegrees)
-                    if not reachedSlowdown then
-                        rotation = rotation - baseSpeed
-                        print(rotation, targetDegrees, degreeDistance)
-                        if (targetDegrees - 2) > rotation then
-                            reachedSlowdown = true
-                        end
-                    else
-                        local speed = lerp(0.02, baseSpeed, remainingRotation / 360.0)
-                        rotation = rotation - speed
-                        remainingRotation = remainingRotation - speed
-                        if degreeDistance <= 0.25 then
-                            rotation = targetDegrees
-                            spinComplete = true
-                        end
-                    end
-                end
-            end
-            if rotation <= 0 then
-                rotation = 360 - math.abs(rotation)
-                if stage.spins and stage.spins > 0 then
-                    stage.spins = stage.spins - 1
-                end
-            end
-            SetEntityRotation(wheelObject, 0.0, rotation, heading + 180.0, 2, true)
-            Wait(0)
-        end
-        print("SPIN COMPLETE")
-    end)
 end
 
 function DeleteWheelEntity(casinoId, entityId)
@@ -125,6 +192,14 @@ function DeleteWheelEntity(casinoId, entityId)
     LocalWheels[casinoId][entityId] = nil
 end
 
+RegisterNUICallback("setWheelWager", function(data, cb)
+    TriggerServerEvent("pickle_casinos:wheel:setWager", data.wager)
+end)
+
+RegisterNUICallback("repeatWheelWager", function(data, cb)
+    TriggerServerEvent("pickle_casinos:wheel:repeatWager")
+end)
+
 RegisterNetEvent("pickle_casinos:wheel:updateBalance", function(balance)
     if not CurrentWheel then return end
     CurrentWheel.money = balance
@@ -133,10 +208,99 @@ RegisterNetEvent("pickle_casinos:wheel:updateBalance", function(balance)
         balance = balance,
     })
 end)
+
+RegisterNetEvent("pickle_casinos:wheel:updateWager", function(wagers)
+    if not CurrentWheel then return end
+    SendNUIMessage({
+        type = "updateWheelWager",
+        wager = wagers,
+    })
+end)
+
+RegisterNetEvent("pickle_casinos:wheel:updateStage", function(casinoId, entityId, stage)
+    if not DoesWheelEntityExist(casinoId, entityId) then return end
+    local localWheel = LocalWheels[casinoId][entityId]
+    if not localWheel then return end
+    local isCurrentWheel = (CurrentWheel and CurrentWheel.casinoId == casinoId and CurrentWheel.entityId == entityId)
+    local casinoEntity = GetCasinoEntity(casinoId, entityId)
+    local targetRotation = casinoEntity.rotation + vector3(0.0, 0.0, 180.0)
+    local isAlreadyWaiting = (CurrentWheel and CurrentWheel.stage and CurrentWheel.stage.type == "waiting")
+    if (isCurrentWheel) then
+        CurrentWheel.stage = stage
+    end
+    if stage.type == "waiting" then
+        if isCurrentWheel then
+            CurrentWheel.waitingTime = stage.time
+            if not isAlreadyWaiting then
+                EnsureWheelCamera()
+                local tickCoords = GetOffsetFromEntityInWorldCoords(localWheel.tickObject, 0.0, -2.25, 1.9)
+                SetCamParams(CurrentCamera, tickCoords.x, tickCoords.y, tickCoords.z,
+                    -15.0, 0.0, localWheel.heading + 180.0, 90.0, 
+                    2000, 0, 0, 2
+                )
+            end
+        end
+    elseif stage.type == "spinning" then 
+        SpinWheelEntity(casinoId, entityId, stage.degrees)
+        if isCurrentWheel then
+            CurrentWheel.stage = stage
+            SendNUIMessage({
+                type = "updateWheelStage",
+                stage = {
+                    type = "spinning",
+                }
+            })
+            SetTimeout(3000, function()
+                local tickCoords = GetOffsetFromEntityInWorldCoords(localWheel.tickObject, 0.0, -0.8, 2.65)
+                SetCamParams(CurrentCamera, tickCoords.x, tickCoords.y, tickCoords.z,
+                    -15.0, 0.0, localWheel.heading + 180.0, 90.0, 
+                    2000, 0, 0, 2
+                )
+            end)
+        end
+    elseif stage.type == "bonus" then
+        if isCurrentWheel then 
+            CurrentWheel.stage = stage
+            SendNUIMessage({
+                type = "updateWheelStage",
+                stage = {
+                    type = "bonus",
+                    prizeId = stage.prizeId,
+                }
+            })
+        end
+    elseif stage.type == "winner" then
+        if isCurrentWheel then
+            CurrentWheel.stage = stage
+            SendNUIMessage({
+                type = "updateWheelStage",
+                stage = {
+                    type = "winner",
+                    section = stage.section,
+                    multiplier = stage.multiplier,
+                }
+            })
+        end
+    end
+end)
+
+RegisterNetEvent("pickle_casinos:wheel:updateHistory", function(casinoId, entityId, history)
+    if not DoesWheelEntityExist(casinoId, entityId) then return end
+    if not CurrentWheel then return end
+    CurrentWheel.history = history
+    SendNUIMessage({
+        type = "updateWheelHistory",
+        history = history,
+    })
+end)
+
 AddEventHandler("pickle_casinos:exitGame", function()
     if not CurrentWheel then return end
     TriggerServerEvent("pickle_casinos:wheel:leaveTable")
+    DestroyCam(CurrentCamera)
+    RenderScriptCams(false, true, 2000, false, false) 
     CurrentWheel = nil
+    CurrentCamera = nil
 end)
 
 AddEventHandler("onResourceStop", function(resourceName)

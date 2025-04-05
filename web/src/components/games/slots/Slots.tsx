@@ -538,8 +538,7 @@ export default function Slots({game} : {game: SlotGame}) {
                     </div>
                     <div className="flex flex-row items-center gap-2">
                         <div className="rounded-full border p-2 bg-background/50 hover:scale-105 cursor-pointer transition-transform" onClick={() => {
-                            console.log("BALLS", betIndex)
-                            if (betIndex > 0) {
+                            if (betIndex > 0 && allowSpin) {
                                 setBetIndex(betIndex - 1);
                             }
                         }}>
@@ -552,7 +551,7 @@ export default function Slots({game} : {game: SlotGame}) {
                         </div>
                         <div className="rounded-full border p-2 bg-background/50 hover:scale-105 cursor-pointer transition-transform" onClick={() => {
                             console.log("BALLS 2", betIndex, bets.length, bets)
-                            if (betIndex < bets.length - 1) {
+                            if (betIndex < bets.length - 1 && allowSpin) {
                                 setBetIndex(betIndex + 1);
                             }
                         }}>

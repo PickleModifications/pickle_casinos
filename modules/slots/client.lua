@@ -90,6 +90,7 @@ end)
 
 RegisterNUICallback("finishSpin", function(data, cb)
     TriggerServerEvent("pickle_casinos:slots:redeemSpin", data.id, data.spinIndex or 1)
+    cb("ok")
 end)
 
 RegisterNUICallback("spinSlot", function(data, cb)

@@ -60,7 +60,7 @@ function WheelNumber({numberKey, style}: {numberKey: string, style: "selection" 
                     background: numbers[numberKey as keyof typeof numbers].background,
                 }}>
                     {numbers[numberKey as keyof typeof numbers].string == "Bonus" ? (
-                        <img src="nui/images/wheel/bonus.png" className="w-10 h-10" alt="Bonus" />
+                        <img src="/nui/images/wheel/bonus.png" className="w-10 h-10" alt="Bonus" />
                     ) : (
                         <div className="bg-white w-14 h-10 rounded-full text-black font-bold text-2xl flex items-center justify-center">
                             {numbers[numberKey as keyof typeof numbers].string}
@@ -73,7 +73,7 @@ function WheelNumber({numberKey, style}: {numberKey: string, style: "selection" 
                     background: numbers[numberKey as keyof typeof numbers].background,
                 }}>
                     {numbers[numberKey as keyof typeof numbers].string == "Bonus" ? (
-                        <img src="nui/images/wheel/bonus.png" className="w-6 h-6" alt="Bonus" />
+                        <img src="/nui/images/wheel/bonus.png" className="w-6 h-6" alt="Bonus" />
                     ) : (
                         <div className="bg-white w-10 h-6 rounded-full text-black font-bold text-lg flex items-center justify-center">
                             {numbers[numberKey as keyof typeof numbers].string}
@@ -166,20 +166,22 @@ export default function Wheel({game}: {game: CasinoGame}) {
         twentyThree: 0,
         bonus: 0
     });
-    const [numberHistory, setNumberHistory] = useState<string[]>(game.data.history || [
-        "two", "three", "five", "eleven", "twentyThree", "bonus",
-        "two", "three", "five", "eleven", "twentyThree", "bonus",
-        "two", "three", "five", "eleven", "twentyThree", "bonus",
-        "two", "three", "five", "eleven", "twentyThree", "bonus",
-        "two", "three", "five", "eleven", "twentyThree", "bonus",
-        "two", "three", "five", "eleven", "twentyThree", "bonus",
-    ]);
+    const [numberHistory, setNumberHistory] = useState<{
+        section: string,
+        multiplier?: number,
+    }[]>(game.data.history || []);
     const [isBonusSpinning, setIsBonusSpinning] = useState(false);
     useNuiEvent("updateMoney", (data) => {
         setMoney(data.money);
     });
     useNuiEvent("updateWheelStage", (data) => {
         setStage(data.stage);
+    });
+    useNuiEvent("updateWheelHistory", (data) => {
+        setNumberHistory(data.history);
+    });
+    useNuiEvent("updateWheelWager", (data) => {
+        setWheelWagers(data.wager);
     });
     useEffect(() => {
         if (stage.type == "bonus") {
@@ -195,7 +197,7 @@ export default function Wheel({game}: {game: CasinoGame}) {
                 <div className="absolute w-full h-full flex items-center justify-center">
                     <div className="absolute w-[600px]">
                         <div className="flex flex-col items-center">
-                            <img style={{height: "75px"}} src="nui/images/wheel/header.gif" />
+                            <img style={{height: "75px"}} src="/nui/images/wheel/header.gif" />
                         </div>
                         <div className="relative">
                                 <BonusWheel prizeWon={stage.prizeId} isSpinning={isBonusSpinning}/>
@@ -241,13 +243,15 @@ export default function Wheel({game}: {game: CasinoGame}) {
                     </div>
                     <div className="flex flex-col gap-2 h-full items-center w-[33.333333%] px-8">
                         <WheelComponent winningSection={stage.section} isPlaying={stage.type !== "waiting"} wheelWagers={wheelWagers} onClick={(data: { type: string; id: keyof WheelWager }) => {
-                            console.log("Wagering", data);
                             if (data.type == "attemptWager") {
                                 playAudio("bet");
                                 let newWagers = {...wheelWagers};
                                 newWagers[data.id as keyof WheelWager] = (newWagers[data.id as keyof WheelWager] || 0) + chipValue;
                                 if (CalculateWheelWagers(newWagers) > money) { return; }
                                 setWheelWagers(newWagers);
+                                fetchNui("setWheelWager", {
+                                    wager: newWagers
+                                });
                             }
                         }}/>
                         {stage.type == "waiting" && (
@@ -290,6 +294,10 @@ export default function Wheel({game}: {game: CasinoGame}) {
                                         wager: newWagers
                                     });
                                 }
+                                else if (data.type == "repeatWager") {
+                                    playAudio("bet");
+                                    fetchNui("repeatWheelWager", {});
+                                }
                             }} />
                         )}
                     </div>
@@ -297,7 +305,14 @@ export default function Wheel({game}: {game: CasinoGame}) {
                         <div className="flex flex-col gap-2 h-full items-center w-full">
                             <div className="grid grid-cols-8 gap-2 w-full">
                                 {numberHistory.map((number, index) => index < 32 && (
-                                    <WheelNumber key={index} numberKey={number} style="history" />
+                                    <div className="relative">
+                                        {number.multiplier && (
+                                            <div className="flex items-center justify-center absolute top-0 left-0 text-lg font-bold w-full h-full rounded-md text-white bg-background/75">
+                                                <div>x{number.multiplier}</div>
+                                            </div>
+                                        )}
+                                        <WheelNumber key={index} numberKey={number.section} style="history" />
+                                    </div>
                                 ))}
                             </div>
                         </div>

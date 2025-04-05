@@ -606,7 +606,12 @@ export function CasinoGameDisplay() {
             window.removeEventListener("keydown", handleKeyDown);
         };
     });
-
+    useNuiEvent("playAudio", (data: any) => {
+        if (data.file) {
+            const audio = new Audio('/nui/' + data.file);
+            audio.play();
+        }
+    });
     useNuiEvent("setCurrentGame", (data: any) => {
         if (data.game) {
             setCurrentGame({
