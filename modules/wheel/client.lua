@@ -180,7 +180,7 @@ function CreateWheelEntity(casinoId, entityId)
             AttemptSeatAtWheelEntity(casinoId, entityId)
         end)
     }
-    AttemptSeatAtWheelEntity(casinoId, entityId)
+    -- AttemptSeatAtWheelEntity(casinoId, entityId)
 end
 
 function DeleteWheelEntity(casinoId, entityId)

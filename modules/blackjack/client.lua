@@ -72,9 +72,12 @@ function EnsureBlackjackCamera()
     end
 end
 
-
 function DoesBlackjackEntityExist(casinoId, entityId)
     return LocalBlackjackTables[casinoId] and LocalBlackjackTables[casinoId][entityId]
+end
+
+function IsBlackjackEntityVisible(casinoId, entityId)
+    return DoesBlackjackEntityExist(casinoId, entityId) and LocalBlackjackTables[casinoId][entityId].visible
 end
 
 function GetBlackjackSeatsForUI(currentHand)
@@ -188,6 +191,21 @@ function CreateBlackjackEntity(casinoId, entityId)
     if not casino or not casinoEntity then return end
     local coords = casinoEntity.coords
     local heading = casinoEntity.rotation.z
+    if not LocalBlackjackTables[casinoId] then LocalBlackjackTables[casinoId] = {} end
+    LocalBlackjackTables[casinoId][entityId] = {
+        visible = #(GetEntityCoords(PlayerPedId()) - coords) < Config.RenderDistance,
+        coords = coords,
+        heading = heading,
+    }
+    RenderBlackjackEntity(casinoId, entityId)
+end
+
+function RenderBlackjackEntity(casinoId, entityId)
+    local casinoEntity = GetCasinoEntity(casinoId, entityId)
+    if not casinoEntity or not IsBlackjackEntityVisible(casinoId, entityId) then return end
+    local localBlackjackTable = LocalBlackjackTables[casinoId][entityId]
+    local coords = casinoEntity.coords
+    local heading = casinoEntity.rotation.z
     local tableObject = CreateProp(casinoEntity.settings.tableModel, coords, false, false, false)
     local surfaceObject = CreateProp(`prop_tennis_ball`, coords - vector3(0.0, 0.0, 0.11), false, false, false)
     FreezeEntityPosition(tableObject, true)
@@ -199,40 +217,31 @@ function CreateBlackjackEntity(casinoId, entityId)
     SetEntityInvincible(dealerPed, true)
     SetBlockingOfNonTemporaryEvents(dealerPed, true)
     FreezeEntityPosition(dealerPed, true)
-    -- local tempCard = CreateProp(`vw_prop_cas_card_club_04`, GetOffsetFromEntityInWorldCoords(surfaceObject, 0.0, 0.0, 0.0), false, false, false)
-    -- FreezeEntityPosition(tempCard, true)
-    -- SetEntityHeading(tempCard, heading)
-    
-    if not LocalBlackjackTables[casinoId] then LocalBlackjackTables[casinoId] = {} end
-    LocalBlackjackTables[casinoId][entityId] = {
-        coords = coords,
-        heading = heading,
-        dealerPed = dealerPed,
-        tableObject = tableObject,
-        surfaceObject = surfaceObject,
-        interacts = {},
-        playAreas = {
-            [0] = {
-                hands = {{}, {}},
-                wagers = {{}, {}},
-            },
-            {
-                hands = {{}, {}},
-                wagers = {{}, {}},
-            },
-            {
-                hands = {{}, {}},
-                wagers = {{}, {}},
-            },
-            {
-                hands = {{}, {}},
-                wagers = {{}, {}},
-            },
-            {
-                hands = {{}, {}},
-                wagers = {{}, {}},
-            },
-        }
+    localBlackjackTable.dealerPed = dealerPed
+    localBlackjackTable.tableObject = tableObject
+    localBlackjackTable.surfaceObject = surfaceObject
+    localBlackjackTable.interacts = {}
+    localBlackjackTable.playAreas = {
+        [0] = {
+            hands = {{}, {}},
+            wagers = {{}, {}},
+        },
+        {
+            hands = {{}, {}},
+            wagers = {{}, {}},
+        },
+        {
+            hands = {{}, {}},
+            wagers = {{}, {}},
+        },
+        {
+            hands = {{}, {}},
+            wagers = {{}, {}},
+        },
+        {
+            hands = {{}, {}},
+            wagers = {{}, {}},
+        },
     }
     for i,v in pairs(LocalBlackjackTables[casinoId][entityId].playAreas) do
         local playArea = LocalBlackjackTables[casinoId][entityId].playAreas[i]
@@ -252,34 +261,69 @@ function CreateBlackjackEntity(casinoId, entityId)
             end)
         end
     end
-    -- AttemptSeatAtBlackjackEntity(casinoId, entityId)
+end
+
+function UnrenderBlackjackEntity(casinoId, entityId)
+    if not DoesBlackjackEntityExist(casinoId, entityId) then return end
+    local blackjackTable = LocalBlackjackTables[casinoId][entityId]
+    if blackjackTable.interacts then
+        for i=1, #blackjackTable.interacts do
+            DeleteInteraction(blackjackTable.interacts[i])
+        end
+    end
+    if blackjackTable.dealerPed then DeleteEntity(blackjackTable.dealerPed) end
+    if blackjackTable.tableObject then DeleteEntity(blackjackTable.tableObject) end
+    if blackjackTable.surfaceObject then DeleteEntity(blackjackTable.surfaceObject) end
+    if blackjackTable.playAreas then
+        for i, v in pairs(blackjackTable.playAreas) do  
+            local playArea = blackjackTable.playAreas[i]
+            for a, b in pairs(playArea.hands) do
+                for j=1, #b do
+                    DeleteEntity(b[j])
+                end
+            end
+            for j=1, #playArea.wagers do
+                for k=1, #playArea.wagers[j] do
+                    DeleteEntity(playArea.wagers[j][k])
+                end
+            end
+            DeleteEntity(playArea.surfaceObject)
+        end
+    end
+    blackjackTable.interacts = {}
+    blackjackTable.playAreas = {}
+    blackjackTable.dealerPed = nil
+    blackjackTable.tableObject = nil
+    blackjackTable.surfaceObject = nil
 end
 
 function DeleteBlackjackEntity(casinoId, entityId)
     if not DoesBlackjackEntityExist(casinoId, entityId) then return end
-    local blackjackTable = LocalBlackjackTables[casinoId][entityId]
-    for i=1, #blackjackTable.interacts do
-        DeleteInteraction(blackjackTable.interacts[i])
-    end
-    DeleteEntity(blackjackTable.dealerPed)
-    DeleteEntity(blackjackTable.tableObject)
-    DeleteEntity(blackjackTable.surfaceObject)
-    for i, v in pairs(blackjackTable.playAreas) do  
-        local playArea = blackjackTable.playAreas[i]
-        for a, b in pairs(playArea.hands) do
-            for j=1, #b do
-                DeleteEntity(b[j])
-            end
-        end
-        for j=1, #playArea.wagers do
-            for k=1, #playArea.wagers[j] do
-                DeleteEntity(playArea.wagers[j][k])
-            end
-        end
-        DeleteEntity(playArea.surfaceObject)
-    end
+    UnrenderBlackjackEntity(casinoId, entityId)
     LocalBlackjackTables[casinoId][entityId] = nil
 end
+
+CreateThread(function()
+    while true do 
+        local coords = GetEntityCoords(PlayerPedId())
+        for casinoId, entities in pairs(LocalBlackjackTables) do
+            for entityId, entity in pairs(entities) do
+                if not entity.visible then
+                    if #(GetEntityCoords(PlayerPedId()) - entity.coords) <= Config.RenderDistance then
+                        entity.visible = true
+                        RenderBlackjackEntity(casinoId, entityId)
+                    end
+                else
+                    if #(GetEntityCoords(PlayerPedId()) - entity.coords) > Config.RenderDistance then
+                        entity.visible = false
+                        UnrenderBlackjackEntity(casinoId, entityId)
+                    end
+                end
+            end
+        end
+        Wait(1500)
+    end
+end)
 
 RegisterNUICallback("performBlackjackAction", function(data, cb)
     local animations = {
@@ -336,6 +380,7 @@ RegisterNetEvent("pickle_casinos:blackjack:updateSeatWager", function(casinoId, 
         })
     end
     local blackjackTable = LocalBlackjackTables[casinoId][entityId]
+    if not blackjackTable or not blackjackTable.visible then return end
     local playArea = blackjackTable.playAreas[seatId]
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
     local heading = casinoEntity.rotation.z
@@ -365,6 +410,7 @@ RegisterNetEvent("pickle_casinos:blackjack:updateSeatCards", function(casinoId, 
         })
     end
     local blackjackTable = LocalBlackjackTables[casinoId][entityId]
+    if not blackjackTable or not blackjackTable.visible then return end
     local playArea = blackjackTable.playAreas[seatId]
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
     for i=1, #playArea.hands[handId] do
@@ -458,6 +504,7 @@ end)
 RegisterNetEvent("pickle_casinos:blackjack:updateStage", function(casinoId, entityId, stage)
     if not DoesBlackjackEntityExist(casinoId, entityId) then return end
     local blackjackTable = LocalBlackjackTables[casinoId][entityId]
+    if not blackjackTable.visible then return end
     local isCurrentTable = (CurrentBlackjackTable and CurrentBlackjackTable.casinoId == casinoId and CurrentBlackjackTable.entityId == entityId)
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
     local dealerPed = blackjackTable.dealerPed

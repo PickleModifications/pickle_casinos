@@ -217,6 +217,30 @@ function CreateRouletteEntity(casinoId, entityId)
     if not casino or not casinoEntity then return end
     local coords = casinoEntity.coords
     local heading = casinoEntity.rotation.z
+    -- local tempCard = CreateProp(`vw_prop_cas_card_club_04`, GetOffsetFromEntityInWorldCoords(surfaceObject, 0.0, 0.0, 0.0), false, false, false)
+    -- FreezeEntityPosition(tempCard, true)
+    -- SetEntityHeading(tempCard, heading)
+    
+    if not LocalRouletteTables[casinoId] then LocalRouletteTables[casinoId] = {} end
+    LocalRouletteTables[casinoId][entityId] = {
+        visible = #(GetEntityCoords(PlayerPedId()) - coords) < Config.RenderDistance,
+        coords = coords,
+        heading = heading,
+    }
+    RenderRouletteEntity(casinoId, entityId)
+    -- AttemptSeatAtRouletteEntity(casinoId, entityId)
+end
+
+function IsRouletteEntityVisible(casinoId, entityId)
+    return DoesRouletteEntityExist(casinoId, entityId) and LocalRouletteTables[casinoId][entityId].visible
+end
+
+function RenderRouletteEntity(casinoId, entityId)
+    local localRouletteTable = LocalRouletteTables[casinoId][entityId]
+    local casinoEntity = GetCasinoEntity(casinoId, entityId)
+    if not IsRouletteEntityVisible(casinoId, entityId) or not casinoEntity then return end
+    local coords = casinoEntity.coords
+    local heading = casinoEntity.rotation.z
     local tableObject = CreateProp(casinoEntity.settings.tableModel, coords, false, false, false)
     local surfaceObject = CreateProp(`prop_tennis_ball`, coords - vector3(0.0, 0.0, 0.11), false, false, false)
     FreezeEntityPosition(tableObject, true)
@@ -228,21 +252,12 @@ function CreateRouletteEntity(casinoId, entityId)
     SetEntityInvincible(dealerPed, true)
     SetBlockingOfNonTemporaryEvents(dealerPed, true)
     FreezeEntityPosition(dealerPed, true)
-    -- local tempCard = CreateProp(`vw_prop_cas_card_club_04`, GetOffsetFromEntityInWorldCoords(surfaceObject, 0.0, 0.0, 0.0), false, false, false)
-    -- FreezeEntityPosition(tempCard, true)
-    -- SetEntityHeading(tempCard, heading)
-    
-    if not LocalRouletteTables[casinoId] then LocalRouletteTables[casinoId] = {} end
-    LocalRouletteTables[casinoId][entityId] = {
-        coords = coords,
-        heading = heading,
-        dealerPed = dealerPed,
-        tableObject = tableObject,
-        surfaceObject = surfaceObject,
-        connects = CreateEmptyRouletteConnections(),
-        interacts = {},
-        playAreas = {{},{},{},{}}
-    }
+    localRouletteTable.dealerPed = dealerPed
+    localRouletteTable.tableObject = tableObject
+    localRouletteTable.surfaceObject = surfaceObject
+    localRouletteTable.connects = CreateEmptyRouletteConnections()
+    localRouletteTable.interacts = {}
+    localRouletteTable.playAreas = {{},{},{},{}}
     for i,v in pairs(LocalRouletteTables[casinoId][entityId].playAreas) do
         local playArea = LocalRouletteTables[casinoId][entityId].playAreas[i]
         local seatOffset = PLAY_AREA_OFFSETS[i].seatOffset
@@ -265,30 +280,38 @@ function CreateRouletteEntity(casinoId, entityId)
         local casinoEntity = GetCasinoEntity(casinoId, entityId)
         local positions = GetRouletteConnectPositions()
         RenderRouletteChips(casinoId, entityId)
-        -- AttemptSeatAtRouletteEntity(casinoId, entityId)
     end)
-    -- AttemptSeatAtRouletteEntity(casinoId, entityId)
+end
+
+function UnrenderRouletteEntity(casinoId, entityId)
+    if not DoesRouletteEntityExist(casinoId, entityId) then return end
+    local rouletteTable = LocalRouletteTables[casinoId][entityId]
+    if rouletteTable.interacts then
+        for i=1, #rouletteTable.interacts do
+            DeleteInteraction(rouletteTable.interacts[i])
+        end
+    end
+    if rouletteTable.dealerPed then DeleteEntity(rouletteTable.dealerPed) end
+    if rouletteTable.tableObject then DeleteEntity(rouletteTable.tableObject) end
+    if rouletteTable.surfaceObject then DeleteEntity(rouletteTable.surfaceObject) end
+    if rouletteTable.ballObject then DeleteEntity(rouletteTable.ballObject) end
+    if rouletteTable.playAreas then
+        for i, v in pairs(rouletteTable.playAreas) do  
+            local playArea = rouletteTable.playAreas[i]
+            DeleteEntity(playArea.surfaceObject)
+        end
+    end
+    if rouletteTable.connects then
+        for i=1, #rouletteTable.connects do
+            for j=1, #rouletteTable.connects[i] do
+                DeleteEntity(rouletteTable.connects[i][j])
+            end
+        end
+    end
 end
 
 function DeleteRouletteEntity(casinoId, entityId)
-    if not DoesRouletteEntityExist(casinoId, entityId) then return end
-    local rouletteTable = LocalRouletteTables[casinoId][entityId]
-    for i=1, #rouletteTable.interacts do
-        DeleteInteraction(rouletteTable.interacts[i])
-    end
-    DeleteEntity(rouletteTable.dealerPed)
-    DeleteEntity(rouletteTable.tableObject)
-    DeleteEntity(rouletteTable.surfaceObject)
-    DeleteEntity(rouletteTable.ballObject)
-    for i, v in pairs(rouletteTable.playAreas) do  
-        local playArea = rouletteTable.playAreas[i]
-        DeleteEntity(playArea.surfaceObject)
-    end
-    for i=1, #rouletteTable.connects do
-        for j=1, #rouletteTable.connects[i] do
-            DeleteEntity(rouletteTable.connects[i][j])
-        end
-    end
+    UnrenderRouletteEntity(casinoId, entityId)
     LocalRouletteTables[casinoId][entityId] = nil
 end
 
@@ -322,6 +345,29 @@ function RenderRouletteChips(casinoId, entityId)
         rouletteTable.connects[i] = chipStack
     end
 end
+
+CreateThread(function()
+    while true do 
+        local coords = GetEntityCoords(PlayerPedId())
+        for casinoId, entities in pairs(LocalRouletteTables) do
+            for entityId, entity in pairs(entities) do
+                if not entity.visible then
+                    if #(GetEntityCoords(PlayerPedId()) - entity.coords) <= Config.RenderDistance then
+                        entity.visible = true
+                        RenderRouletteEntity(casinoId, entityId)
+                    end
+                else
+                    if #(GetEntityCoords(PlayerPedId()) - entity.coords) > Config.RenderDistance then
+                        entity.visible = false
+                        UnrenderRouletteEntity(casinoId, entityId)
+                    end
+                end
+            end
+        end
+        Wait(1500)
+    end
+end)
+
 
 RegisterNUICallback("performRouletteAction", function(data, cb)
     local animations = {
@@ -396,6 +442,7 @@ RegisterNetEvent("pickle_casinos:roulette:updateSeatWager", function(casinoId, e
         end
     end
     local rouletteTable = LocalRouletteTables[casinoId][entityId]
+    if not rouletteTable or not rouletteTable.visible then return end
     local playArea = rouletteTable.playAreas[seatId]
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
     local heading = casinoEntity.rotation.z
@@ -412,6 +459,7 @@ RegisterNetEvent("pickle_casinos:roulette:updateSeat", function(casinoId, entity
         })
         CurrentRouletteTable.seats[seatId] = seatData
     end
+    if not rouletteTable or not rouletteTable.visible then return end
     RenderRouletteChips(casinoId, entityId)
     -- TriggerEvent("pickle_casinos:roulette:updateSeatWager", casinoId, entityId, seatId, 1, seatData.wagers)
 end)
@@ -435,6 +483,7 @@ end
 RegisterNetEvent("pickle_casinos:roulette:performAction", function(casinoId, entityId, action)
     if not DoesRouletteEntityExist(casinoId, entityId) then return end
     local rouletteTable = LocalRouletteTables[casinoId][entityId]
+    if not rouletteTable or not rouletteTable.visible then return end
     local isCurrentTable = (CurrentRouletteTable and CurrentRouletteTable.casinoId == casinoId and CurrentRouletteTable.entityId == entityId)
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
     local dealerPed = rouletteTable.dealerPed
@@ -471,6 +520,7 @@ end)
 RegisterNetEvent("pickle_casinos:roulette:updateStage", function(casinoId, entityId, stage)
     if not DoesRouletteEntityExist(casinoId, entityId) then return end
     local rouletteTable = LocalRouletteTables[casinoId][entityId]
+    if not rouletteTable or not rouletteTable.visible then return end
     local isCurrentTable = (CurrentRouletteTable and CurrentRouletteTable.casinoId == casinoId and CurrentRouletteTable.entityId == entityId)
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
     local dealerPed = rouletteTable.dealerPed

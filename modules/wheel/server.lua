@@ -51,7 +51,7 @@ function StartWheelGame(casinoId, entityId)
         StartWheelLobby(casinoId, entityId)
         return
     end
-    local result = GetSafeDegrees((21 * 9) + 4.5) --GetSafeDegrees((21 * 9) + 4.5) --math.random(0, 360)
+    local result = GetSafeDegrees(math.random(0, 360)) -- GetSafeDegrees((21 * 9) + 4.5)
     local section = GetSectionForDegrees(result)
     entity.stage = {type = "spinning", degrees = result}
     TriggerClientEvent("pickle_casinos:wheel:updateStage", -1, casinoId, entityId, entity.stage)
@@ -111,6 +111,11 @@ function StartWheelLobby(casinoId, entityId)
     entity.stage = {type = "waiting", time = 11}
     TriggerClientEvent("pickle_casinos:wheel:updateStage", -1, casinoId, entityId, entity.stage)
     CreateThread(function()
+        for k,v in pairs(entity.players) do
+            if v.left then
+                entity.players[k] = nil
+            end
+        end
         while entity.stage.type == "waiting" and entity.stage.time > 1 do
             entity.stage.time = entity.stage.time - 1
             Wait(1000)
@@ -151,7 +156,11 @@ RegisterNetEvent("pickle_casinos:wheel:leaveTable", function()
     if not entity then return end
     local player = entity.players[source]
     if not player then return end
-    entity.players[source] = nil
+    if entity.stage.type == "waiting" then
+        entity.players[source] = nil
+    else
+        entity.players[source].left = true
+    end
 end)
 
 RegisterCallback("pickle_casinos:wheel:requestSeat", function(source, cb, casinoId, entityId, seatId)
