@@ -150,6 +150,25 @@ function CreateWheelEntity(casinoId, entityId)
     if not casino or not casinoEntity then return end
     local coords = casinoEntity.coords
     local heading = casinoEntity.rotation.z
+
+    if not LocalWheels[casinoId] then
+        LocalWheels[casinoId] = {}
+    end
+    LocalWheels[casinoId][entityId] = {
+        visible = #(GetEntityCoords(PlayerPedId()) - coords) < Config.RenderDistance,
+        coords = coords,
+        heading = heading
+    }
+    RenderWheelEntity(casinoId, entityId)
+    -- AttemptSeatAtWheelEntity(casinoId, entityId)
+end
+
+function RenderWheelEntity(casinoId, entityId)
+    local wheelEntity = LocalWheels[casinoId][entityId]
+    local casinoEntity = GetCasinoEntity(casinoId, entityId)
+    if not wheelEntity.visible or not casinoEntity then return end
+    local coords = casinoEntity.coords
+    local heading = casinoEntity.rotation.z
     local standObject = CreateProp(`vw_prop_vw_luckywheel_01a`, coords, false, false, false)
     local wheelObject = CreateProp(`fury_p_wheeloff`, coords, false, false, false)
     local tickObject = CreateProp(`vw_prop_vw_jackpot_off`, coords, false, false, false)
@@ -163,34 +182,61 @@ function CreateWheelEntity(casinoId, entityId)
     SetEntityCoords(wheelObject, coordOff.x, coordOff.y, coordOff.z - 0.1)
     local coordOff = GetOffsetFromEntityInWorldCoords(standObject, 0.0, 0.0, 0.1)
     SetEntityCoords(tickObject, coordOff.x, coordOff.y, coordOff.z - 0.1)
-    if not LocalWheels[casinoId] then
-        LocalWheels[casinoId] = {}
-    end
-    LocalWheels[casinoId][entityId] = {
-        coords = coords,
+    wheelEntity.wheelObject = wheelObject
+    wheelEntity.standObject = standObject
+    wheelEntity.tickObject = tickObject
+    wheelEntity.interact = CreateInteraction({
+        label = _L("interact_wheel"),
+        coords = GetOffsetFromEntityInWorldCoords(wheelObject, 0.0, -0.5, 0.0),
         heading = heading,
-        wheelObject = wheelObject,
-        standObject = standObject,
-        tickObject = tickObject,
-        interact = CreateInteraction({
-            label = _L("interact_wheel"),
-            coords = GetOffsetFromEntityInWorldCoords(wheelObject, 0.0, -0.5, 0.0),
-            heading = heading,
-        }, function(selected)
-            AttemptSeatAtWheelEntity(casinoId, entityId)
-        end)
-    }
-    -- AttemptSeatAtWheelEntity(casinoId, entityId)
+    }, function(selected)
+        AttemptSeatAtWheelEntity(casinoId, entityId)
+    end)
+end
+
+function UnrenderWheelEntity(casinoId, entityId)
+    local wheelEntity = LocalWheels[casinoId][entityId]
+    if not wheelEntity then return end
+    if wheelEntity.wheelObject then
+        DeleteObject(wheelEntity.wheelObject)
+    end
+    if wheelEntity.standObject then
+        DeleteObject(wheelEntity.standObject)
+    end
+    if wheelEntity.tickObject then
+        DeleteObject(wheelEntity.tickObject)
+    end
+    wheelEntity.wheelObject = nil
+    wheelEntity.standObject = nil
+    wheelEntity.tickObject = nil
 end
 
 function DeleteWheelEntity(casinoId, entityId)
-    local slotEntity = LocalWheels[casinoId][entityId]
-    if not slotEntity then return end
-    DeleteObject(slotEntity.wheelObject)
-    DeleteObject(slotEntity.standObject)
-    DeleteObject(slotEntity.tickObject)
+    UnrenderWheelEntity(casinoId, entityId)
     LocalWheels[casinoId][entityId] = nil
 end
+
+CreateThread(function()
+    while true do 
+        local coords = GetEntityCoords(PlayerPedId())
+        for casinoId, entities in pairs(LocalWheels) do
+            for entityId, entity in pairs(entities) do
+                if not entity.visible then
+                    if #(GetEntityCoords(PlayerPedId()) - entity.coords) <= Config.RenderDistance then
+                        entity.visible = true
+                        RenderWheelEntity(casinoId, entityId)
+                    end
+                else
+                    if #(GetEntityCoords(PlayerPedId()) - entity.coords) > Config.RenderDistance then
+                        entity.visible = false
+                        UnrenderWheelEntity(casinoId, entityId)
+                    end
+                end
+            end
+        end
+        Wait(1500)
+    end
+end)
 
 RegisterNUICallback("setWheelWager", function(data, cb)
     TriggerServerEvent("pickle_casinos:wheel:setWager", data.wager)
@@ -220,7 +266,7 @@ end)
 RegisterNetEvent("pickle_casinos:wheel:updateStage", function(casinoId, entityId, stage)
     if not DoesWheelEntityExist(casinoId, entityId) then return end
     local localWheel = LocalWheels[casinoId][entityId]
-    if not localWheel then return end
+    if not localWheel or not localWheel.visible then return end
     local isCurrentWheel = (CurrentWheel and CurrentWheel.casinoId == casinoId and CurrentWheel.entityId == entityId)
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
     local targetRotation = casinoEntity.rotation + vector3(0.0, 0.0, 180.0)

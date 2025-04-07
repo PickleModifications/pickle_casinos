@@ -201,6 +201,26 @@ function CreateBaccaratEntity(casinoId, entityId)
     if not casino or not casinoEntity then return end
     local coords = casinoEntity.coords
     local heading = casinoEntity.rotation.z
+    -- local tempCard = CreateProp(`vw_prop_cas_card_club_04`, GetOffsetFromEntityInWorldCoords(surfaceObject, 0.0, 0.0, 0.0), false, false, false)
+    -- FreezeEntityPosition(tempCard, true)
+    -- SetEntityHeading(tempCard, heading)
+    
+    if not LocalBaccaratTables[casinoId] then LocalBaccaratTables[casinoId] = {} end
+    LocalBaccaratTables[casinoId][entityId] = {
+        visible = #(GetEntityCoords(PlayerPedId()) - coords) < Config.RenderDistance,
+        coords = coords,
+        heading = heading,
+    }
+    RenderBaccaratEntity(casinoId, entityId)
+    -- AttemptSeatAtBaccaratEntity(casinoId, entityId)
+end
+
+function RenderBaccaratEntity(casinoId, entityId)
+    local localBaccaratTable = LocalBaccaratTables[casinoId][entityId]
+    local casinoEntity = GetCasinoEntity(casinoId, entityId)
+    if not casinoEntity or not localBaccaratTable.visible then return end
+    local coords = casinoEntity.coords
+    local heading = casinoEntity.rotation.z
     local tableObject = CreateProp(casinoEntity.settings.tableModel, coords, false, false, false)
     local surfaceObject = CreateProp(`prop_tennis_ball`, coords - vector3(0.0, 0.0, 0.11), false, false, false)
     FreezeEntityPosition(tableObject, true)
@@ -212,40 +232,31 @@ function CreateBaccaratEntity(casinoId, entityId)
     SetEntityInvincible(dealerPed, true)
     SetBlockingOfNonTemporaryEvents(dealerPed, true)
     FreezeEntityPosition(dealerPed, true)
-    -- local tempCard = CreateProp(`vw_prop_cas_card_club_04`, GetOffsetFromEntityInWorldCoords(surfaceObject, 0.0, 0.0, 0.0), false, false, false)
-    -- FreezeEntityPosition(tempCard, true)
-    -- SetEntityHeading(tempCard, heading)
-    
-    if not LocalBaccaratTables[casinoId] then LocalBaccaratTables[casinoId] = {} end
-    LocalBaccaratTables[casinoId][entityId] = {
-        coords = coords,
-        heading = heading,
-        dealerPed = dealerPed,
-        tableObject = tableObject,
-        surfaceObject = surfaceObject,
-        interacts = {},
-        playAreas = {
-            [0] = {
-                sides = {player = {}, banker = {}},
-                wagers = {player = {}, banker = {}, tie = {}},
-            },
-            {
-                sides = {player = {}, banker = {}},
-                wagers = {player = {}, banker = {}, tie = {}},
-            },
-            {
-                sides = {player = {}, banker = {}},
-                wagers = {player = {}, banker = {}, tie = {}},
-            },
-            {
-                sides = {player = {}, banker = {}},
-                wagers = {player = {}, banker = {}, tie = {}},
-            },
-            {
-                sides = {player = {}, banker = {}},
-                wagers = {player = {}, banker = {}, tie = {}},
-            },
-        }
+    localBaccaratTable.dealerPed = dealerPed
+    localBaccaratTable.tableObject = tableObject
+    localBaccaratTable.surfaceObject = surfaceObject
+    localBaccaratTable.interacts = {}
+    localBaccaratTable.playAreas = {
+        [0] = {
+            sides = {player = {}, banker = {}},
+            wagers = {player = {}, banker = {}, tie = {}},
+        },
+        {
+            sides = {player = {}, banker = {}},
+            wagers = {player = {}, banker = {}, tie = {}},
+        },
+        {
+            sides = {player = {}, banker = {}},
+            wagers = {player = {}, banker = {}, tie = {}},
+        },
+        {
+            sides = {player = {}, banker = {}},
+            wagers = {player = {}, banker = {}, tie = {}},
+        },
+        {
+            sides = {player = {}, banker = {}},
+            wagers = {player = {}, banker = {}, tie = {}},
+        },
     }
     for i,v in pairs(LocalBaccaratTables[casinoId][entityId].playAreas) do
         local playArea = LocalBaccaratTables[casinoId][entityId].playAreas[i]
@@ -265,34 +276,89 @@ function CreateBaccaratEntity(casinoId, entityId)
             end)
         end
     end
-    -- AttemptSeatAtBaccaratEntity(casinoId, entityId)
+end
+
+function UnrenderBaccaratEntity(casinoId, entityId)
+    if not DoesBaccaratEntityExist(casinoId, entityId) then return end
+    local baccaratTable = LocalBaccaratTables[casinoId][entityId]
+    if not baccaratTable then return end
+    if baccaratTable.interacts then
+        for i=1, #baccaratTable.interacts do
+            DeleteInteraction(baccaratTable.interacts[i])
+        end
+    end
+    if baccaratTable.dealerPed then
+        DeleteEntity(baccaratTable.dealerPed)
+    end
+    if baccaratTable.tableObject then
+        DeleteEntity(baccaratTable.tableObject)
+    end
+    if baccaratTable.surfaceObject then
+        DeleteEntity(baccaratTable.surfaceObject)
+    end
+    if baccaratTable.playAreas then
+        for i, v in pairs(baccaratTable.playAreas) do  
+            local playArea = baccaratTable.playAreas[i]
+            for a, b in pairs(playArea.sides) do
+                for j=1, #b do
+                    DeleteEntity(b[j])
+                end
+            end
+            for a, b in pairs(playArea.wagers) do
+                for j=1, #b do
+                    DeleteEntity(b[j])
+                end
+            end
+            DeleteEntity(playArea.surfaceObject)
+        end
+    end
+    baccaratTable.interacts = nil
+    baccaratTable.dealerPed = nil
+    baccaratTable.tableObject = nil
+    baccaratTable.surfaceObject = nil
+    baccaratTable.playAreas = nil
 end
 
 function DeleteBaccaratEntity(casinoId, entityId)
-    if not DoesBaccaratEntityExist(casinoId, entityId) then return end
-    local baccaratTable = LocalBaccaratTables[casinoId][entityId]
-    for i=1, #baccaratTable.interacts do
-        DeleteInteraction(baccaratTable.interacts[i])
-    end
-    DeleteEntity(baccaratTable.dealerPed)
-    DeleteEntity(baccaratTable.tableObject)
-    DeleteEntity(baccaratTable.surfaceObject)
-    for i, v in pairs(baccaratTable.playAreas) do  
-        local playArea = baccaratTable.playAreas[i]
-        for a, b in pairs(playArea.sides) do
-            for j=1, #b do
-                DeleteEntity(b[j])
-            end
-        end
-        for a, b in pairs(playArea.wagers) do
-            for j=1, #b do
-                DeleteEntity(b[j])
-            end
-        end
-        DeleteEntity(playArea.surfaceObject)
-    end
+    UnrenderBaccaratEntity(casinoId, entityId)
     LocalBaccaratTables[casinoId][entityId] = nil
 end
+
+function SetEntitySmoothRotation(entity, from, to, speed)
+    local speed = speed or 4
+    local progress = 0
+    CreateThread(function()
+        while progress < 100 do
+            progress = progress + speed
+            if progress > 100 then progress = 100 end
+            local newCoords = lerp(from, to, progress / 100)
+            SetEntityRotation(entity, newCoords, 2, true)
+            Wait(10)
+        end
+    end)
+end
+
+CreateThread(function()
+    while true do 
+        local coords = GetEntityCoords(PlayerPedId())
+        for casinoId, entities in pairs(LocalBaccaratTables) do
+            for entityId, entity in pairs(entities) do
+                if not entity.visible then
+                    if #(GetEntityCoords(PlayerPedId()) - entity.coords) <= Config.RenderDistance then
+                        entity.visible = true
+                        RenderBaccaratEntity(casinoId, entityId)
+                    end
+                else
+                    if #(GetEntityCoords(PlayerPedId()) - entity.coords) > Config.RenderDistance then
+                        entity.visible = false
+                        UnrenderBaccaratEntity(casinoId, entityId)
+                    end
+                end
+            end
+        end
+        Wait(1500)
+    end
+end)
 
 RegisterNUICallback("performBaccaratAction", function(data, cb)
     local animations = {
@@ -347,6 +413,7 @@ RegisterNetEvent("pickle_casinos:baccarat:updateSeatWager", function(casinoId, e
         })
     end
     local baccaratTable = LocalBaccaratTables[casinoId][entityId]
+    if not baccaratTable or not baccaratTable.visible then return end
     local playArea = baccaratTable.playAreas[seatId]
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
     local heading = casinoEntity.rotation.z
@@ -382,6 +449,7 @@ RegisterNetEvent("pickle_casinos:baccarat:updateCards", function(casinoId, entit
         })
     end
     local baccaratTable = LocalBaccaratTables[casinoId][entityId]
+    if not baccaratTable or not baccaratTable.visible then return end
     local playArea = baccaratTable.playAreas[0]
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
     for i=1, #playArea.sides[side] do
@@ -412,23 +480,10 @@ RegisterNetEvent("pickle_casinos:baccarat:updateSeat", function(casinoId, entity
     end
 end)
 
-function SetEntitySmoothRotation(entity, from, to, speed)
-    local speed = speed or 4
-    local progress = 0
-    CreateThread(function()
-        while progress < 100 do
-            progress = progress + speed
-            if progress > 100 then progress = 100 end
-            local newCoords = lerp(from, to, progress / 100)
-            SetEntityRotation(entity, newCoords, 2, true)
-            Wait(10)
-        end
-    end)
-end
-
 RegisterNetEvent("pickle_casinos:baccarat:performAction", function(casinoId, entityId, action)
     if not DoesBaccaratEntityExist(casinoId, entityId) then return end
     local baccaratTable = LocalBaccaratTables[casinoId][entityId]
+    if not baccaratTable or not baccaratTable.visible then return end
     local isCurrentTable = (CurrentBaccaratTable and CurrentBaccaratTable.casinoId == casinoId and CurrentBaccaratTable.entityId == entityId)
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
     local dealerPed = baccaratTable.dealerPed
@@ -472,6 +527,7 @@ end)
 RegisterNetEvent("pickle_casinos:baccarat:updateStage", function(casinoId, entityId, stage)
     if not DoesBaccaratEntityExist(casinoId, entityId) then return end
     local baccaratTable = LocalBaccaratTables[casinoId][entityId]
+    if not baccaratTable or not baccaratTable.visible then return end
     local isCurrentTable = (CurrentBaccaratTable and CurrentBaccaratTable.casinoId == casinoId and CurrentBaccaratTable.entityId == entityId)
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
     local dealerPed = baccaratTable.dealerPed

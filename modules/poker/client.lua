@@ -134,6 +134,24 @@ function CreatePokerEntity(casinoId, entityId)
     if not casino or not casinoEntity then return end
     local coords = casinoEntity.coords
     local heading = casinoEntity.rotation.z
+    if not LocalPokerTables[casinoId] then
+        LocalPokerTables[casinoId] = {}
+    end
+    LocalPokerTables[casinoId][entityId] = {
+        visible = #(GetEntityCoords(PlayerPedId()) - coords) < Config.RenderDistance,
+        coords = coords,
+        heading = heading,
+    }
+    RenderPokerEntity(casinoId, entityId)
+    --AttemptSeatAtPokerEntity(casinoId, entityId)
+end
+
+function RenderPokerEntity(casinoId, entityId)
+    local localPokerTable = LocalPokerTables[casinoId][entityId]
+    local casinoEntity = GetCasinoEntity(casinoId, entityId)
+    if not localPokerTable.visible or not casinoEntity then return end
+    local coords = casinoEntity.coords
+    local heading = casinoEntity.rotation.z
     local tableObject = CreateProp(casinoEntity.settings.tableModel, coords, false, false, false)
     local surfaceObject = CreateProp(`prop_tennis_ball`, coords - vector3(0.0, 0.0, 0.11), false, false, false)
     FreezeEntityPosition(tableObject, true)
@@ -169,38 +187,77 @@ function CreatePokerEntity(casinoId, entityId)
             AttemptSeatAtPokerEntity(casinoId, entityId)
         end)
     end
-    LocalPokerTables[casinoId][entityId] = {
-        coords = coords,
-        heading = heading,
-        tableObject = tableObject,
-        surfaceObject = surfaceObject,
-        dealerPed = dealerPed,
-        playAreas = defaultPlayAreas,
-        interacts = defaultInteracts,
-    }
-    AttemptSeatAtPokerEntity(casinoId, entityId)
+    localPokerTable.tableObject = tableObject
+    localPokerTable.surfaceObject = surfaceObject
+    localPokerTable.dealerPed = dealerPed
+    localPokerTable.playAreas = defaultPlayAreas
+    localPokerTable.interacts = defaultInteracts
+end
+
+function UnrenderPokerEntity(casinoId, entityId)
+    local slotEntity = LocalPokerTables[casinoId][entityId]
+    if not slotEntity then return end
+    if slotEntity.tableObject then
+        DeleteObject(slotEntity.tableObject)
+    end
+    if slotEntity.surfaceObject then
+        DeleteObject(slotEntity.surfaceObject)
+    end
+    if slotEntity.dealerPed then
+        DeleteEntity(slotEntity.dealerPed)
+    end
+    if slotEntity.interacts then
+        for i=1, #slotEntity.interacts do
+            DeleteInteraction(slotEntity.interacts[i])
+        end
+    end
+    if slotEntity.playAreas then
+        for i,v in pairs(slotEntity.playAreas) do
+            DeleteObject(v.surfaceObject)
+            for j=1, #v.cards do
+                DeleteObject(v.cards[j])
+            end
+            for j=1, #v.chips do
+                DeleteObject(v.chips[j])
+            end
+            for j=1, #v.betChips do
+                DeleteObject(v.betChips[j])
+            end
+        end
+    end
+    slotEntity.tableObject = nil
+    slotEntity.surfaceObject = nil
+    slotEntity.dealerPed = nil
+    slotEntity.interacts = nil
+    slotEntity.playAreas = nil
 end
 
 function DeletePokerEntity(casinoId, entityId)
-    local slotEntity = LocalPokerTables[casinoId][entityId]
-    if not slotEntity then return end
-    DeleteObject(slotEntity.tableObject)
-    DeleteObject(slotEntity.surfaceObject)
-    DeleteEntity(slotEntity.dealerPed)
-    for i,v in pairs(slotEntity.playAreas) do
-        DeleteObject(v.surfaceObject)
-        for j=1, #v.cards do
-            DeleteObject(v.cards[j])
-        end
-        for j=1, #v.chips do
-            DeleteObject(v.chips[j])
-        end
-        for j=1, #v.betChips do
-            DeleteObject(v.betChips[j])
-        end
-    end
+    UnrenderPokerEntity(casinoId, entityId)
     LocalPokerTables[casinoId][entityId] = nil
 end
+
+CreateThread(function()
+    while true do 
+        local coords = GetEntityCoords(PlayerPedId())
+        for casinoId, entities in pairs(LocalPokerTables) do
+            for entityId, entity in pairs(entities) do
+                if not entity.visible then
+                    if #(GetEntityCoords(PlayerPedId()) - entity.coords) <= Config.RenderDistance then
+                        entity.visible = true
+                        RenderPokerEntity(casinoId, entityId)
+                    end
+                else
+                    if #(GetEntityCoords(PlayerPedId()) - entity.coords) > Config.RenderDistance then
+                        entity.visible = false
+                        UnrenderPokerEntity(casinoId, entityId)
+                    end
+                end
+            end
+        end
+        Wait(1500)
+    end
+end)
 
 RegisterNetEvent("pickle_casinos:poker:updateBalance", function(balance)
     if not CurrentPokerTable then return end

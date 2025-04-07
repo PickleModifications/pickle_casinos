@@ -53,31 +53,71 @@ function CreateSlotEntity(casinoId, entityId)
     local heading = casinoEntity.rotation.z
     local slotCfg = Config.Slots[casinoEntity.settings.game]
     if not slotCfg then return end
-    local slotObject = CreateObject(slotCfg.model, coords.x, coords.y, coords.z, false, false, false)
-    SetEntityRotation(slotObject, 0.0, 0.0, heading, 2, true)
     if not LocalSlotMachines[casinoId] then
         LocalSlotMachines[casinoId] = {}
     end
     LocalSlotMachines[casinoId][entityId] = {
+        visible = #(GetEntityCoords(PlayerPedId()) - coords) < Config.RenderDistance,
         coords = coords,
         heading = heading,
-        slotObject = slotObject,
-        interact = CreateInteraction({
-            label = _L("interact_roulette"),
-            coords = GetOffsetFromEntityInWorldCoords(slotObject, 0.0, 0.0, 1.0),
-            heading = heading,
-        }, function(selected)
-            AttemptSeatAtSlotEntity(casinoId, entityId)
-        end)
     }
+    RenderSlotEntity(casinoId, entityId)
+end
+
+function RenderSlotEntity(casinoId, entityId)
+    local localSlotMachine = LocalSlotMachines[casinoId][entityId]
+    local casinoEntity = GetCasinoEntity(casinoId, entityId)
+    if not localSlotMachine.visible or not casinoEntity then return end
+    local coords = casinoEntity.coords
+    local heading = casinoEntity.rotation.z
+    local slotCfg = Config.Slots[casinoEntity.settings.game]
+    local slotObject = CreateObject(slotCfg.model, coords.x, coords.y, coords.z, false, false, false)
+    SetEntityRotation(slotObject, 0.0, 0.0, heading, 2, true)
+    localSlotMachine.slotObject = slotObject
+    localSlotMachine.interact = CreateInteraction({
+        label = _L("interact_roulette"),
+        coords = GetOffsetFromEntityInWorldCoords(slotObject, 0.0, 0.0, 1.0),
+        heading = heading,
+    }, function(selected)
+        AttemptSeatAtSlotEntity(casinoId, entityId)
+    end)
+end
+
+function UnrenderSlotEntity(casinoId, entityId)
+    local slotEntity = LocalSlotMachines[casinoId][entityId]
+    if not slotEntity then return end
+    if slotEntity.slotObject then
+        DeleteObject(slotEntity.slotObject)
+    end
+    slotEntity.slotObject = nil
 end
 
 function DeleteSlotEntity(casinoId, entityId)
-    local slotEntity = LocalSlotMachines[casinoId][entityId]
-    if not slotEntity then return end
-    DeleteObject(slotEntity.slotObject)
+    UnrenderSlotEntity(casinoId, entityId)
     LocalSlotMachines[casinoId][entityId] = nil
 end
+
+CreateThread(function()
+    while true do 
+        local coords = GetEntityCoords(PlayerPedId())
+        for casinoId, entities in pairs(LocalSlotMachines) do
+            for entityId, entity in pairs(entities) do
+                if not entity.visible then
+                    if #(GetEntityCoords(PlayerPedId()) - entity.coords) <= Config.RenderDistance then
+                        entity.visible = true
+                        RenderSlotEntity(casinoId, entityId)
+                    end
+                else
+                    if #(GetEntityCoords(PlayerPedId()) - entity.coords) > Config.RenderDistance then
+                        entity.visible = false
+                        UnrenderSlotEntity(casinoId, entityId)
+                    end
+                end
+            end
+        end
+        Wait(1500)
+    end
+end)
 
 RegisterNetEvent("pickle_casinos:slots:updateBalance", function(balance)
     if not CurrentSlotMachine then return end

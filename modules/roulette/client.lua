@@ -308,6 +308,12 @@ function UnrenderRouletteEntity(casinoId, entityId)
             end
         end
     end
+    rouletteTable.interacts = nil
+    rouletteTable.tableObject = nil
+    rouletteTable.surfaceObject = nil
+    rouletteTable.dealerPed = nil
+    rouletteTable.ballObject = nil
+    rouletteTable.playAreas = nil
 end
 
 function DeleteRouletteEntity(casinoId, entityId)
@@ -367,7 +373,6 @@ CreateThread(function()
         Wait(1500)
     end
 end)
-
 
 RegisterNUICallback("performRouletteAction", function(data, cb)
     local animations = {
