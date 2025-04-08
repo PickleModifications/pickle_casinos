@@ -11,13 +11,13 @@ local POKER_SEATS = {
         coords = vector3(0.91999959945679, 0.13999992609024, 0.0), rotation = vector3(0.0, 0.0, 112.0)
     },
     {
-        coords = vector3(0.68999981880188, 0.36999988555908, 0.0), rotation = vector3(0.0, 0.0, 148.0)
+        coords = vector3(0.70999981880188, 0.32999988555908, 0.0), rotation = vector3(0.0, 0.0, 148.0)
     },
     {
-        coords = vector3(0.23000022768974, 0.36999988555908, 0.0), rotation = vector3(0.0, 0.0, 173.5)
+        coords = vector3(0.25000022768974, 0.36999988555908, 0.0), rotation = vector3(0.0, 0.0, 180.01)
     },
     {
-        coords = vector3(-0.28999981284142, 0.36999988555908, 0.0), rotation = vector3(0.0, 0.0, 181.5)
+        coords = vector3(-0.28999981284142, 0.36999988555908, 0.0), rotation = vector3(0.0, 0.0, 180.01)
     },
     {
         coords = vector3(-0.72999942302704, 0.32999992370605, 0.0), rotation = vector3(0.0, 0.0, 205.5)
@@ -43,7 +43,7 @@ function PlayPokerAnimation(ped, animation, data)
         playingPokerAnimation = false
     end)
     local playArea = LocalPokerTables[CurrentPokerTable.casinoId][CurrentPokerTable.entityId].playAreas[CurrentPokerTable.seatId]
-    local coords = GetOffsetFromEntityInWorldCoords(playArea.surfaceObject, 0.0, -0.5, 0.25)
+    local coords = GetOffsetFromEntityInWorldCoords(playArea.surfaceObject, 0.0, -0.5, 0.0275)
     local rotation = GetEntityRotation(playArea.surfaceObject) + vector3(0.0, 0.0, 90.0)
     local netScene = NetworkCreateSynchronisedScene(coords.x, coords.y, coords.z, rotation.x, rotation.y, rotation.z, 2, 1, 0, 1065353216, 0, 1065353216)
     NetworkAddPedToSynchronisedScene(ped, netScene, animation.dict, animation.name, 2.0, -2.0, 13, 16, 2.0, 0) -- 8.0, -1.5, 157, 16, 1148846080, 0) ?
@@ -138,12 +138,12 @@ function CreatePokerEntity(casinoId, entityId)
         LocalPokerTables[casinoId] = {}
     end
     LocalPokerTables[casinoId][entityId] = {
-        visible = #(GetEntityCoords(PlayerPedId()) - coords) < Config.RenderDistance,
+        visible = #(GetEntityCoords(PlayerPedId()) - coords) <= Config.RenderDistance,
         coords = coords,
         heading = heading,
     }
     RenderPokerEntity(casinoId, entityId)
-    --AttemptSeatAtPokerEntity(casinoId, entityId)
+    AttemptSeatAtPokerEntity(casinoId, entityId)
 end
 
 function RenderPokerEntity(casinoId, entityId)
@@ -153,12 +153,12 @@ function RenderPokerEntity(casinoId, entityId)
     local coords = casinoEntity.coords
     local heading = casinoEntity.rotation.z
     local tableObject = CreateProp(casinoEntity.settings.tableModel, coords, false, false, false)
-    local surfaceObject = CreateProp(`prop_tennis_ball`, coords - vector3(0.0, 0.0, 0.11), false, false, false)
+    local surfaceObject = CreateProp(`prop_tennis_ball`, coords + vector3(0.0, 0.0, 1.05), false, false, false)
     FreezeEntityPosition(tableObject, true)
     SetEntityHeading(tableObject, heading)
     FreezeEntityPosition(surfaceObject, true)
     SetEntityHeading(surfaceObject, heading)
-    local dealerCoords = GetOffsetFromEntityInWorldCoords(surfaceObject, 0.0, -0.75, 0.27)
+    local dealerCoords = GetOffsetFromEntityInWorldCoords(surfaceObject, 0.0, -0.75, -0.9)
     local dealerPed = CreateNPC(casinoEntity.settings.dealerModel, dealerCoords, heading, false, false)
     SetEntityInvincible(dealerPed, true)
     SetBlockingOfNonTemporaryEvents(dealerPed, true)
@@ -168,15 +168,44 @@ function RenderPokerEntity(casinoId, entityId)
     end
     local defaultPlayAreas = {}
     local defaultInteracts = {}
+    local dealerCards = {}
+    for i=1, 5 do 
+        local card = CreateProp(GetCardModel("hidden"), GetOffsetFromEntityInWorldCoords(surfaceObject, -0.12 + ((i - 1) * 0.075), -0.15, -0.9), false, false, false)
+        SetEntityRotation(card, 0.0, 180.0, heading, 2, true)
+        table.insert(dealerCards, card)
+    end
     for i=1, #POKER_SEATS do
         local seatOffset = POKER_SEATS[i]
-        local playSurface = CreateProp(`prop_tennis_ball`, GetOffsetFromEntityInWorldCoords(surfaceObject, seatOffset.coords), false, false, false)
+        local playSurface = CreateProp(`prop_tennis_ball`, GetOffsetFromEntityInWorldCoords(surfaceObject, seatOffset.coords - vector3(0.0, 0.0, 1.0)), false, false, false)
         FreezeEntityPosition(playSurface, true)
         SetEntityHeading(playSurface, heading + seatOffset.rotation.z)
+        local cards = {}
+        local chips = {}
+        local betChips = {}
+        local funds = 100000
+        local calculatedChips = GetCalculatedChips(funds, 10)
+        local folded = true
+        for j=1, #calculatedChips do
+            local chip = calculatedChips[j]
+            local chipObject = CreateProp(chip.model, GetOffsetFromEntityInWorldCoords(playSurface, 0.0, -0.12, 1.0 + ((j - 1) * 0.0065)), false, false, false)
+            SetEntityHeading(chipObject, heading + seatOffset.rotation.z)
+            table.insert(chips, chipObject)
+        end
+        for j=1, #calculatedChips do
+            local chip = calculatedChips[j]
+            local chipObject = CreateProp(chip.model, GetOffsetFromEntityInWorldCoords(playSurface, 0.0, 0.12, 1.0 +  ((j - 1) * 0.0065)), false, false, false)
+            SetEntityHeading(chipObject, heading + seatOffset.rotation.z)
+            table.insert(betChips, chipObject)
+        end
+        for j=1, 2 do 
+            local card = CreateProp(GetCardModel("hidden"), GetOffsetFromEntityInWorldCoords(playSurface, -0.02 + ((j - 1) * 0.035), (folded and 0.21 or 0.015) - ((j - 1) * 0.005), ((j - 1) * 0.0065)), false, false, false)
+            SetEntityRotation(card, 0.0, 180.0, (heading + seatOffset.rotation.z) + (20 * (-1 + ((j - 1) * 2))), 2, true)
+            table.insert(cards, card)
+        end
         defaultPlayAreas[i] = {
-            cards = {},
-            chips = {},
-            betChips = {},
+            cards = cards,
+            chips = chips,
+            betChips = betChips,
             surfaceObject = playSurface,
         }
         defaultInteracts[i] = CreateInteraction({
@@ -190,6 +219,7 @@ function RenderPokerEntity(casinoId, entityId)
     localPokerTable.tableObject = tableObject
     localPokerTable.surfaceObject = surfaceObject
     localPokerTable.dealerPed = dealerPed
+    localPokerTable.dealerCards = dealerCards
     localPokerTable.playAreas = defaultPlayAreas
     localPokerTable.interacts = defaultInteracts
 end
@@ -204,7 +234,12 @@ function UnrenderPokerEntity(casinoId, entityId)
         DeleteObject(slotEntity.surfaceObject)
     end
     if slotEntity.dealerPed then
-        DeleteEntity(slotEntity.dealerPed)
+        DeleteScriptObject(slotEntity.dealerPed)
+    end
+    if slotEntity.dealerCards then
+        for i=1, #slotEntity.dealerCards do
+            DeleteObject(slotEntity.dealerCards[i])
+        end
     end
     if slotEntity.interacts then
         for i=1, #slotEntity.interacts do
@@ -228,6 +263,7 @@ function UnrenderPokerEntity(casinoId, entityId)
     slotEntity.tableObject = nil
     slotEntity.surfaceObject = nil
     slotEntity.dealerPed = nil
+    slotEntity.dealerCards = nil
     slotEntity.interacts = nil
     slotEntity.playAreas = nil
 end

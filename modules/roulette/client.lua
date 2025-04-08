@@ -291,20 +291,20 @@ function UnrenderRouletteEntity(casinoId, entityId)
             DeleteInteraction(rouletteTable.interacts[i])
         end
     end
-    if rouletteTable.dealerPed then DeleteEntity(rouletteTable.dealerPed) end
-    if rouletteTable.tableObject then DeleteEntity(rouletteTable.tableObject) end
-    if rouletteTable.surfaceObject then DeleteEntity(rouletteTable.surfaceObject) end
-    if rouletteTable.ballObject then DeleteEntity(rouletteTable.ballObject) end
+    if rouletteTable.dealerPed then DeleteScriptObject(rouletteTable.dealerPed) end
+    if rouletteTable.tableObject then DeleteScriptObject(rouletteTable.tableObject) end
+    if rouletteTable.surfaceObject then DeleteScriptObject(rouletteTable.surfaceObject) end
+    if rouletteTable.ballObject then DeleteScriptObject(rouletteTable.ballObject) end
     if rouletteTable.playAreas then
         for i, v in pairs(rouletteTable.playAreas) do  
             local playArea = rouletteTable.playAreas[i]
-            DeleteEntity(playArea.surfaceObject)
+            DeleteScriptObject(playArea.surfaceObject)
         end
     end
     if rouletteTable.connects then
         for i=1, #rouletteTable.connects do
             for j=1, #rouletteTable.connects[i] do
-                DeleteEntity(rouletteTable.connects[i][j])
+                DeleteScriptObject(rouletteTable.connects[i][j])
             end
         end
     end
@@ -327,7 +327,7 @@ function RenderRouletteChips(casinoId, entityId)
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
     for i=1, #rouletteTable.connects do
         for j=1, #rouletteTable.connects[i] do
-            DeleteEntity(rouletteTable.connects[i][j])
+            DeleteScriptObject(rouletteTable.connects[i][j])
         end
     end
     local wagerPositions = {}

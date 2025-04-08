@@ -11,8 +11,8 @@ Config.Casinos = {
             {
                 id = "blackjack-1",
                 type = "blackjack",
-                coords = vector3(-962.6842, -3006.3818, 12.9451),
-                rotation = vector3(0.0, 0.0, 60.9669),
+                coords = vector3(1102.4396972656, -2315.6953125, 23.347464752197),
+                rotation = vector3(0.0, 0.0, 172.6324),
                 settings = {
                     dealerModel = `s_f_y_casino_01`,
                     tableModel = `vw_prop_casino_blckjack_01b`,
@@ -51,8 +51,18 @@ Config.Casinos = {
             {
                 id = "poker-1",
                 type = "poker",
-                coords = vector3(-960.8425, -3011.2959, 12.7451),
-                rotation = vector3(0.0, 0.0, 64.7923),
+                coords = vector3(1100.8215, -2326.7092, 23.2540),
+                rotation = vector3(0.0, 0.0, 264.6634),
+                settings = {
+                    dealerModel = `s_f_y_casino_01`,
+                    tableModel = `fury_p_poker_table`,
+                }
+            },
+            {
+                id = "poker-2",
+                type = "poker",
+                coords = vector3(1096.9214, -2326.3220, 23.2540),
+                rotation = vector3(0.0, 0.0, 85.4802),
                 settings = {
                     dealerModel = `s_f_y_casino_01`,
                     tableModel = `fury_p_poker_table`,
@@ -61,10 +71,10 @@ Config.Casinos = {
             {
                 id = "wheel-1",
                 type = "wheel",
-                coords = vector3(-964.3455, -3013.3254, 12.9451),
-                rotation = vector3(0.0, 0.0, 331.0281),
+                coords = vector3(1076.3964, -2316.6580, 23.4540),
+                rotation = vector3(0.0, 0.0, 263.7225),
                 settings = {}
-            }
+            },
         }
     }
 }

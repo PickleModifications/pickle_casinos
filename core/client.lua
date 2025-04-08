@@ -1,8 +1,15 @@
+local ScriptEntities = {
+    vehicles = {},
+    peds = {},
+    props = {}
+}
+
 function CreateVeh(modelHash, ...)
     RequestModel(modelHash)
     while not HasModelLoaded(modelHash) do Wait(0) end
     local veh = CreateVehicle(modelHash, ...)
     SetModelAsNoLongerNeeded(modelHash)
+    ScriptEntities["vehicles"][veh] = true
     return veh
 end
 
@@ -12,6 +19,7 @@ function CreateNPC(modelHash, ...)
     while not HasModelLoaded(modelHash) do Wait(0) end
     local ped = CreatePed(26, modelHash, ...)
     SetModelAsNoLongerNeeded(modelHash)
+    ScriptEntities["peds"][ped] = true
     return ped
 end
 
@@ -21,6 +29,7 @@ function CreateProp(modelHash, ...)
     while not HasModelLoaded(modelHash) do Wait(0) end
     local obj = CreateObject(modelHash, ...)
     SetModelAsNoLongerNeeded(modelHash)
+    ScriptEntities["props"][obj] = true
     return obj
 end
 
@@ -150,10 +159,28 @@ function EnsureInteractionModel(index)
     return entity
 end
 
+function IsEntityScriptObject(entity)
+    for k,v in pairs(ScriptEntities) do 
+        if ScriptEntities[k][entity] then 
+            return true
+        end
+    end
+    return false
+end
+
+function DeleteScriptObject(entity)
+    DeleteEntity(entity)
+    for k,v in pairs(ScriptEntities) do 
+        if ScriptEntities[k][entity] then 
+            ScriptEntities[k][entity] = nil
+        end
+    end
+end
+
 function DeleteInteractionEntity(index)
     local data = Interactions[index] 
     if not data or not data.entity then return end
-    DeleteEntity(data.entity)
+    DeleteScriptObject(data.entity)
     Interactions[index].entity = nil
 end
 

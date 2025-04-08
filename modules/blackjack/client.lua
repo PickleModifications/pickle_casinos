@@ -271,23 +271,23 @@ function UnrenderBlackjackEntity(casinoId, entityId)
             DeleteInteraction(blackjackTable.interacts[i])
         end
     end
-    if blackjackTable.dealerPed then DeleteEntity(blackjackTable.dealerPed) end
-    if blackjackTable.tableObject then DeleteEntity(blackjackTable.tableObject) end
-    if blackjackTable.surfaceObject then DeleteEntity(blackjackTable.surfaceObject) end
+    if blackjackTable.dealerPed then DeleteScriptObject(blackjackTable.dealerPed) end
+    if blackjackTable.tableObject then DeleteScriptObject(blackjackTable.tableObject) end
+    if blackjackTable.surfaceObject then DeleteScriptObject(blackjackTable.surfaceObject) end
     if blackjackTable.playAreas then
         for i, v in pairs(blackjackTable.playAreas) do  
             local playArea = blackjackTable.playAreas[i]
             for a, b in pairs(playArea.hands) do
                 for j=1, #b do
-                    DeleteEntity(b[j])
+                    DeleteScriptObject(b[j])
                 end
             end
             for j=1, #playArea.wagers do
                 for k=1, #playArea.wagers[j] do
-                    DeleteEntity(playArea.wagers[j][k])
+                    DeleteScriptObject(playArea.wagers[j][k])
                 end
             end
-            DeleteEntity(playArea.surfaceObject)
+            DeleteScriptObject(playArea.surfaceObject)
         end
     end
     blackjackTable.interacts = {}
@@ -386,7 +386,7 @@ RegisterNetEvent("pickle_casinos:blackjack:updateSeatWager", function(casinoId, 
     local heading = casinoEntity.rotation.z
     local chipOffset = PLAY_AREA_OFFSETS[seatId].chips
     for i=1, #playArea.wagers[handId] do
-        DeleteEntity(playArea.wagers[handId][i])
+        DeleteScriptObject(playArea.wagers[handId][i])
     end
     playArea.wagers[handId] = {}
     local chips = GetCalculatedChips(wager)
@@ -414,7 +414,7 @@ RegisterNetEvent("pickle_casinos:blackjack:updateSeatCards", function(casinoId, 
     local playArea = blackjackTable.playAreas[seatId]
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
     for i=1, #playArea.hands[handId] do
-        DeleteEntity(playArea.hands[handId][i])
+        DeleteScriptObject(playArea.hands[handId][i])
     end
     playArea.hands[handId] = {}
     local heading = casinoEntity.rotation.z
@@ -572,7 +572,7 @@ RegisterNetEvent("pickle_casinos:blackjack:updateStage", function(casinoId, enti
             local card = CreateProp(cardModel, GetOffsetFromEntityInWorldCoords(blackjackTable.surfaceObject, 0.0, 0.0, 0.1), false, false, false)
             AttachEntityToEntity(card, dealerPed, GetPedBoneIndex(dealerPed, 28422), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, false, false, false, false, 2, true)
             Wait(animation.wait or 0)
-            DeleteEntity(card)
+            DeleteScriptObject(card)
         end)
     elseif stage.type == "turn" then
         if not stage.hasHit and not IsEntityPlayingAnim(dealerPed, "anim_casino_b@amb@casino@games@blackjack@dealer", "dealer_focus_player_0" .. stage.seat .. "_idle_intro", 3) then 
@@ -605,7 +605,7 @@ RegisterNetEvent("pickle_casinos:blackjack:updateStage", function(casinoId, enti
         local card = blackjackTable.playAreas[0].hands[1][1]
         local coords = GetEntityCoords(card)
         local rotation = GetEntityRotation(card)
-        DeleteEntity(card)
+        DeleteScriptObject(card)
         local card = CreateProp(GetCardModel(stage.card.class, stage.card.value), coords, false, false, false)
         SetEntityRotation(card, rotation.x, rotation.y, rotation.z + 180.0, 2, true)
         SetEntityCoords(card, coords)
@@ -613,7 +613,7 @@ RegisterNetEvent("pickle_casinos:blackjack:updateStage", function(casinoId, enti
         Wait(500)
         AttachEntityToEntity(card, dealerPed, GetPedBoneIndex(dealerPed, 28422), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, false, false, false, false, 2, true)
         Wait(800)
-        DeleteEntity(card)
+        DeleteScriptObject(card)
     elseif stage.type == "cleanup" then
         local dealerPed = blackjackTable.dealerPed
         if stage.seat ~= 0 then
@@ -621,13 +621,13 @@ RegisterNetEvent("pickle_casinos:blackjack:updateStage", function(casinoId, enti
             Wait(600)
             for i=1, #blackjackTable.playAreas[stage.seat].hands do
                 for j=1, #blackjackTable.playAreas[stage.seat].hands[i] do
-                    DeleteEntity(blackjackTable.playAreas[stage.seat].hands[i][j])
+                    DeleteScriptObject(blackjackTable.playAreas[stage.seat].hands[i][j])
                 end
                 blackjackTable.playAreas[stage.seat].hands[i] = {}
             end
             for i=1, #blackjackTable.playAreas[stage.seat].wagers do
                 for j=1, #blackjackTable.playAreas[stage.seat].wagers[i] do
-                    DeleteEntity(blackjackTable.playAreas[stage.seat].wagers[i][j])
+                    DeleteScriptObject(blackjackTable.playAreas[stage.seat].wagers[i][j])
                 end
                 blackjackTable.playAreas[stage.seat].wagers[i] = {}
             end
@@ -636,7 +636,7 @@ RegisterNetEvent("pickle_casinos:blackjack:updateStage", function(casinoId, enti
             Wait(400)
             for i=1, #blackjackTable.playAreas[0].hands do
                 for j=1, #blackjackTable.playAreas[0].hands[i] do
-                    DeleteEntity(blackjackTable.playAreas[0].hands[i][j])
+                    DeleteScriptObject(blackjackTable.playAreas[0].hands[i][j])
                 end
                 blackjackTable.playAreas[0].hands[i] = {}
             end

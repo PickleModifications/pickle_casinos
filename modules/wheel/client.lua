@@ -61,7 +61,7 @@ function AttemptSeatAtWheelEntity(casinoId, entityId)
         )
         CreateThread(function()
             while CurrentWheel do
-                if CurrentWheel.waitingTime > 1 and CurrentWheel.stage.type == "waiting" then
+                if CurrentWheel.waitingTime and CurrentWheel.waitingTime > 1 and CurrentWheel.stage.type == "waiting" then
                     CurrentWheel.waitingTime = CurrentWheel.waitingTime - 1
                     print("Waiting Time: ", CurrentWheel.waitingTime)
                     SendNUIMessage({

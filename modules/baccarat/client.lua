@@ -288,28 +288,28 @@ function UnrenderBaccaratEntity(casinoId, entityId)
         end
     end
     if baccaratTable.dealerPed then
-        DeleteEntity(baccaratTable.dealerPed)
+        DeleteScriptObject(baccaratTable.dealerPed)
     end
     if baccaratTable.tableObject then
-        DeleteEntity(baccaratTable.tableObject)
+        DeleteScriptObject(baccaratTable.tableObject)
     end
     if baccaratTable.surfaceObject then
-        DeleteEntity(baccaratTable.surfaceObject)
+        DeleteScriptObject(baccaratTable.surfaceObject)
     end
     if baccaratTable.playAreas then
         for i, v in pairs(baccaratTable.playAreas) do  
             local playArea = baccaratTable.playAreas[i]
             for a, b in pairs(playArea.sides) do
                 for j=1, #b do
-                    DeleteEntity(b[j])
+                    DeleteScriptObject(b[j])
                 end
             end
             for a, b in pairs(playArea.wagers) do
                 for j=1, #b do
-                    DeleteEntity(b[j])
+                    DeleteScriptObject(b[j])
                 end
             end
-            DeleteEntity(playArea.surfaceObject)
+            DeleteScriptObject(playArea.surfaceObject)
         end
     end
     baccaratTable.interacts = nil
@@ -420,7 +420,7 @@ RegisterNetEvent("pickle_casinos:baccarat:updateSeatWager", function(casinoId, e
     local chipOffset = PLAY_AREA_OFFSETS[seatId].chips
     for a, b in pairs(playArea.wagers) do
         for j=1, #b do
-            DeleteEntity(b[j])
+            DeleteScriptObject(b[j])
         end
         playArea.wagers[a] = {}
     end
@@ -453,7 +453,7 @@ RegisterNetEvent("pickle_casinos:baccarat:updateCards", function(casinoId, entit
     local playArea = baccaratTable.playAreas[0]
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
     for i=1, #playArea.sides[side] do
-        DeleteEntity(playArea.sides[side][i])
+        DeleteScriptObject(playArea.sides[side][i])
     end
     playArea.sides[side] = {}
     local heading = casinoEntity.rotation.z
@@ -576,7 +576,7 @@ RegisterNetEvent("pickle_casinos:baccarat:updateStage", function(casinoId, entit
             local card = CreateProp(cardModel, GetOffsetFromEntityInWorldCoords(baccaratTable.surfaceObject, 0.0, 0.0, 0.1), false, false, false)
             AttachEntityToEntity(card, dealerPed, GetPedBoneIndex(dealerPed, 28422), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, false, false, false, false, 2, true)
             Wait(animation.wait or 0)
-            DeleteEntity(card)
+            DeleteScriptObject(card)
         end)
     elseif stage.type == "cleanup" then
         local dealerPed = baccaratTable.dealerPed
@@ -584,7 +584,7 @@ RegisterNetEvent("pickle_casinos:baccarat:updateStage", function(casinoId, entit
         Wait(400)
         for k,v in pairs(baccaratTable.playAreas[0].sides) do   
             for i=1, #v do
-                DeleteEntity(v[i])
+                DeleteScriptObject(v[i])
             end
         end
         baccaratTable.playAreas[0].sides = {player = {}, banker = {}}
