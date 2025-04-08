@@ -169,11 +169,11 @@ function RenderPokerEntity(casinoId, entityId)
     local defaultPlayAreas = {}
     local defaultInteracts = {}
     local dealerCards = {}
-    for i=1, 5 do 
-        local card = CreateProp(GetCardModel("hidden"), GetOffsetFromEntityInWorldCoords(surfaceObject, -0.12 + ((i - 1) * 0.075), -0.15, -0.9), false, false, false)
-        SetEntityRotation(card, 0.0, 180.0, heading, 2, true)
-        table.insert(dealerCards, card)
-    end
+    -- for i=1, 5 do 
+    --     local card = CreateProp(GetCardModel("hidden"), GetOffsetFromEntityInWorldCoords(surfaceObject, -0.12 + ((i - 1) * 0.075), -0.15, -0.9), false, false, false)
+    --     SetEntityRotation(card, 0.0, 180.0, heading, 2, true)
+    --     table.insert(dealerCards, card)
+    -- end
     for i=1, #POKER_SEATS do
         local seatOffset = POKER_SEATS[i]
         local playSurface = CreateProp(`prop_tennis_ball`, GetOffsetFromEntityInWorldCoords(surfaceObject, seatOffset.coords - vector3(0.0, 0.0, 1.0)), false, false, false)
@@ -183,7 +183,7 @@ function RenderPokerEntity(casinoId, entityId)
         local chips = {}
         local betChips = {}
         local funds = 100000
-        local calculatedChips = GetCalculatedChips(funds, 10)
+        local calculatedChips = GetCalculatedChips(funds, 1)
         local folded = true
         for j=1, #calculatedChips do
             local chip = calculatedChips[j]
