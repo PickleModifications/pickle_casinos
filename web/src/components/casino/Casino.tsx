@@ -11,6 +11,7 @@ import Results from "../games/results/Results";
 import { fetchNui } from "@/providers/nui/fetchNui";
 import Baccarat from "../games/baccarat/Baccarat";
 import Wheel from "../games/wheel/Wheel";
+import Poker from "../games/poker/Poker";
 
 export type CasinoGame = {
     visible: boolean;
@@ -579,20 +580,17 @@ export function CasinoGameDisplay() {
     //         ],
     //     },
     // });
-    // const [currentGame, setCurrentGame] = useState<CasinoGame | null>({
-    //     type: "wheel",
-    //     visible: false,
-    //     data: {
-    //         money: 1000,
-    //         stage: {
-    //             type: "winner",
-    //             section: "bonus",
-    //             multiplier: 100,
-    //         },
-    //     }
-    // });
-    const [currentGame, setCurrentGame] = useState<CasinoGame | null>(null);
-    const [isGameVisible, setGameVisible] = useState<boolean>(false);
+    const [currentGame, setCurrentGame] = useState<CasinoGame | null>({
+        type: "poker",
+        visible: true,
+        data: {
+            stage: {
+                type: "waiting",
+            },
+        }
+    });
+    // const [currentGame, setCurrentGame] = useState<CasinoGame | null>(null);
+    const [isGameVisible, setGameVisible] = useState<boolean>(true);
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
             if (event.key === "Escape" || event.key === "Backspace") {
@@ -644,6 +642,7 @@ export function CasinoGameDisplay() {
             {(currentGame.type == "slots") && <Slots game={currentGame}/>}
             {(currentGame.type == "roulette") && <Roulette game={currentGame}/>}
             {(currentGame.type == "wheel") && <Wheel game={currentGame}/>}
+            {(currentGame.type == "poker") && <Poker game={currentGame}/>}
             <div className="transform transform-z-0 rounded-md" id='dialog-container' style={{position: "absolute", top: 0, left: 0, width: "100%", height: "100%", overflow: "hidden", pointerEvents: "none", zIndex: 100}}></div>
         </div>
     )
