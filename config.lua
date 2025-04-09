@@ -41,10 +41,10 @@ Config.Casinos = {
             {
                 id = "slot-1",
                 type = "slot",
-                coords = vector3(-960.0911, -3005.0940, 12.9451),
-                rotation = vector3(0.0, 0.0, 325.2965),
+                coords = vector3(1075.7423, -2323.3606, 23.4540),
+                rotation = vector3(0.0, 0.0, 84.3254),
                 settings = {
-                    game = "spacewarriors",
+                    game = "bananabonanza",
                     betRange = {min = 1000, max = 10000},
                 }
             },
