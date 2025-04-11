@@ -95,6 +95,13 @@ export const ConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             "wheel_nextround": "Next Round: %s",
             "wheel_spinning": "The wheel is spinning, good luck!",
             "wheel_sectionwinner": "The winning section is:",
+            "poker_bet": "Bet",
+            "poker_raise": "Raise",
+            "poker_call": "Call",
+            "poker_check": "Check",
+            "poker_fold": "Fold",
+            "poker_all": "All-In",
+            "poker_back": "Back",
         },
     });
     useNuiEvent('setConfig', (data) => {
