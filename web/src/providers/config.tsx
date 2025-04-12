@@ -102,6 +102,13 @@ export const ConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             "poker_fold": "Fold",
             "poker_all": "All-In",
             "poker_back": "Back",
+            "horseracing_title": "Horse Racing",
+            "horseracing_desc": "Place your bets and watch the race unfold!",
+            "horseracing_changetrack": "Change Track",
+            "horseracing_ext_waiting": "Race Intermission",
+            "horseracing_ext_racing": "Racing",
+            "horseracing_selecttrack": "Select Track",
+            "horseracing_nextround": "Next Round: %s",
         },
     });
     useNuiEvent('setConfig', (data) => {
