@@ -44,7 +44,7 @@ Config.Casinos = {
                 coords = vector3(1075.7423, -2323.3606, 23.4540),
                 rotation = vector3(0.0, 0.0, 84.3254),
                 settings = {
-                    game = "bananabonanza",
+                    game = "spacewarriors",
                     betRange = {min = 1000, max = 10000},
                 }
             },
@@ -262,4 +262,69 @@ Config.Slots = {
             {0, 2, 2, 2, 0},
         },
     },
+}
+
+Config.HorseRacing = {
+    odds = {
+        {
+            label = "40/1",
+            multiplier = 40,
+            chances = 2,
+        },
+        {
+            label = "30/1",
+            multiplier = 30,
+            chances = 3,
+        },
+        {
+            label = "20/1",
+            multiplier = 20,
+            chances = 4,
+        },
+        {
+            label = "15/1",
+            multiplier = 15,
+            chances = 5,
+        },
+        {
+            label = "10/1",
+            multiplier = 10,
+            chances = 6,
+        },
+        {
+            label = "7/1",
+            multiplier = 7,
+            chances = 7,
+        },
+        {
+            label = "5/1",
+            multiplier = 5,
+            chances = 9,
+        },
+        {
+            label = "4/1",
+            multiplier = 4,
+            chances = 10,
+        },
+        {
+            label = "3/1",
+            multiplier = 3,
+            chances = 12,
+        },
+        {
+            label = "2/1",
+            multiplier = 2,
+            chances = 16,
+        },
+        {
+            label = "1/1",
+            multiplier = 1,
+            chances = 32,
+        },
+        {
+            label = "1/2",
+            multiplier = 0.5,
+            chances = 64,
+        },
+    }
 }
