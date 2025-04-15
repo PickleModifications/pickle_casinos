@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useConfig } from "@/providers/config";
 import { Translate } from "@/providers/locale/Locale";
 import { fetchNui } from "@/providers/nui/fetchNui";
+import { useNuiEvent } from "@/providers/nui/useNui";
 import { useState } from "react";
 import ReactSparkle from "react-sparkle";
 
@@ -40,12 +41,13 @@ export function HorseNumber({number, height} : {number: number, height?: number}
 }
 
 type Horse = {
+    odds: string;
     progress?: number;
 }
 
 type HorseTrack = {
     id: number;
-    trackLabel: string;
+    label: string;
     stage: any;
 }
 
@@ -70,16 +72,22 @@ function HorseRacingComponent({horses, horseWagers, isPlaying, onClick, winningH
                             id: horseIndex,
                         });
                     }}>
-                        {(winningHorse != undefined && winningHorse == horseIndex) && (
-                            <div className="absolute top-0 left-0 w-full scale-90 h-full" style={{ transformOrigin: "center" }}><ReactSparkle/></div>
-                        )}
                         <div className="relative">
+                            {(winningHorse != undefined && winningHorse == horseIndex) && (
+                                <div className="absolute top-0 left-0 w-full scale-90 h-full" style={{ transformOrigin: "center" }}><ReactSparkle/></div>
+                            )}
                             <HorseNumber number={horseIndex} height={50} />
                             {horseWagers[horseIndex as keyof HorseWager] > 0 && (
                                 <div className="absolute top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%]">
                                     <ChipDisplay chip={GetChipForValue(horseWagers[horseIndex as keyof HorseWager], chips, true)} />
                                 </div>
                             )}
+                        </div>
+                        
+                        <div className="w-full h-[10px] flex items-center justify-center">
+                            <div className="text-xs font-bold text-center text-white">
+                                {horse.odds}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -97,34 +105,21 @@ function CalculateHorseRacingWagers(wagers: HorseWager) {
 }
 
 export function HorseRacing({game} : {game: CasinoGame}) {
-    const [currentTrack, setCurrentTrack] = useState<number | null>(1);
-    const [tracks, setTracks] = useState<HorseTrack[]>([
-        {id: 0, trackLabel: "Track 1", stage: {type: "waiting"}},
-        {id: 0, trackLabel: "Track 2", stage: {type: "waiting"}},
-        {id: 0, trackLabel: "Track 3", stage: {type: "waiting"}},
-        {id: 0, trackLabel: "Track 4", stage: {type: "waiting"}},
-        {id: 0, trackLabel: "Track 5", stage: {type: "waiting"}},
-        {id: 0, trackLabel: "Track 6", stage: {type: "waiting"}},
-        {id: 0, trackLabel: "Track 7", stage: {type: "waiting"}},
-        {id: 0, trackLabel: "Track 8", stage: {type: "waiting"}},
-        {id: 0, trackLabel: "Track 9", stage: {type: "waiting"}},
-        {id: 0, trackLabel: "Track 10", stage: {type: "waiting"}},
-        {id: 0, trackLabel: "Track 11", stage: {type: "waiting"}},
-        {id: 0, trackLabel: "Track 12", stage: {type: "waiting"}},
-    ]);
+    const [currentTrack, setCurrentTrack] = useState<number | null>(null);
+    const [tracks, setTracks] = useState<HorseTrack[]>(game.data.tracks || []);
     const [horses, setHorses] = useState<Horse[]>([
-        {progress: 0.0},
-        {progress: 0.0},
-        {progress: 0.0},
-        {progress: 0},
-        {progress: 0},
-        {progress: 0},
-        {progress: 0},
-        {progress: 0},
-        {progress: 0},
-        {progress: 0},
-        {progress: 0},
-        {progress: 0},
+        {odds: "??", progress: 0.0},
+        {odds: "??", progress: 0.0},
+        {odds: "??", progress: 0.0},
+        {odds: "??", progress: 0},
+        {odds: "??", progress: 0},
+        {odds: "??", progress: 0},
+        {odds: "??", progress: 0},
+        {odds: "??", progress: 0},
+        {odds: "??", progress: 0},
+        {odds: "??", progress: 0},
+        {odds: "??", progress: 0},
+        {odds: "??", progress: 0},
     ]);
     const [numberHistory, setNumberHistory] = useState<{
         horseId: number;
@@ -134,12 +129,59 @@ export function HorseRacing({game} : {game: CasinoGame}) {
     const [isTrackModalOpen, setIsTrackModalOpen] = useState(currentTrack == null);
     const [chipValue, setChipValue] = useState(0);
     const [money, setMoney] = useState(game.data.money || 0);
+    useNuiEvent("setHorseRacingTrack", function(data) {
+        setIsTrackModalOpen(false);
+        let newTracks = [];
+        for (let i = 0; i < tracks.length; i++) {
+            newTracks.push(tracks[i]);
+        }
+        newTracks[data.track.id - 1] = data.track;
+        setTracks(newTracks);
+        setCurrentTrack(data.track.id - 1);
+        setHorseWagers(DEFAULT_HORSE_WAGERS);
+        setChipValue(0);
+        setStage(data.track.stage);
+        setHorses(data.track.horses);
+    });
+    useNuiEvent("updateHorseRacingTracks", function(data) {
+        setTracks(data.tracks);
+    });
+    useNuiEvent("updateHorseRacingStage", function(data) {
+        setStage(data.stage);
+    });
+    useNuiEvent("updateHorseRacingHorses", function(data) {
+        let newHorses = [];
+        for (let i = 0; i < horses.length; i++) {
+            let progress = data.horses[i].progress || (horses[i].progress || 0);
+            let odds = data.horses[i].odds || horses[i].odds;
+            newHorses.push({
+                odds: odds,
+                progress: progress,
+            });
+        }
+        setHorses(newHorses);
+    });
+    useNuiEvent("updateHorseRacingWager", function(data) {
+        setHorseWagers(data.wagers);
+    });
+    useNuiEvent("updateBalance", function(data) {
+        setMoney(data.balance);
+    });
+    const horseProgress: number[] = [];
+    const maxProgress = 1.0415;
+    for (let i = 0; i < horses.length; i++) {
+        let progress = horses[i].progress || 0;
+        if (progress > maxProgress) {
+            progress = maxProgress;
+        }
+        horseProgress.push(progress);
+    }
     return (
         <div className='flex flex-col absolute w-full h-full select-none' style={{
             bottom: 0, 
             left: '0', 
             transition: "opacity 0.25s ease-in-out",
-            backgroundImage: `url("/nui/images/horseracing/debug.png")`,
+            // backgroundImage: `url("/nui/images/horseracing/debug.png")`,
         }}>
             {isTrackModalOpen && (
                 <div className="absolute top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] w-[700px] h-[400px] bg-background/95 rounded-lg border border-zinc-800 shadow-lg shadow-black/40">
@@ -153,9 +195,14 @@ export function HorseRacing({game} : {game: CasinoGame}) {
                                         backgroundSize: "cover",
                                         backgroundPosition:  "top",
                                         backgroundRepeat: "no-repeat",
+                                    }} onClick={() => {
+                                        setIsTrackModalOpen(false);
+                                        fetchNui("setHorseRacingTrack", {
+                                            trackId: track.id,
+                                        });
                                     }}>
                                         <div className="relative z-10">
-                                            <div className="text-lg font-bold whitespace-nowrap">{track.trackLabel}</div>
+                                            <div className="text-lg font-bold whitespace-nowrap">{track.label}</div>
                                             <div className="text-sm font-semibold text-zinc-400">
                                                 {track.stage.type == "waiting" && (<Translate id="horseracing_ext_waiting" />)}
                                                 {track.stage.type != "waiting" && (<Translate id="horseracing_ext_racing" />)}
@@ -180,7 +227,7 @@ export function HorseRacing({game} : {game: CasinoGame}) {
                             <div className='flex flex-row items-center justify-between gap-2'>
                                 <div className='flex flex-row items-center gap-2'>
                                     <GameIcon name='horseracing' style={{fill: "yellow", width: 30, height: 30}} />
-                                    <div className='font-bold text-2xl'><Translate id="horseracing_title" /> - {game.data.trackLabel}</div>
+                                    <div className='font-bold text-2xl'><Translate id="horseracing_title" /> - {tracks[currentTrack].label}</div>
                                 </div>
                                 <div className='font-bold text-xl text-zinc-400'>
                                     {stage.type === "waiting" && <Translate id="horseracing_nextround" args={[stage.time]} />}
@@ -188,6 +235,9 @@ export function HorseRacing({game} : {game: CasinoGame}) {
                             </div>
                             <div className="font-semibold text-md text-zinc-400"><Translate id="horseracing_desc" /></div>
                             <Button variant="secondary" className="w-full" onClick={() => {
+                                setCurrentTrack(null);
+                                setIsTrackModalOpen(true);
+                                fetchNui("changeHorseRacingTrack", {});
                             }}><Translate id="horseracing_changetrack" /></Button>
                         </div>
                     </div>
@@ -232,7 +282,7 @@ export function HorseRacing({game} : {game: CasinoGame}) {
                                             wager: newWagers
                                         });
                                     }
-                                    else if (data.type == "repeatHorseRacingWager") {
+                                    else if (data.type == "repeatWager") {
                                         playAudio("bet");
                                         fetchNui("repeatHorseRacingWager", {});
                                     }
@@ -245,8 +295,8 @@ export function HorseRacing({game} : {game: CasinoGame}) {
                                     {horses.map((_, horseIndex) => (
                                         <div className="flex flex-row gap-0" key={horseIndex}>
                                             <div className="z-10 absolute" key={horseIndex} style={{
-                                                left: `${95 * (horses[horseIndex].progress || 0)}%`,
-                                                transform: `translateX(-${95 * (horses[horseIndex].progress || 0)}%)`,
+                                                left: `${95 * (horseProgress[horseIndex])}%`,
+                                                transform: `translateX(-${95 * (horseProgress[horseIndex])}%)`,
                                             }}>
                                                 <HorseNumber number={horseIndex} height={9} key={horseIndex} />
                                             </div>

@@ -71,7 +71,7 @@ function RenderSlotEntity(casinoId, entityId)
     local coords = casinoEntity.coords
     local heading = casinoEntity.rotation.z
     local slotCfg = Config.Slots[casinoEntity.settings.game]
-    local slotObject = CreateObject(slotCfg.model, coords.x, coords.y, coords.z, false, false, false)
+    local slotObject = CreateProp(slotCfg.model, coords.x, coords.y, coords.z, false, false, false)
     SetEntityRotation(slotObject, 0.0, 0.0, heading, 2, true)
     localSlotMachine.slotObject = slotObject
     localSlotMachine.interact = CreateInteraction({

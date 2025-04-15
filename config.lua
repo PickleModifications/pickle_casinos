@@ -4,7 +4,7 @@ Config.Debug = false -- This enables debugging prints.
 Config.RenderDistance = 50.0
 Config.InteractDistance = 2.0
 Config.UseTarget = true -- This enables the use of the target system when available.
-
+Config.WaitingTime = 10 -- Time to wait before starting a round for players to place bets.
 Config.Casinos = {
     ["casino-1"] = {
         entities = {
@@ -48,26 +48,26 @@ Config.Casinos = {
                     betRange = {min = 1000, max = 10000},
                 }
             },
-            {
-                id = "poker-1",
-                type = "poker",
-                coords = vector3(1100.8215, -2326.7092, 23.2540),
-                rotation = vector3(0.0, 0.0, 264.6634),
-                settings = {
-                    dealerModel = `s_f_y_casino_01`,
-                    tableModel = `fury_p_poker_table`,
-                }
-            },
-            {
-                id = "poker-2",
-                type = "poker",
-                coords = vector3(1096.9214, -2326.3220, 23.2540),
-                rotation = vector3(0.0, 0.0, 85.4802),
-                settings = {
-                    dealerModel = `s_f_y_casino_01`,
-                    tableModel = `fury_p_poker_table`,
-                }
-            },
+            -- {
+            --     id = "poker-1",
+            --     type = "poker",
+            --     coords = vector3(1100.8215, -2326.7092, 23.2540),
+            --     rotation = vector3(0.0, 0.0, 264.6634),
+            --     settings = {
+            --         dealerModel = `s_f_y_casino_01`,
+            --         tableModel = `fury_p_poker_table`,
+            --     }
+            -- },
+            -- {
+            --     id = "poker-2",
+            --     type = "poker",
+            --     coords = vector3(1096.9214, -2326.3220, 23.2540),
+            --     rotation = vector3(0.0, 0.0, 85.4802),
+            --     settings = {
+            --         dealerModel = `s_f_y_casino_01`,
+            --         tableModel = `fury_p_poker_table`,
+            --     }
+            -- },
             {
                 id = "wheel-1",
                 type = "wheel",
@@ -75,6 +75,13 @@ Config.Casinos = {
                 rotation = vector3(0.0, 0.0, 263.7225),
                 settings = {}
             },
+            {
+                id = "horseracing-1",
+                type = "horseracing",
+                coords = vector3(1100.4280, -2310.2136, 23.4540),
+                rotation = vector3(0.0, 0.0, 178.0722),
+                settings = {}
+            }
         }
     }
 }
@@ -265,6 +272,23 @@ Config.Slots = {
 }
 
 Config.HorseRacing = {
+    machineModel = `ch_prop_arcade_street_01b`,
+    tracks = {
+        {
+            label = "Track #1",
+            coords = vector3(1158.0900, 258.6992, 80.8438),
+            heading = 147.9117,
+            distance = 171.15, -- Length of the track in meters
+            renderDistance = 500.0, -- Distance at which the track and horses will render for people nearby.
+        },
+        {
+            label = "Track #2",
+            coords = vector3(1266.5555, 191.2764, 80.8438),
+            heading = 147.9117,
+            distance = 171.15, -- Length of the track in meters
+            renderDistance = 500.0, -- Distance at which the track and horses will render for people nearby.
+        }
+    },
     odds = {
         {
             label = "40/1",
