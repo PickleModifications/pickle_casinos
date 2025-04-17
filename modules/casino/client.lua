@@ -1,7 +1,7 @@
 LOCAL_MONEY = 0
 
 function CreateCasinoEntity(casinoId, entityId)
-    local casino = Config.Casinos[casinoId]
+    local casino = Casinos[casinoId]
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
     if not casino or not casinoEntity then return end
     if casinoEntity.type == "blackjack" then

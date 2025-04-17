@@ -187,7 +187,7 @@ end
 
 function CreatePokerEntity(casinoId, entityId)
     if DoesPokerEntityExist(casinoId, entityId) then return end
-    local casino = Config.Casinos[casinoId]
+    local casino = Casinos[casinoId]
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
     if not casino or not casinoEntity then return end
     local coords = casinoEntity.coords

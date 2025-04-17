@@ -54,7 +54,7 @@ function GenerateCard()
 end
 
 function GetCasinoEntity(casinoId, entityId)
-    local casino = Config.Casinos[casinoId]
+    local casino = Casinos[casinoId]
     if not casino then return end
     for i=1, #casino.entities do
         if casino.entities[i].id == entityId then
@@ -80,7 +80,7 @@ RegisterNetEvent("pickle_casinos:initializePlayer", function()
 end)
 
 CreateThread(function() 
-    for k,v in pairs(Config.Casinos) do 
+    for k,v in pairs(Casinos) do 
         RegisterCasino(k, {
             entities = v.entities
         }, true)
