@@ -58,21 +58,22 @@ function StartHorseRacingTrackRace(trackId)
         for a,b in pairs(player.wagers) do 
             totalWager = totalWager + b
         end
-        local money = GetMoney(source)
-        if money < totalWager then
-            track.players[source].wagers = GetDefaultWager()
-            TriggerClientEvent("pickle_casinos:horseracing:updateWager", source, track.players[source].casinoId, trackId, track.players[source].wagers)
-        else
-            LastWagers[source] = track.players[source].wagers
-            RemoveMoney(source, totalWager)
+        if totalWager > 0 then
+            local money = GetMoney(source)
+            if money < totalWager then
+                track.players[source].wagers = GetDefaultWager()
+                TriggerClientEvent("pickle_casinos:horseracing:updateWager", source, track.players[source].casinoId, trackId, track.players[source].wagers)
+            else
+                LastWagers[source] = track.players[source].wagers
+                RemoveMoney(source, totalWager)
+            end
         end
     end
     track.stage = {type = "racing", winner = GenerateWinningHorse(track.horses)}
-    print("Winner is horse " .. track.stage.winner, "Odds: " .. Config.HorseRacing.odds[track.horses[track.stage.winner].oddsIndex].label)
     TriggerClientEvent("pickle_casinos:horseracing:updateTrackStage", -1, trackId, track.stage)
     Wait(18000)
     local multiplier = Config.HorseRacing.odds[track.horses[track.stage.winner].oddsIndex].multiplier
-    for source,player in pairs(track.players) do 
+    for source,player in pairs(track.players) do
         local winnings = (player.wagers[track.stage.winner] or 0) * multiplier
         if winnings > 0 then
             AddMoney(source, player.wagers[track.stage.winner] + winnings)
@@ -140,9 +141,9 @@ RegisterNetEvent("pickle_casinos:horseracing:setWager", function(casinoId, track
             if subWager then
                 local value = tonumber(subWager) or 0
                 if value < 0 then value = 0 end
-                wagers[tonumber(i)] = value
+                wagers[tonumber(i) + 1] = value
             else
-                wagers[tonumber(i)] = 0
+                wagers[tonumber(i) + 1] = 0
             end
         end
         local totalWager = 0
@@ -182,26 +183,3 @@ RegisterCallback("pickle_casinos:horseracing:getHorseRacingInfo", function(sourc
         tracks = Tracks,
     })
 end)
-
--- CreateThread(function()
---     local chances = {}
---     local stack = {}
-    -- for i=1, #Config.HorseRacing.odds do
-    --     local odds = Config.HorseRacing.odds[i]
-    --     for j=1, odds.chances do
-    --         table.insert(stack, i)
-    --     end
-    -- end
---     local playLeft = 1000
---     repeat
---         local randomIndex = math.random(1, #stack)
---         local randomOdds = stack[randomIndex]
---         local odds = Config.HorseRacing.odds[randomOdds]
---         local oddsLabel = odds.label
---         chances[oddsLabel] = (chances[oddsLabel] or 0) + 1
---         playLeft = playLeft - 1
---     until playLeft <= 0
---     for k,v in pairs(chances) do
---         print("Percentage of " .. k .. ": " .. ((v / 1000) * 100) .. "%")
---     end
--- end)

@@ -52,6 +52,20 @@ function GenerateWheelBonusConfig()
     return entries
 end
 
+function SetEntitySmoothRotation(entity, from, to, speed)
+    local speed = speed or 4
+    local progress = 0
+    CreateThread(function()
+        while progress < 100 do
+            progress = progress + speed
+            if progress > 100 then progress = 100 end
+            local newCoords = lerp(from, to, progress / 100)
+            SetEntityRotation(entity, newCoords, 2, true)
+            Wait(10)
+        end
+    end)
+end
+
 RegisterNUICallback("pageLoaded", function(data, cb)
     SendNUIMessage({
         type = "setConfig",

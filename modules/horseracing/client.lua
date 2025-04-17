@@ -84,7 +84,6 @@ function RenderHorseRacingEntity(casinoId, entityId)
     }, function(selected)
         DisplayHorseRacingMenu(casinoId, entityId)
     end)
-    DisplayHorseRacingMenu(casinoId, entityId)
 end
 
 function UnrenderHorseRacingEntity(casinoId, entityId)
@@ -148,9 +147,6 @@ RegisterNUICallback("setHorseRacingTrack", function(data, cb)
 end)
 
 CreateThread(function()
-    Wait(1000)
-    print("Horse Racing Thread")
-    DisplayHorseRacingMenu()
     while true do 
         local coords = GetEntityCoords(PlayerPedId())
         for casinoId, entities in pairs(LocalHorseRacingMachines) do
@@ -374,14 +370,18 @@ function StartHorseRace(trackId, targetWinner)
             SetEntityCoords(horse.surfaceObject, coords.x, coords.y, coords.z, false, false, false, false)
         end
         local camCoords = GetOffsetFromEntityInWorldCoords(localTrack.raceCenterObject, 11.0, raceDistance - closestDistance, 6.0)
+        DrawMarker(0, targetCoords.x, targetCoords.y, targetCoords.z + 1.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.5, 1.5, 1.5, 255, 0, 0, 255, false, true, false, false, false, false, false, false)
         if viewingHorseRacingMenu and CurrentTrack and CurrentTrack.id == trackId then
-            -- DrawMarker(0, targetCoords.x, targetCoords.y, targetCoords.z + 1.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.5, 1.5, 1.5, 255, 0, 0, 255, false, true, false, false, false, false, false, false)
             SetFocusArea(camCoords)
             EnsureHorseRacingCamera()
             SetCamParams(CurrentCamera, camCoords.x, camCoords.y, camCoords.z,
                 -35.0, 0.0, heading + 90.0, 45.0, 
                 0, 0, 0, 2
             )
+            SendNUIMessage({
+                type = "updateHorseRacingHorses",
+                horses = localTrack.horses,
+            })
         end
         if pedDistance < 2.0 then
             local entity = PlayerPedId()
@@ -392,14 +392,10 @@ function StartHorseRace(trackId, targetWinner)
             SetPedToRagdoll(entity, 5000, 5000, 0, false, false, false)
         end
         if done then break end
-        SendNUIMessage({
-            type = "updateHorseRacingHorses",
-            horses = localTrack.horses,
-        })
         Wait(0)
     end
     winnerSpeed = -1
-    if viewingHorseRacingMenu then
+    if viewingHorseRacingMenu and CurrentTrack and CurrentTrack.id == trackId then
         local opacity = 0.0
         while opacity < 1.0 do 
             local op = math.floor(opacity * 255)
@@ -458,7 +454,9 @@ function DeleteHorseRace()
 end
 
 function ExitHorseTrackView()
-    TriggerServerEvent("pickle_casinos:horseracing:setWager", viewingHorseRacingMenu.casinoId, CurrentTrack.id, "clear")
+    if CurrentTrack then 
+        TriggerServerEvent("pickle_casinos:horseracing:setWager", viewingHorseRacingMenu.casinoId, CurrentTrack.id, "clear")
+    end
     if CurrentTrack then
         LocalHorseRacingTracks[CurrentTrack.id].visible = false
         UnrenderHorseRacingTrack(CurrentTrack.id)

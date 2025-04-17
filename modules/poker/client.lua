@@ -32,6 +32,23 @@ local POKER_SEATS = {
         coords = vector3(-0.7399994134903, -0.31000006198883, 0.0), rotation = vector3(0.0, 0.0, 339.5)
     },
 }
+local CurrentCamera
+
+function EnsurePokerCamera()
+    if not CurrentCamera then
+        local initialCamSettings = {
+            coords = GetGameplayCamCoord(),
+            rotation = GetGameplayCamRot(),
+            fov = GetGameplayCamFov(),
+        }
+        CurrentCamera = CreateCamWithParams("DEFAULT_SCRIPTED_CAMERA", 
+            initialCamSettings.coords.x, initialCamSettings.coords.y, initialCamSettings.coords.z, 
+            initialCamSettings.rotation.x, initialCamSettings.rotation.y, initialCamSettings.rotation.z, initialCamSettings.fov
+        )
+        SetCamActive(CurrentCamera, true)
+        RenderScriptCams(true, false, 0, true, true)
+    end
+end
 
 function DoesPokerEntityExist(casinoId, entityId) 
     return LocalPokerTables[casinoId] and LocalPokerTables[casinoId][entityId]
@@ -48,6 +65,11 @@ function PlayPokerAnimation(ped, animation, data)
     local netScene = NetworkCreateSynchronisedScene(coords.x, coords.y, coords.z, rotation.x, rotation.y, rotation.z, 2, 1, 0, 1065353216, 0, 1065353216)
     NetworkAddPedToSynchronisedScene(ped, netScene, animation.dict, animation.name, 2.0, -2.0, 13, 16, 2.0, 0) -- 8.0, -1.5, 157, 16, 1148846080, 0) ?
     NetworkStartSynchronisedScene(netScene)
+end
+
+function GetPokerSeatsForUI()
+    if not CurrentPokerTable then return {} end
+    return CurrentPokerTable.seats
 end
 
 function AttemptSeatAtPokerEntity(casinoId, entityId)
@@ -74,6 +96,8 @@ function AttemptSeatAtPokerEntity(casinoId, entityId)
             game = entityInfo.game,
             bets = entityInfo.bets,
             money = entityInfo.money,
+            seats = entityInfo.seats,
+            stage = entityInfo.stage,
         }
         local casinoId = CurrentPokerTable.casinoId
         local entityId = CurrentPokerTable.entityId
@@ -81,6 +105,40 @@ function AttemptSeatAtPokerEntity(casinoId, entityId)
         local localPokerTable = LocalPokerTables[casinoId][entityId]
         ClearPedTasksImmediately(playerPed)
         PlayPokerAnimation(playerPed, {dict = "anim_casino_b@amb@casino@games@shared@player@", name = "sit_enter_left"}, {time = 6000})
+        EnsurePokerCamera()
+        local camCoords = GetOffsetFromEntityInWorldCoords(localPokerTable.surfaceObject, 0.0, 0.0, 3.0)
+        SetFocusArea(camCoords)
+        EnsurePokerCamera()
+        SetCamParams(CurrentCamera, camCoords.x, camCoords.y, camCoords.z,
+            -90.0, 0.0, localPokerTable.heading + 180.0, 45.0, 
+            0, 0, 0, 2
+        )
+        SendNUIMessage({
+            type = "setCurrentGame",
+            game = {
+                type = "poker",
+                data = {
+                    seatId = seatId,
+                    seats = GetPokerSeatsForUI(),
+                    money = CurrentPokerTable.money,
+                    wagerLimit = {10, 100000},
+                    stage = CurrentPokerTable.stage,
+                }
+            }
+        })
+        SetNuiFocus(true, true)
+        CreateThread(function()
+            while CurrentPokerTable do
+                if CurrentPokerTable.stage and CurrentPokerTable.stage.type == "waiting" and CurrentPokerTable.stage.time > 1 then
+                    CurrentPokerTable.stage.time = CurrentPokerTable.stage.time - 1
+                    SendNUIMessage({
+                        type = "updatePokerStage",
+                        stage = CurrentPokerTable.stage,
+                    })
+                end
+                Wait(1000)
+            end
+        end)
         -- CreateThread(function()
         --     local seatId = 2
         --     local playArea = LocalPokerTables[casinoId][entityId].playAreas[seatId]
@@ -182,26 +240,26 @@ function RenderPokerEntity(casinoId, entityId)
         local cards = {}
         local chips = {}
         local betChips = {}
-        local funds = 100000
-        local calculatedChips = GetCalculatedChips(funds, 1)
-        local folded = true
-        for j=1, #calculatedChips do
-            local chip = calculatedChips[j]
-            local chipObject = CreateProp(chip.model, GetOffsetFromEntityInWorldCoords(playSurface, 0.0, -0.12, 1.0 + ((j - 1) * 0.0065)), false, false, false)
-            SetEntityHeading(chipObject, heading + seatOffset.rotation.z)
-            table.insert(chips, chipObject)
-        end
-        for j=1, #calculatedChips do
-            local chip = calculatedChips[j]
-            local chipObject = CreateProp(chip.model, GetOffsetFromEntityInWorldCoords(playSurface, 0.0, 0.12, 1.0 +  ((j - 1) * 0.0065)), false, false, false)
-            SetEntityHeading(chipObject, heading + seatOffset.rotation.z)
-            table.insert(betChips, chipObject)
-        end
-        for j=1, 2 do 
-            local card = CreateProp(GetCardModel("hidden"), GetOffsetFromEntityInWorldCoords(playSurface, -0.02 + ((j - 1) * 0.035), (folded and 0.21 or 0.015) - ((j - 1) * 0.005), ((j - 1) * 0.0065)), false, false, false)
-            SetEntityRotation(card, 0.0, 180.0, (heading + seatOffset.rotation.z) + (20 * (-1 + ((j - 1) * 2))), 2, true)
-            table.insert(cards, card)
-        end
+        -- local funds = 100000
+        -- local calculatedChips = GetCalculatedChips(funds, 1)
+        -- local folded = true
+        -- for j=1, #calculatedChips do
+        --     local chip = calculatedChips[j]
+        --     local chipObject = CreateProp(chip.model, GetOffsetFromEntityInWorldCoords(playSurface, 0.0, -0.12, 1.0 + ((j - 1) * 0.0065)), false, false, false)
+        --     SetEntityHeading(chipObject, heading + seatOffset.rotation.z)
+        --     table.insert(chips, chipObject)
+        -- end
+        -- for j=1, #calculatedChips do
+        --     local chip = calculatedChips[j]
+        --     local chipObject = CreateProp(chip.model, GetOffsetFromEntityInWorldCoords(playSurface, 0.0, 0.12, 1.0 +  ((j - 1) * 0.0065)), false, false, false)
+        --     SetEntityHeading(chipObject, heading + seatOffset.rotation.z)
+        --     table.insert(betChips, chipObject)
+        -- end
+        -- for j=1, 2 do 
+        --     local card = CreateProp(GetCardModel("hidden"), GetOffsetFromEntityInWorldCoords(playSurface, -0.02 + ((j - 1) * 0.035), (folded and 0.21 or 0.015) - ((j - 1) * 0.005), ((j - 1) * 0.0065)), false, false, false)
+        --     SetEntityRotation(card, 0.0, 180.0, (heading + seatOffset.rotation.z) + (20 * (-1 + ((j - 1) * 2))), 2, true)
+        --     table.insert(cards, card)
+        -- end
         defaultPlayAreas[i] = {
             cards = cards,
             chips = chips,
@@ -273,6 +331,17 @@ function DeletePokerEntity(casinoId, entityId)
     LocalPokerTables[casinoId][entityId] = nil
 end
 
+function TurnDealerToSeat(casinoId, entityId, targetSeat, rotationOffset)
+    local localPokerTable = LocalPokerTables[casinoId][entityId]
+    if not localPokerTable or not localPokerTable.visible then return end
+    local dealerPed = localPokerTable.dealerPed
+    local playArea = localPokerTable.playAreas[targetSeat]
+    local playAreaCoords = GetOffsetFromEntityInWorldCoords(playArea.surfaceObject, -0.02, 0.15, 0.0)
+    local dealerCoords = GetOffsetFromEntityInWorldCoords(dealerPed, 0.0, 0.0, 0.0)
+    local targetHeading = GetHeadingFromVector_2d(playAreaCoords.x - dealerCoords.x, playAreaCoords.y - dealerCoords.y) + (rotationOffset or 20)
+    SetEntitySmoothRotation(dealerPed, localPokerTable.lastDealerRotation, vector3(0.0, 0.0, targetHeading))
+    localPokerTable.lastDealerRotation = vector3(0.0, 0.0, targetHeading)
+end
 CreateThread(function()
     while true do 
         local coords = GetEntityCoords(PlayerPedId())
@@ -295,6 +364,112 @@ CreateThread(function()
     end
 end)
 
+RegisterNetEvent("pickle_casinos:poker:updateSeat", function(casinoId, entityId, seatId, seat, hugeUpdate)
+    if not hugeUpdate and CurrentPokerTable and CurrentPokerTable.casinoId == casinoId and CurrentPokerTable.entityId == entityId then
+        CurrentPokerTable.seats[seatId] = seat
+        SendNUIMessage({
+            type = "updatePokerSeats",
+            seats = GetPokerSeatsForUI(),
+        })
+    end
+    local localPokerTable = LocalPokerTables[casinoId][entityId]
+    if not localPokerTable or not localPokerTable.visible then return end
+    local playArea = localPokerTable.playAreas[seatId]
+    if not playArea then return end
+    local folded = seat.folded
+    local seatOffset = POKER_SEATS[seatId]
+    for j=1, 2 do 
+        if playArea.cards[j] then
+            DeleteObject(playArea.cards[j])
+        end
+        if seat.cards[j] then
+            local card = CreateProp(GetCardModel("hidden"), GetOffsetFromEntityInWorldCoords(playArea.surfaceObject, -0.02 + ((j - 1) * 0.035), (folded and 0.21 or 0.015) - ((j - 1) * 0.005), ((j - 1) * 0.0065)), false, false, false)
+            SetEntityRotation(card, 0.0, 180.0, (localPokerTable.heading + seatOffset.rotation.z) + (20 * (-1 + ((j - 1) * 2))), 2, true)
+            playArea.cards[j] = card
+        end
+    end
+end)
+
+RegisterNetEvent("pickle_casinos:poker:updatePot", function(casinoId, entityId, pot)
+    if CurrentPokerTable and CurrentPokerTable.casinoId == casinoId and CurrentPokerTable.entityId == entityId then
+        CurrentPokerTable.pot = pot
+        SendNUIMessage({
+            type = "updatePokerPot",
+            pot = pot,
+        })
+    end
+    local localPokerTable = LocalPokerTables[casinoId][entityId]
+    if not localPokerTable or not localPokerTable.visible then return end
+    -- TODO: Show middle chips
+end)
+
+RegisterNetEvent("pickle_casinos:poker:updateSeats", function(casinoId, entityId, seats)
+    for i=1, #seats do
+        TriggerEvent("pickle_casinos:poker:updateSeat", casinoId, entityId, i, seats[i], true)
+    end
+    SendNUIMessage({
+        type = "updatePokerSeats",
+        seats = GetPokerSeatsForUI(),
+    })
+end)
+
+RegisterNetEvent("pickle_casinos:poker:updateStage", function(casinoId, entityId, stage)
+    if not DoesPokerEntityExist(casinoId, entityId) then return end
+    local casinoEntity = GetCasinoEntity(casinoId, entityId)
+    if not casinoEntity then return end
+    local localPokerTable = LocalPokerTables[casinoId][entityId]
+    if not localPokerTable.visible then return end
+    local dealerPed = localPokerTable.dealerPed
+    if not localPokerTable.lastDealerRotation then
+        localPokerTable.lastDealerRotation = casinoEntity.rotation + vector3(0.0, 0.0, 0.0)
+    end
+    local isCurrentTable = (CurrentPokerTable and CurrentPokerTable.casinoId == casinoId and CurrentPokerTable.entityId == entityId)
+    if isCurrentTable then
+        CurrentPokerTable.stage = stage
+    end
+    local casinoEntity = GetCasinoEntity(casinoId, entityId)
+    if localPokerTable.tempDeck and stage.type ~= "dealing" then
+        DeleteScriptObject(localPokerTable.tempDeck)
+        localPokerTable.tempDeck = nil
+    end
+    if stage.type == "waiting" then
+        if isCurrentTable then
+            SendNUIMessage({
+                type = "updatePokerStage",
+                stage = stage,
+            })
+        end
+    elseif stage.type == "dealing" then
+        if isCurrentTable then
+            SendNUIMessage({
+                type = "updatePokerStage",
+                stage = stage,
+            })
+        end
+        local dealerCoords = GetOffsetFromEntityInWorldCoords(localPokerTable.dealerPed, 0.0, 0.0, 0.0)
+        TurnDealerToSeat(casinoId, entityId, stage.seat)
+        if not localPokerTable.tempDeck then
+            localPokerTable.tempDeck = CreateProp(`vw_prop_vw_casino_cards_01`, dealerCoords, false, false, false)
+            AttachEntityToEntity(localPokerTable.tempDeck, localPokerTable.dealerPed, GetPedBoneIndex(localPokerTable.dealerPed, 60309), 0.0, 0.0, -0.015, 0.0, 0.0, 0.0, false, false, false, false, 2, true)
+        end
+        local tempDeck = localPokerTable.tempDeck
+
+        ClearPedTasks(localPokerTable.dealerPed)
+        PlayAnim(localPokerTable.dealerPed, "anim_casino_b@amb@casino@games@threecardpoker@dealer", "deck_deal_p03", 1.0, -1.0, -1, 1, 1.0)
+        Wait(500)
+        local tempCard = CreateProp(GetCardModel("hidden"), dealerCoords, false, false, false)
+        AttachEntityToEntity(tempCard, dealerPed, GetPedBoneIndex(dealerPed, 28422), 0.05, 0.05, 0.0, 180.0, 0.0, 0.0, false, false, false, false, 2, true)
+        Wait(600)
+        DeleteScriptObject(tempCard)
+        ClearPedTasks(localPokerTable.dealerPed)
+    elseif stage.type == "seatTurn" then
+        print("Seat turn", stage.seat)
+        ClearPedTasks(localPokerTable.dealerPed)
+        PlayAnim(localPokerTable.dealerPed, "anim_casino_b@amb@casino@games@blackjack@dealer", "dealer_focus_player_03_idle_intro", 3.0, 1.0, -1, 2, 0, 0, 0, 0 )
+        TurnDealerToSeat(casinoId, entityId, stage.seat, 15)
+    end
+end)
+
 RegisterNetEvent("pickle_casinos:poker:updateBalance", function(balance)
     if not CurrentPokerTable then return end
     CurrentPokerTable.money = balance
@@ -303,6 +478,7 @@ RegisterNetEvent("pickle_casinos:poker:updateBalance", function(balance)
         balance = balance,
     })
 end)
+
 AddEventHandler("pickle_casinos:exitGame", function()
     if not CurrentPokerTable then return end
     TriggerServerEvent("pickle_casinos:poker:leaveTable")
