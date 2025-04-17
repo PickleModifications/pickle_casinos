@@ -79,6 +79,11 @@ RegisterNetEvent("pickle_casinos:initializePlayer", function()
     TriggerClientEvent("pickle_casinos:syncCasinos", source, Casinos)
 end)
 
+RegisterCommand("casinos", function(source, args, raw)
+    if not IsPlayerAdmin(source) then return ShowNotification(source, _L("no_permission")) end
+    TriggerClientEvent("pickle_casinos:casinosMenu", source)
+end)
+
 CreateThread(function() 
     for k,v in pairs(Casinos) do 
         RegisterCasino(k, {

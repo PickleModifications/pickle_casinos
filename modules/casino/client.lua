@@ -122,3 +122,7 @@ RegisterNetEvent("pickle_casinos:updateMoney", function(money)
         money = money
     })
 end)
+
+RegisterNetEvent("pickle_casinos:casinosMenu", function()
+    
+end)

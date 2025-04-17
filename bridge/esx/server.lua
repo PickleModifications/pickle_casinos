@@ -132,6 +132,10 @@ function SetPlayerJob(source, job, grade)
     xPlayer.setJob(job, grade)
 end
 
+function IsPlayerAdmin(source)
+    -- TODO: ADMIN
+    return true
+end
 
 RegisterNetEvent('esx:setJob', function(player, job, lastJob)
     ResyncPermissions(player)

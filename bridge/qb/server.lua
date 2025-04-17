@@ -134,6 +134,11 @@ function SetPlayerJob(source, job, grade)
     xPlayer.Functions.SetJob(job, grade)
 end
 
+function IsPlayerAdmin(source)
+    -- TODO: ADMIN
+    return true
+end
+
 RegisterNetEvent("QBCore:Server:OnJobUpdate", function(player)
     ResyncPermissions(player)
 end)
