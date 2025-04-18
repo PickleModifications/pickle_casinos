@@ -1,5 +1,5 @@
 import { Translate } from "@/providers/locale/Locale"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "../ui/button"
 import { Edit, Plus, Save } from "lucide-react"
 import { DisplayCurrency } from "../casino/Casino"
@@ -22,6 +22,10 @@ type GameSettingsType = {
     [key: string]: GameSetting[]
 }
         
+const DEFAULT_LOCATION: Location = {
+    coords: {x: 0, y: 0, z: 0},
+    rotation: {x: 0, y: 0, z: 0},
+}
 
 const GameSettings : GameSettingsType = {
     "blackjack": [
@@ -35,21 +39,20 @@ const GameSettings : GameSettingsType = {
     ],
     "wheel": [
         {variable: "maxWager", type: "money", default: 100, min: 100, label: "Max Wager"},
-        {variable: "maxWager", type: "money", default: 100, min: 100, label: "Max Wager"},
     ],
     "horseracing": [
         {variable: "maxWager", type: "money", default: 100, min: 100, label: "Max Wager"},
     ],
     "slots": [
-        {variable: "game", type: "dropdown", label: "Max Wager", options: [
+        {variable: "game", type: "dropdown", label: "Game", default: "bananabonanza", options: [
             {value: "bananabonanza", label: "Banana Bonanza"},
             {value: "spacewarriors", label: "Space Warriors"},
         ]},
         {variable: "maxWager", type: "money", default: 100, min: 100, label: "Max Wager"},
     ],
     "poker": [
-        {variable: "smallBlind", type: "money", default: 10, min: 10, label: "Max Wager"},
-        {variable: "bigBlind", type: "money", default: 15, min: 15, label: "Max Wager"},
+        {variable: "smallBlind", type: "money", default: 10, min: 10, label: "Small Blind"},
+        {variable: "bigBlind", type: "money", default: 15, min: 15, label: "Big Blind"},
     ],
 }
 
@@ -68,6 +71,9 @@ type CasinoEntity = {
     id: string,
     type: string,
     location?: Location,
+    settings: {
+        [key: string]: any,
+    },
 }
 
 type Casino = {
@@ -81,35 +87,52 @@ type Casino = {
     location: Location
 }
 
-function Location({ coords, className, onUpdate }: { coords?: vector3, className?: string, onUpdate?: (coords: vector3) => void }) {
-    const coordinates = coords || {x: 0, y: 0, z: 0}
+function Location({ defaultLocation, className, onUpdate }: { defaultLocation: Location, className?: string, onUpdate?: (location: Location) => void }) {
+    const coordinates = defaultLocation.coords || {x: 0, y: 0, z: 0}
     return (
         <div className="flex flex-row items-center gap-2">
             <div className={className}>{`vector3(${coordinates.x}, ${coordinates.y}, ${coordinates.z})`}</div>
             {onUpdate && (
-                <Edit size={16} className="cursor-pointer hover:scale-95 transition-all duration-200"/>
+                <Edit size={16} className="cursor-pointer hover:scale-95 transition-all duration-200" onClick={() => {
+                    // Do cool stuff here
+                }}/>
             )}
         </div>
     )
 }
 
-function GameSettingsDisplay({ game, settingIndex, onUpdate }: { game: string, settingIndex: number, onUpdate: (value: any) => void }) {
-    const gameSetting = GameSettings[game as keyof typeof GameSettings][settingIndex];
+function GameSettingsDisplay({ game, variable, defaultValue, onUpdate }: { game: string, variable: string, defaultValue: any, onUpdate: (value: any) => void }) {
+    const gameSetting = GameSettings[game as keyof typeof GameSettings].find(setting => setting.variable === variable)
     const [isEditing, setIsEditing] = useState(false)
-    const [value, setValue] = useState<any>(gameSetting?.default || null)
+    const [value, setValue] = useState<any>(defaultValue || null)
+    const dropdownLabel = gameSetting?.options?.find(option => option.value === value)?.label || gameSetting?.default || null
+    useEffect(() => {
+        if (gameSetting) {
+            setValue(defaultValue || (gameSetting.default || null))
+        }
+    }, [gameSetting])
     return gameSetting && (
         <div className="flex flex-row w-full items-center justify-between">
             <div className="text-md font-bold">{gameSetting.label}</div>
             {isEditing ? (
                 <div className="flex flex-row items-center gap-2">
                     {gameSetting.type === "money" && (
-                        <input type="number" className="bg-secondary/50 text-sm text-right text-zinc-400 rounded-md px-2 py-1" defaultValue={gameSetting.min} min={gameSetting.min} onChange={(e) => {
+                        <input type="number" className="bg-secondary/50 text-sm text-right text-zinc-400 rounded-md px-2 py-1" defaultValue={value || gameSetting.min} min={gameSetting.min} onChange={(e) => {
                             const value = parseFloat(e.target.value)
                             if (!isNaN(value)) {
                                 setValue(value)
                             }
                         }
                         } placeholder="Enter value..." />
+                    )}
+                    {gameSetting.type === "dropdown" && (
+                        <select className="bg-secondary/50 text-sm text-right rounded-md px-2 py-1" value={value} onChange={(e) => {
+                            setValue(e.target.value)
+                        }}>
+                            {gameSetting.options && gameSetting.options.map((option, index) => (
+                                <option key={index} value={option.value}>{option.label}</option>
+                            ))}
+                        </select>
                     )}
                     <Save size={16} className="cursor-pointer hover:scale-95 transition-all duration-200" onClick={() => {
                         setIsEditing(false)
@@ -122,6 +145,9 @@ function GameSettingsDisplay({ game, settingIndex, onUpdate }: { game: string, s
                     {gameSetting.type === "money" && (
                         <div className="text-sm text-zinc-400"><DisplayCurrency value={value} /></div>
                     )}
+                    {gameSetting.type === "dropdown" && (
+                        <div className="text-sm text-zinc-400">{dropdownLabel}</div>
+                    )}
                     <Edit size={16} className="cursor-pointer hover:scale-95 transition-all duration-200" onClick={() => {
                         setIsEditing(true)
                     }}/>
@@ -133,7 +159,8 @@ function GameSettingsDisplay({ game, settingIndex, onUpdate }: { game: string, s
 
 function CasinoEntityDisplay({ entity, onExit }: { entity?: CasinoEntity, onExit: () => void }) {
     const [entityState, setEntityState] = useState<CasinoEntity | null>(entity || null)
-    const [location, setLocation] = useState<vector3>({x: 0, y: 0, z: 0})
+    const [location, setLocation] = useState<Location>(DEFAULT_LOCATION)
+    const [entityType, setEntityType] = useState<string>(entityState?.type || "slots")
     return (
         <>
             {entityState && (
@@ -148,14 +175,58 @@ function CasinoEntityDisplay({ entity, onExit }: { entity?: CasinoEntity, onExit
                     <div className="px-2 flex flex-col w-full gap-2 justify-between">
                         <div className="flex flex-row w-full items-center justify-between">
                             <div className="text-md font-bold"><Translate id="casino_location"/></div>
-                            <Location className="text-sm text-zinc-400" coords={entityState.location?.coords} onUpdate={(coords: vector3) => {
-                                setLocation(coords)
+                            <Location className="text-sm text-zinc-400" defaultLocation={entityState.location || DEFAULT_LOCATION} onUpdate={(location: Location) => {
+                                setLocation(location)
                             }} />
                         </div>
-                        {GameSettings[entityState.type].map((setting, index) => (
-                            <GameSettingsDisplay game={entityState.type} settingIndex={index} key={index} onUpdate={(value: any) => {
+                        {GameSettings[entityState.type].map((setting, index) => {
+                            console.log(setting.variable, entityState.settings[setting.variable] || setting.default)
+                            return (
+                                <GameSettingsDisplay game={entityState.type} variable={setting.variable} defaultValue={entityState.settings[setting.variable] || setting.default} key={index} onUpdate={(value: any) => {
+                                }}/>
+                            )
+                        })}
+                        <Button variant="secondary" className="w-full" onClick={onExit}>
+                            <Translate id="casino_entity_exit"/>
+                        </Button>
+                    </div>
+                </div>
+            )}
+            {!entityState && (
+                <div className="flex flex-col gap-2">
+                    <div className="px-2 font-semibold text-lg flex flex-row items-center justify-between">
+                        <div className="flex flex-row gap-0 items-center justify-between w-full">
+                            <div className="text-md font-bold"><Translate id={"casino_entity_create_title"}/></div>
+                        </div>
+                    </div>
+                    <hr/>
+                    <div className="px-2 flex flex-col w-full gap-2 justify-between">
+                        <div className="flex flex-row w-full items-center justify-between">
+                            <div className="text-md font-bold"><Translate id="casino_entity_type"/></div>
+                            <select className="bg-secondary/50 text-sm text-right rounded-md px-2 py-1" value={entityType} onChange={(e) => {
+                                setEntityType(e.target.value)
+                            }}>
+                                {Object.keys(GameSettings).map((game, index) => (
+                                    <option key={index} value={game}><Translate id={game + "_title"}/></option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+                    <div className="px-2 flex flex-col w-full gap-2 justify-between">
+                        <div className="flex flex-row w-full items-center justify-between">
+                            <div className="text-md font-bold"><Translate id="casino_location"/></div>
+                            <Location className="text-sm text-zinc-400" defaultLocation={location || DEFAULT_LOCATION} onUpdate={(location: Location) => {
+                                setLocation(location)
+                            }} />
+                        </div>
+                        {GameSettings[entityType].map((setting, index) => (
+                            <GameSettingsDisplay game={entityType} variable={setting.variable} defaultValue={setting.default} key={index} onUpdate={(value: any) => {
                             }}/>
                         ))}
+                        <Button variant="default" className="w-full" onClick={onExit}>
+                            <Save size={16}/>
+                            <Translate id="casino_entity_create_title"/>
+                        </Button>
                         <Button variant="secondary" className="w-full" onClick={onExit}>
                             <Translate id="casino_entity_exit"/>
                         </Button>
@@ -169,7 +240,7 @@ function CasinoEntityDisplay({ entity, onExit }: { entity?: CasinoEntity, onExit
 function CasinoDisplay({ casino, onExit }: { casino?: Casino, onExit: () => void }) {
     const [casinoState, setCasinoState] = useState<Casino | null>(casino || null)
     const [label, setLabel] = useState<string>("")
-    const [location, setLocation] = useState<vector3>({x: 0, y: 0, z: 0})
+    const [location, setLocation] = useState<Location>(casinoState?.location || DEFAULT_LOCATION)
     const [editingLabel, setEditingLabel] = useState(false);
     const [currentEntityId, setCurrentEntityId] = useState<string | null>(null)
     const [creatingEntity, setCreatingEntity] = useState(false)
@@ -184,7 +255,7 @@ function CasinoDisplay({ casino, onExit }: { casino?: Casino, onExit: () => void
                             setCreatingEntity(false)
                         }}/>
                     )}
-                    {!currentEntity && (
+                    {!(currentEntity || creatingEntity) && (
                         <>
                             <div className="px-2 pb-2 font-semibold text-lg flex flex-row items-center justify-between">
                                 {editingLabel ? (
@@ -221,15 +292,12 @@ function CasinoDisplay({ casino, onExit }: { casino?: Casino, onExit: () => void
                             <div className="flex flex-col pt-2 gap-2 overflow-auto max-h-[950px] px-2">
                                 <div className="flex flex-row w-full items-center justify-between">
                                     <div className="text-md font-bold"><Translate id="casino_location"/></div>
-                                    <Location className="text-sm text-zinc-400" coords={casinoState.location.coords} onUpdate={(coords: vector3) => {
+                                    <Location className="text-sm text-zinc-400" defaultLocation={casinoState.location} onUpdate={(location: Location) => {
                                         setCasinoState((prev) => {
                                             if (prev) {
                                                 return {
                                                     ...prev,
-                                                    location: {
-                                                        ...prev.location,
-                                                        coords: coords,
-                                                    },
+                                                    location: location,
                                                 }
                                             }
                                             return null
@@ -239,13 +307,20 @@ function CasinoDisplay({ casino, onExit }: { casino?: Casino, onExit: () => void
                                 <div className="flex flex-col w-full justify-between">
                                     <div className="text-md font-bold"><Translate id="casino_entities"/></div>
                                     <div className="flex flex-col w-full max-h-[300px] overflow-auto gap-2 justify-between bg-background/50 p-2 mt-2">
+                                        <Button variant="secondary" className="w-full hover:scale-95 transition-all duration-200" onClick={() => {
+                                            setCreatingEntity(true)
+                                            setCurrentEntityId(null)
+                                        }}>
+                                            <Plus size={16} />
+                                            <Translate id="casino_entity_create"/>
+                                        </Button>
                                         {casinoState.entities.map((entity, index) => (
                                             <div key={index} className="flex flex-col justify-between w-full p-2 bg-secondary/50 rounded-md select-none hover:scale-95 transition-all duration-200 cursor-pointer" onClick={() => {
                                                 setCurrentEntityId(entity.id)
                                             }}>
                                                 <div className="flex flex-row gap-0 items-center justify-between w-full">
                                                     <div className="text-md font-bold"><Translate id={entity.type + "_title"}/></div>
-                                                    {entity.location && <Location className="text-sm text-zinc-400" coords={entity.location.coords}/>}
+                                                    {entity.location && <Location className="text-sm text-zinc-400" defaultLocation={entity.location}/>}
                                                 </div>
                                                 <div className="text-sm text-zinc-400"><Translate id={"casino_id"} args={[entity.id]}/></div>
                                             </div>
@@ -273,8 +348,8 @@ function CasinoDisplay({ casino, onExit }: { casino?: Casino, onExit: () => void
                         </div>
                         <div className="flex flex-row w-full items-center justify-between">
                             <div className="text-md font-bold"><Translate id="casino_location"/></div>
-                            <Location className="text-sm text-zinc-400" coords={location} onUpdate={(coords: vector3) => {
-                                setLocation(coords)
+                            <Location className="text-sm text-zinc-400" defaultLocation={location} onUpdate={(location: Location) => {
+                                setLocation(location)
                             }} />
                         </div>
                         <Button variant="default" className="w-full" onClick={onExit}>
@@ -313,6 +388,9 @@ function Creator() {
                         coords: {x: 123.45, y: 67.89, z: 10.11},
                         rotation: {x: 0, y: 0, z: 0},
                     },
+                    settings: {
+                        maxWager: 10000,
+                    }
                 },
                 {
                     id: "333333_333332",
@@ -321,6 +399,7 @@ function Creator() {
                         coords: {x: 123.45, y: 67.89, z: 10.11},
                         rotation: {x: 0, y: 0, z: 0},
                     },
+                    settings: {}
                 },
                 {
                     id: "333333_333333",
@@ -329,6 +408,7 @@ function Creator() {
                         coords: {x: 123.45, y: 67.89, z: 10.11},
                         rotation: {x: 0, y: 0, z: 0},
                     },
+                    settings: {}
                 },
                 {
                     id: "333333_333334",
@@ -337,6 +417,7 @@ function Creator() {
                         coords: {x: 123.45, y: 67.89, z: 10.11},
                         rotation: {x: 0, y: 0, z: 0},
                     },
+                    settings: {}
                 },
                 {
                     id: "333333_333335",
@@ -345,6 +426,7 @@ function Creator() {
                         coords: {x: 123.45, y: 67.89, z: 10.11},
                         rotation: {x: 0, y: 0, z: 0},
                     },
+                    settings: {}
                 },
                 {
                     id: "333333_333336",
@@ -353,6 +435,7 @@ function Creator() {
                         coords: {x: 123.45, y: 67.89, z: 10.11},
                         rotation: {x: 0, y: 0, z: 0},
                     },
+                    settings: {}
                 },
                 {
                     id: "333333_333337",
@@ -361,6 +444,7 @@ function Creator() {
                         coords: {x: 123.45, y: 67.89, z: 10.11},
                         rotation: {x: 0, y: 0, z: 0},
                     },
+                    settings: {}
                 },
             ],
         },
@@ -388,7 +472,7 @@ function Creator() {
                             <div key={casino.id} className="p-4 bg-secondary cursor-pointer hover:scale-95 transition-all duration-200" onClick={() => setCurrentCasinoId(casino.id)}>
                                 <div className="flex flex-row items-center justify-between">
                                     <h2 className="text-lg font-bold">{casino.label}</h2>
-                                    <Location className="text-sm text-zinc-400" coords={casino.location.coords} />
+                                    <Location className="text-sm text-zinc-400" defaultLocation={casino.location} />
                                 </div>
                                 <div className="flex flex-row items-center justify-between">
                                     <p className="text-sm text-zinc-400"><Translate id="casino_id" args={[casino.id]}/></p>
