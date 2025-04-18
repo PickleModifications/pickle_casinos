@@ -37,6 +37,14 @@ export const ConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         locale: {
             "casino_money": "Balance: %s",
             "casino_betrange": "Limit: %s - %s",
+            "casino_owner": "Owner: %s",
+            "casino_id": "ID: %s",
+            "casino_location": "Location",
+            "casino_entities": "Entities",
+            "casino_exit": "Return to Casino List",
+            "casino_create": "Create Casino",
+            "casino_name": "Label",
+            "casino_entity_exit": "Return to Casino",
             "blackjack_title": "Blackjack",
             "blackjack_nextround": "Next Round: %s",
             "blackjack_dealing": "Dealer is now dealing cards...",
@@ -95,6 +103,7 @@ export const ConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             "wheel_nextround": "Next Round: %s",
             "wheel_spinning": "The wheel is spinning, good luck!",
             "wheel_sectionwinner": "The winning section is:",
+            "poker_title": "Poker",
             "poker_nextround": "Next Round: %s",
             "poker_bet": "Bet",
             "poker_raise": "Raise",
@@ -112,6 +121,7 @@ export const ConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             "horseracing_ext_racing": "Racing",
             "horseracing_selecttrack": "Select Track",
             "horseracing_nextround": "Next Round: %s",
+            "slots_title": "Slots",
         },
     });
     useNuiEvent('setConfig', (data) => {
