@@ -1,23 +1,28 @@
 CurrentPlayers = {}
 
+function InitializeCasinoEntity(casinoId, entity)
+    entity.settings = EnsureGameSettings(entity.type, entity.settings)
+    if entity.type == "blackjack" then
+        entity = InitializeBlackjackEntity(casinoId, entity)
+    elseif entity.type == "roulette" then
+        entity = InitializeRouletteEntity(casinoId, entity)
+    elseif entity.type == "baccarat" then
+        entity = InitializeBaccaratEntity(casinoId, entity)
+    elseif entity.type == "slot" then
+        entity = InitializeSlotEntity(casinoId, entity)
+    elseif entity.type == "poker" then
+        entity = InitializePokerEntity(casinoId, entity)
+    elseif entity.type == "wheel" then
+        entity = InitializeWheelEntity(casinoId, entity)
+    elseif entity.type == "horseracing" then
+        entity = InitializeHorseRacingEntity(casinoId, entity)
+    end
+    return entity
+end
+
 function InitializeCasinoEntities(casinoId, entities)
     for i=1, #entities do
-        local entity = entities[i]
-        if entity.type == "blackjack" then
-            entity = InitializeBlackjackEntity(casinoId, entity)
-        elseif entity.type == "roulette" then
-            entity = InitializeRouletteEntity(casinoId, entity)
-        elseif entity.type == "baccarat" then
-            entity = InitializeBaccaratEntity(casinoId, entity)
-        elseif entity.type == "slot" then
-            entity = InitializeSlotEntity(casinoId, entity)
-        elseif entity.type == "poker" then
-            entity = InitializePokerEntity(casinoId, entity)
-        elseif entity.type == "wheel" then
-            entity = InitializeWheelEntity(casinoId, entity)
-        elseif entity.type == "horseracing" then
-            entity = InitializeHorseRacingEntity(casinoId, entity)
-        end
+        entities[i] = InitializeCasinoEntity(casinoId, entities[i])
     end
     return entities
 end
@@ -72,6 +77,51 @@ function SendCasinoEntityUpdate(casinoId, entityId)
     local entity = GetCasinoEntity(casinoId, entityId)
     if not entity then return end
     TriggerClientEvent("pickle_casinos:updateCasinoEntity", -1, casinoId, entity)
+end
+
+function GenerateEntityId(casinoId)
+    local casino = Casinos[casinoId]
+    if not casino then return end
+    local entityId
+    repeat
+        entityId = math.random(1, 9999999) .. "_" .. math.random(1, 9999999)
+    until not GetCasinoEntity(casinoId, entityId)
+    return entityId
+end
+
+function EnsureGameSettings(entityType, settings)
+    local defaultSettings = {
+        location = settings.location and {
+            coords = vector3(settings.location.coords.x, settings.location.coords.y, settings.location.coords.z) or vector3(0, 0, 0),
+            rotation = settings.location.rotation and vector3(settings.location.rotation.x, settings.location.rotation.y, settings.location.rotation.z) or vector3(0, 0, 0)
+        } or {
+            coords = vector3(0, 0, 0),
+            rotation = vector3(0, 0, 0)
+        },
+    }
+    if entityType == "blackjack" or entityType == "roulette" or entityType == "baccarat" or entityType == "slot" or entityType == "wheel" or entityType == "horseracing" then
+        defaultSettings["maxWager"] = settings.maxWager or 1000
+    end
+    if entityType == "slot" then
+        defaultSettings["game"] = settings.game
+    end
+    if entityType == "poker" then
+        defaultSettings["smallBlind"] = settings.smallBlind or 10
+        defaultSettings["bigBlind"] = settings.bigBlind or 20
+    end
+    return defaultSettings
+end
+
+function UpdateCasinoEntitiesSQL(casinoId)
+    local entities = {}
+    for i=1, #Casinos[casinoId].entities do
+        table.insert(entities, {
+            id = Casinos[casinoId].entities[i].id,
+            type = Casinos[casinoId].entities[i].type,
+            settings = Casinos[casinoId].entities[i].settings,
+        })
+    end
+    MySQL.Async.execute('UPDATE `pickle_casinos` SET entities = ? WHERE id = ?', {json.encode(entities), casinoId})
 end
 
 RegisterCallback("pickle_casinos:joinEntity", function(source, casinoId, entityId)
@@ -132,6 +182,36 @@ RegisterNetEvent("pickle_casinos:updateCasinoSetting", function(casinoId, variab
     end
     MySQL.Async.execute('UPDATE `pickle_casinos` SET settings = ? WHERE id = ?', {json.encode(casino.settings), casinoId})
     TriggerClientEvent("pickle_casinos:updateCasinoSetting", -1, casinoId, variable, value)
+end)
+
+RegisterNetEvent("pickle_casinos:createCasinoEntity", function(casinoId, entityType, settings)
+    if not IsPlayerAdmin(source) then return ShowNotification(source, _L("no_permission")) end
+    local casino = Casinos[casinoId]
+    if not casino then return end
+    local entityId = GenerateEntityId(casinoId)
+    local entity = {
+        id = entityId,
+        type = entityType,
+        settings = EnsureGameSettings(entityType, settings),
+    }
+    table.insert(casino.entities, entity)
+    UpdateCasinoEntitiesSQL(casinoId)
+    InitializeCasinoEntity(casinoId, entity)
+    TriggerClientEvent("pickle_casinos:createCasinoEntity", -1, casinoId, entity)
+end)
+
+RegisterNetEvent("pickle_casinos:deleteCasinoEntity", function(casinoId, entityId)
+    if not IsPlayerAdmin(source) then return ShowNotification(source, _L("no_permission")) end
+    local casino = Casinos[casinoId]
+    if not casino then return end
+    for i=1, #casino.entities do
+        if casino.entities[i].id == entityId then
+            table.remove(casino.entities, i)
+            break
+        end
+    end
+    UpdateCasinoEntitiesSQL(casinoId)
+    TriggerClientEvent("pickle_casinos:deleteCasinoEntity", -1, casinoId, entityId)
 end)
 
 RegisterCommand("casinos", function(source, args, raw)

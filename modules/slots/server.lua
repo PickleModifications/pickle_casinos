@@ -3,8 +3,8 @@ local PendingSpins = {}
 function InitializeSlotEntity(casinoId, data)
     local entity = data or { id = "ERR_NO_ID_SLOT" }
     entity.currentPlayer = nil
-    local betMin = entity.settings.betRange.min or 0
-    local betMax = entity.settings.betRange.max or 1
+    local betMax = entity.settings.maxWager
+    local betMin = math.floor(entity.settings.maxWager / 100)
     local bets = {}
     local betLength = 10
     for i=1, (betLength + 1) do

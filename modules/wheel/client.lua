@@ -148,8 +148,8 @@ function CreateWheelEntity(casinoId, entityId)
     local casino = Casinos[casinoId]
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
     if not casino or not casinoEntity then return end
-    local coords = casinoEntity.coords
-    local heading = casinoEntity.rotation.z
+    local coords = casinoEntity.settings.location.coords
+    local heading = casinoEntity.settings.location.rotation.z
 
     if not LocalWheels[casinoId] then
         LocalWheels[casinoId] = {}
@@ -167,8 +167,8 @@ function RenderWheelEntity(casinoId, entityId)
     local wheelEntity = LocalWheels[casinoId][entityId]
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
     if not wheelEntity.visible or not casinoEntity then return end
-    local coords = casinoEntity.coords
-    local heading = casinoEntity.rotation.z
+    local coords = casinoEntity.settings.location.coords
+    local heading = casinoEntity.settings.location.rotation.z
     local standObject = CreateProp(`vw_prop_vw_luckywheel_01a`, coords, false, false, false)
     local wheelObject = CreateProp(`fury_p_wheeloff`, coords, false, false, false)
     local tickObject = CreateProp(`vw_prop_vw_jackpot_off`, coords, false, false, false)
@@ -269,7 +269,7 @@ RegisterNetEvent("pickle_casinos:wheel:updateStage", function(casinoId, entityId
     if not localWheel or not localWheel.visible then return end
     local isCurrentWheel = (CurrentWheel and CurrentWheel.casinoId == casinoId and CurrentWheel.entityId == entityId)
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
-    local targetRotation = casinoEntity.rotation + vector3(0.0, 0.0, 180.0)
+    local targetRotation = casinoEntity.settings.location.rotation + vector3(0.0, 0.0, 180.0)
     local isAlreadyWaiting = (CurrentWheel and CurrentWheel.stage and CurrentWheel.stage.type == "waiting")
     if (isCurrentWheel) then
         CurrentWheel.stage = stage

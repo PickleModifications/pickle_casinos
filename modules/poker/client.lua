@@ -190,8 +190,8 @@ function CreatePokerEntity(casinoId, entityId)
     local casino = Casinos[casinoId]
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
     if not casino or not casinoEntity then return end
-    local coords = casinoEntity.coords
-    local heading = casinoEntity.rotation.z
+    local coords = casinoEntity.settings.location.coords
+    local heading = casinoEntity.settings.location.rotation.z
     if not LocalPokerTables[casinoId] then
         LocalPokerTables[casinoId] = {}
     end
@@ -208,8 +208,8 @@ function RenderPokerEntity(casinoId, entityId)
     local localPokerTable = LocalPokerTables[casinoId][entityId]
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
     if not localPokerTable.visible or not casinoEntity then return end
-    local coords = casinoEntity.coords
-    local heading = casinoEntity.rotation.z
+    local coords = casinoEntity.settings.location.coords
+    local heading = casinoEntity.settings.location.rotation.z
     local tableObject = CreateProp(casinoEntity.settings.tableModel, coords, false, false, false)
     local surfaceObject = CreateProp(`prop_tennis_ball`, coords + vector3(0.0, 0.0, 1.05), false, false, false)
     FreezeEntityPosition(tableObject, true)
@@ -421,7 +421,7 @@ RegisterNetEvent("pickle_casinos:poker:updateStage", function(casinoId, entityId
     if not localPokerTable.visible then return end
     local dealerPed = localPokerTable.dealerPed
     if not localPokerTable.lastDealerRotation then
-        localPokerTable.lastDealerRotation = casinoEntity.rotation + vector3(0.0, 0.0, 0.0)
+        localPokerTable.lastDealerRotation = casinoEntity.settings.location.rotation + vector3(0.0, 0.0, 0.0)
     end
     local isCurrentTable = (CurrentPokerTable and CurrentPokerTable.casinoId == casinoId and CurrentPokerTable.entityId == entityId)
     if isCurrentTable then

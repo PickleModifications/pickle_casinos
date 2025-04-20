@@ -1,6 +1,8 @@
+CurrentCasinoEntity = nil
 LOCAL_MONEY = 0
-
 local isEditing = false
+local inGizmo = false
+local gizmoEntity = nil
 
 function CreateCasinoEntity(casinoId, entityId)
     local casino = Casinos[casinoId]
@@ -78,7 +80,7 @@ function StartCasinoEditor()
     })
     CreateThread(function()
         while isEditing do 
-            if not gizmoEntity and IsControlJustPressed(1, 47) then 
+            if not inGizmo and IsControlJustPressed(1, 47) then 
                 SetNuiFocus(true, true)
                 SetCursorLocation(0.85, 0.5)
             end
@@ -88,15 +90,25 @@ function StartCasinoEditor()
 end
 
 function StartGizmoEditor(data)
+    inGizmo = true
     local ped = PlayerPedId()
     local coords = data.coords or (GetEntityCoords(ped) + GetEntityForwardVector(ped) * 3)
     local rotation = data.rotation or vector3(0.0, 0.0, GetEntityHeading(ped) + 180.0)
-    gizmoEntity = CreateProp(data.model, coords.x, coords.y, coords.z, false, false, false)
-    SetEntityRotation(gizmoEntity, rotation.x, rotation.y, rotation.z, 2, true)
-    SetEntityCollision(gizmoEntity, false, false)
-    local result = exports.object_gizmo:useGizmo(gizmoEntity)
-    DeleteScriptObject(gizmoEntity)
-    gizmoEntity = nil
+    if data.entity then
+        SetEntityCoords(data.entity, coords.x, coords.y, coords.z, false, false, false, false)
+        SetEntityRotation(data.entity, rotation.x, rotation.y, rotation.z, 2, true)
+        local result = exports.object_gizmo:useGizmo(data.entity)
+        inGizmo = false
+        return result
+    else
+        gizmoEntity = CreateProp(data.model, coords.x, coords.y, coords.z, false, false, false)
+        SetEntityRotation(gizmoEntity, rotation.x, rotation.y, rotation.z, 2, true)
+        SetEntityCollision(gizmoEntity, false, false)
+        local result = exports.object_gizmo:useGizmo(gizmoEntity)
+        DeleteScriptObject(gizmoEntity)
+        gizmoEntity = nil
+        inGizmo = false
+    end
     return result
 end
 
@@ -106,6 +118,59 @@ function CasinosArrayUI()
         table.insert(casinosArray, v)
     end
     return casinosArray
+end
+
+function GenerateGameSettingsUI()   
+    local slotOptions = {}
+    for k,v in pairs(Config.Slots) do
+        table.insert(slotOptions, {
+            label = v.label,
+            value = k,
+        })
+    end
+    local modelToOptions = function(models)
+        local options = {}
+        for i=1, #models do
+            table.insert(options, {
+                label = models[i].label,
+                value = models[i].model,
+            })
+        end
+        return options
+    end
+    return {
+        ["blackjack"] = {
+            {variable = "dealerModel", type = "dropdown", label = "Dealer Ped", default = Config.CreatorOptions.dealerModels[1].model, options = modelToOptions(Config.CreatorOptions.dealerModels)},
+            {variable = "tableModel", type = "dropdown", label = "Table Prop", default = Config.CreatorOptions.blackjack.tableModels[1].model, options = modelToOptions(Config.CreatorOptions.blackjack.tableModels)},
+            {variable = "maxWager", type = "money", default = 100, min = 100, label = "Max Wager"},
+        },
+        ["roulette"] = {
+            {variable = "dealerModel", type = "dropdown", label = "Dealer Ped", default = Config.CreatorOptions.dealerModels[1].model, options = modelToOptions(Config.CreatorOptions.dealerModels)},
+            {variable = "tableModel", type = "dropdown", label = "Table Prop", default = Config.CreatorOptions.roulette.tableModels[1].model, options = modelToOptions(Config.CreatorOptions.roulette.tableModels)},
+            {variable = "maxWager", type = "money", default = 100, min = 100, label = "Max Wager"},
+        },
+        ["baccarat"] = {
+            {variable = "dealerModel", type = "dropdown", label = "Dealer Ped", default = Config.CreatorOptions.dealerModels[1].model, options = modelToOptions(Config.CreatorOptions.dealerModels)},
+            {variable = "tableModel", type = "dropdown", label = "Table Prop", default = Config.CreatorOptions.baccarat.tableModels[1].model, options = modelToOptions(Config.CreatorOptions.baccarat.tableModels)},
+            {variable = "maxWager", type = "money", default = 100, min = 100, label = "Max Wager"},        
+        },
+        ["wheel"] = {
+            {variable = "maxWager", type = "money", default = 100, min = 100, label = "Max Wager"},
+        },
+        ["horseracing"] = {
+            {variable = "maxWager", type = "money", default = 100, min = 100, label = "Max Wager"},
+        },
+        ["slot"] = {
+            {variable = "game", type = "dropdown", label = "Game", default = slotOptions[1].value, options = slotOptions},
+            {variable = "maxWager", type = "money", default = 100, min = 100, label = "Max Wager"},
+        },
+        ["poker"] = {
+            {variable = "dealerModel", type = "dropdown", label = "Dealer Ped", default = Config.CreatorOptions.dealerModels[1].model, options = modelToOptions(Config.CreatorOptions.dealerModels)},
+            {variable = "tableModel", type = "dropdown", label = "Table Prop", default = Config.CreatorOptions.poker.tableModels[1].model, options = modelToOptions(Config.CreatorOptions.poker.tableModels)},
+            {variable = "smallBlind", type = "money", default = 10, min = 10, label = "Small Blind"},
+            {variable = "bigBlind", type = "money", default = 15, min = 15, label = "Big Blind"},
+        },
+    }
 end
 
 RegisterNUICallback("disableEditorFocus", function(data, cb)
@@ -120,6 +185,7 @@ RegisterNUICallback("pageLoaded", function(data, cb)
             currency = "USD",
             countryCode = "en-US",
             bonusWheelMultipliers = GenerateWheelBonusConfig(),
+            gameSettings = GenerateGameSettingsUI()
         }
     })
     TriggerServerEvent("pickle_casinos:initializePlayer")
@@ -161,7 +227,7 @@ RegisterNUICallback("editLocation", function(data, cb)
     local playerCoords = GetEntityCoords(ped)
     local coords = (data.coords and #(vector3(data.coords.x, data.coords.y, data.coords.z) - playerCoords) < 100.0) and data.coords or (GetEntityCoords(ped) + GetEntityForwardVector(ped) * 3)
     local rotation = data.rotation or vector3(0.0, 0.0, GetEntityHeading(ped) + 180.0)
-    if not info then
+    if not data.info.entityType and not data.info.entityId then
         local result = StartGizmoEditor({model = `prop_tennis_ball`, coords = coords, rotation = rotation})
         SendNUIMessage({
             type = "setLocation",
@@ -170,6 +236,37 @@ RegisterNUICallback("editLocation", function(data, cb)
                 rotation = result.rotation,
             }
         })
+    else
+        if not data.info.entityId then 
+            if not CurrentCasinoEntity then
+                CurrentCasinoEntity = {
+                    casinoId = data.info.casinoId,
+                }
+                local model
+                if data.info.tableModel then
+                    model = data.info.settings.tableModel
+                else
+                    if data.info.entityType == "slot" then
+                        model = Config.Slots[data.info.settings.game].model
+                    elseif data.info.entityType == "wheel" then
+                        model = `vw_prop_vw_luckywheel_01a`
+                    elseif data.info.entityType == "horseracing" then
+                        model = Config.HorseRacing.machineModel
+                    end
+                end
+                CurrentCasinoEntity.object = CreateProp(model, coords.x, coords.y, coords.z, false, false, false)
+            end
+            local result = StartGizmoEditor({entity = CurrentCasinoEntity.object, coords = coords, rotation = rotation})
+            SendNUIMessage({
+                type = "setLocation",
+                location = {
+                    coords = result.position,
+                    rotation = result.rotation,
+                }
+            })
+        else
+            -- TODO
+        end
     end
     SetNuiFocus(true, true)
     SendNUIMessage({
@@ -201,6 +298,26 @@ RegisterNUICallback("teleportToEntity", function(data, cb)
     local rotation = casinoEntity.location.rotation
     SetEntityCoords(ped, coords.x, coords.y, coords.z, false, false, false, false)
     SetEntityHeading(ped, rotation.z)
+end)
+
+RegisterNUICallback("createCasinoEntity", function(data, cb)
+    cb("ok")
+    local casino = Casinos[data.casinoId]
+    if not casino then return end
+    TriggerServerEvent("pickle_casinos:createCasinoEntity", data.casinoId, data.type, data.settings)
+end)
+
+RegisterNUICallback("exitCasinoEntityEditor", function(data, cb)
+    cb("ok")
+    if CurrentCasinoEntity then
+        DeleteScriptObject(CurrentCasinoEntity.object)
+        CurrentCasinoEntity = nil
+    end
+end)
+
+RegisterNUICallback("deleteCasinoEntity", function(data, cb)
+    cb("ok")
+    TriggerServerEvent("pickle_casinos:deleteCasinoEntity", data.casinoId, data.entityId)
 end)
 
 RegisterNetEvent("pickle_casinos:syncCasinos", function(data)
@@ -284,6 +401,37 @@ RegisterNetEvent("pickle_casinos:registerCasino", function(casinoId, data)
     })
 end)
 
+RegisterNetEvent("pickle_casinos:createCasinoEntity", function(casinoId, data)
+    local casino = Casinos[casinoId]
+    if not casino then return end
+    table.insert(casino.entities, data)
+    CreateCasinoEntity(casinoId, data.id)
+    SendNUIMessage({
+        type = "updateCasinoEntities",
+        casinoId = casinoId,
+        entities = casino.entities, 
+    })
+    SendNUIMessage({
+        type = "updateCasinos",
+        casinos = CasinosArrayUI(),
+    })
+end)
+
+RegisterNetEvent("pickle_casinos:deleteCasinoEntity", function(casinoId, entityId)
+    local casino = Casinos[casinoId]
+    if not casino then return end
+    DeleteCasinoEntity(casinoId, entityId)
+    SendNUIMessage({
+        type = "updateCasinoEntities",
+        casinoId = casinoId,
+        entities = casino.entities, 
+    })
+    SendNUIMessage({
+        type = "updateCasinos",
+        casinos = CasinosArrayUI(),
+    })
+end)
+
 RegisterNetEvent("pickle_casinos:casinosMenu", function()
     StartCasinoEditor()
 end)
@@ -295,6 +443,10 @@ AddEventHandler("onResourceStop", function(resourceName)
         end
         if gizmoEntity then
             DeleteScriptObject(gizmoEntity)
+        end
+        if CurrentCasinoEntity then
+            DeleteScriptObject(CurrentCasinoEntity.object)
+            CurrentCasinoEntity = nil
         end
     end
 end)

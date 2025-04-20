@@ -5,6 +5,7 @@ import { Edit, Plus, Save } from "lucide-react"
 import { CasinoControls, DisplayCurrency } from "../casino/Casino"
 import { useNuiEvent } from "@/providers/nui/useNui"
 import { fetchNui } from "@/providers/nui/fetchNui"
+import { useConfig } from "@/providers/config"
 
 type GameSetting = {
     variable: string,
@@ -20,42 +21,13 @@ type GameSetting = {
     placeholder?: string,
 }
 
-type GameSettingsType = {
+export type GameSettingsType = {
     [key: string]: GameSetting[]
 }
         
 const DEFAULT_LOCATION: Location = {
     coords: {x: 0, y: 0, z: 0},
     rotation: {x: 0, y: 0, z: 0},
-}
-
-const GameSettings : GameSettingsType = {
-    "blackjack": [
-        {variable: "maxWager", type: "money", default: 100, min: 100, label: "Max Wager"},
-    ],
-    "roulette": [
-        {variable: "maxWager", type: "money", default: 100, min: 100, label: "Max Wager"},
-    ],
-    "baccarat": [
-        {variable: "maxWager", type: "money", default: 100, min: 100, label: "Max Wager"},
-    ],
-    "wheel": [
-        {variable: "maxWager", type: "money", default: 100, min: 100, label: "Max Wager"},
-    ],
-    "horseracing": [
-        {variable: "maxWager", type: "money", default: 100, min: 100, label: "Max Wager"},
-    ],
-    "slots": [
-        {variable: "game", type: "dropdown", label: "Game", default: "bananabonanza", options: [
-            {value: "bananabonanza", label: "Banana Bonanza"},
-            {value: "spacewarriors", label: "Space Warriors"},
-        ]},
-        {variable: "maxWager", type: "money", default: 100, min: 100, label: "Max Wager"},
-    ],
-    "poker": [
-        {variable: "smallBlind", type: "money", default: 10, min: 10, label: "Small Blind"},
-        {variable: "bigBlind", type: "money", default: 15, min: 15, label: "Big Blind"},
-    ],
 }
 
 type vector3 = {
@@ -94,7 +66,6 @@ function Location({ info, defaultLocation, className, onUpdate }: { info?: any, 
     const rotation = defaultLocation.rotation || {x: 0, y: 0, z: 0}
     useNuiEvent("setLocation", (data: any) => {
         if (onUpdate) {
-            console.log(data.location)
             onUpdate(data.location)
         }
     })
@@ -116,6 +87,8 @@ function Location({ info, defaultLocation, className, onUpdate }: { info?: any, 
 }
 
 function GameSettingsDisplay({ game, variable, defaultValue, onUpdate }: { game: string, variable: string, defaultValue: any, onUpdate: (value: any) => void }) {
+    const {config} = useConfig()
+    const GameSettings: GameSettingsType = config.gameSettings || {}
     const gameSetting = GameSettings[game as keyof typeof GameSettings].find(setting => setting.variable === variable)
     const [isEditing, setIsEditing] = useState(false)
     const [value, setValue] = useState<any>(defaultValue || null)
@@ -141,7 +114,7 @@ function GameSettingsDisplay({ game, variable, defaultValue, onUpdate }: { game:
                     )}
                     {gameSetting.type === "dropdown" && (
                         <select className="bg-secondary/50 text-sm text-right rounded-md px-2 py-1" value={value} onChange={(e) => {
-                            setValue(e.target.value)
+                            setValue(parseInt(e.target.value) || e.target.value)
                         }}>
                             {gameSetting.options && gameSetting.options.map((option, index) => (
                                 <option key={index} value={option.value}>{option.label}</option>
@@ -171,10 +144,35 @@ function GameSettingsDisplay({ game, variable, defaultValue, onUpdate }: { game:
     )
 }
 
+type CasinoEntitySettings = {
+    [key: string]: any,
+}
+
 function CasinoEntityDisplay({casinoId, entity, onExit }: {casinoId: number, entity?: CasinoEntity, onExit: () => void }) {
+    const {config} = useConfig()
+    const GameSettings: GameSettingsType = config.gameSettings || {}
     const [entityState, setEntityState] = useState<CasinoEntity | null>(entity || null)
-    const [location, setLocation] = useState<Location>(DEFAULT_LOCATION)
-    const [entityType, setEntityType] = useState<string>(entityState?.type || "slots")
+    const [entityType, setEntityType] = useState<string>(entityState?.type || "slot")
+    const [entitySettings, setEntitySettings] = useState<CasinoEntitySettings>({})
+    useEffect(() => {
+        let initialSettings: CasinoEntitySettings = {}
+        for (let i=0; i<GameSettings[entityType].length; i++) {
+            let setting = GameSettings[entityType][i]
+            initialSettings[setting.variable] = setting.default
+        }
+        initialSettings.location = DEFAULT_LOCATION
+        if (entityState) {
+            Object.keys(entityState.settings).map((key) => {
+                const value = entityState.settings[key];
+                initialSettings[key] = value;
+            });
+        }
+        setEntitySettings(initialSettings)
+    }, [entityType])
+    const startExit = () => {
+        fetchNui("exitCasinoEntityEditor", {})
+        onExit()
+    }
     return (
         <>
             {entityState && (
@@ -186,20 +184,41 @@ function CasinoEntityDisplay({casinoId, entity, onExit }: {casinoId: number, ent
                         </div>
                     </div>
                     <hr/>
-                    <div className="px-2 flex flex-col w-full gap-2 justify-between">
+                    <div className="px-2 flex flex-col w-full gap-2 justify-between h-[90%]">
                         <div className="flex flex-row w-full items-center justify-between">
                             <div className="text-md font-bold"><Translate id="casino_location"/></div>
                             <Location info={{casinoId: casinoId, entityId: entityState.id}} className="text-sm text-zinc-400" defaultLocation={entityState.location || DEFAULT_LOCATION} onUpdate={(location: Location) => {
-                                setLocation(location)
+                                setEntitySettings((prev) => {
+                                    return {
+                                        ...prev,
+                                        location: location,
+                                    }
+                                });
                             }} />
                         </div>
                         {GameSettings[entityState.type].map((setting, index) => {
-                            console.log(setting.variable, entityState.settings[setting.variable] || setting.default)
                             return (
                                 <GameSettingsDisplay game={entityState.type} variable={setting.variable} defaultValue={entityState.settings[setting.variable] || setting.default} key={index} onUpdate={(value: any) => {
+                                    setEntitySettings((prev) => {
+                                        return {
+                                            ...prev,
+                                            location: location,
+                                        }
+                                    });
                                 }}/>
                             )
                         })}
+                        <div className="flex flex-row w-full items-center justify-between">
+                            <div className="text-md font-bold"><Translate id="casino_vipenabled"/></div>
+                            <input type="checkbox" className="bg-secondary/50 text-sm text-right text-zinc-400 rounded-md px-2 py-1" checked={entitySettings.vip} onChange={(e) => {
+                                setEntitySettings((prev) => {
+                                    return {
+                                        ...prev,
+                                        vip: e.target.checked,
+                                    }
+                                })
+                            }} />
+                        </div>
                         <Button variant="secondary" className="w-full" onClick={() => {
                             fetchNui("teleportToEntity", {
                                 casinoId: casinoId,
@@ -208,8 +227,17 @@ function CasinoEntityDisplay({casinoId, entity, onExit }: {casinoId: number, ent
                         }}>
                             <Translate id="casino_entity_teleport"/>
                         </Button>
-                        <Button variant="secondary" className="w-full" onClick={onExit}>
+                        <Button variant="secondary" className="w-full" onClick={startExit}>
                             <Translate id="casino_entity_exit"/>
+                        </Button>
+                        <Button variant="destructive" className="w-full mt-auto" onClick={() => {
+                            fetchNui("deleteCasinoEntity", {
+                                casinoId: casinoId,
+                                entityId: entityState?.id,
+                            })
+                            startExit()
+                        }}>
+                            <Translate id="casino_entity_delete"/>
                         </Button>
                     </div>
                 </div>
@@ -237,19 +265,48 @@ function CasinoEntityDisplay({casinoId, entity, onExit }: {casinoId: number, ent
                     <div className="px-2 flex flex-col w-full gap-2 justify-between">
                         <div className="flex flex-row w-full items-center justify-between">
                             <div className="text-md font-bold"><Translate id="casino_location"/></div>
-                            <Location info={{casinoId: casinoId, entityType: entityType}} className="text-sm text-zinc-400" defaultLocation={location || DEFAULT_LOCATION} onUpdate={(location: Location) => {
-                                setLocation(location)
+                            <Location info={{casinoId: casinoId, entityType: entityType, settings: entitySettings}} className="text-sm text-zinc-400" defaultLocation={entitySettings.location || DEFAULT_LOCATION} onUpdate={(location: Location) => {
+                                setEntitySettings((prev) => {
+                                    return {
+                                        ...prev,
+                                        location: location,
+                                    }
+                                });
                             }} />
                         </div>
                         {GameSettings[entityType].map((setting, index) => (
                             <GameSettingsDisplay game={entityType} variable={setting.variable} defaultValue={setting.default} key={index} onUpdate={(value: any) => {
+                                setEntitySettings((prev) => {
+                                    return {
+                                        ...prev,
+                                        [setting.variable]: value,
+                                    }
+                                });
                             }}/>
                         ))}
-                        <Button variant="default" className="w-full" onClick={onExit}>
+                        <div className="flex flex-row w-full items-center justify-between">
+                            <div className="text-md font-bold"><Translate id="casino_vipenabled"/></div>
+                            <input type="checkbox" className="bg-secondary/50 text-sm text-right text-zinc-400 rounded-md px-2 py-1" checked={entitySettings.vip} onChange={(e) => {
+                                setEntitySettings((prev) => {
+                                    return {
+                                        ...prev,
+                                        vip: e.target.checked,
+                                    }
+                                })
+                            }} />
+                        </div>
+                        <Button variant="default" className="w-full" onClick={() => {
+                            fetchNui("createCasinoEntity", {
+                                casinoId: casinoId,
+                                type: entityType,
+                                settings: entitySettings,
+                            })
+                            startExit()
+                        }}>
                             <Save size={16}/>
                             <Translate id="casino_entity_create_title"/>
                         </Button>
-                        <Button variant="secondary" className="w-full" onClick={onExit}>
+                        <Button variant="secondary" className="w-full" onClick={startExit}>
                             <Translate id="casino_entity_exit"/>
                         </Button>
                     </div>
@@ -303,6 +360,18 @@ function CasinoDisplay({ casino, onExit }: { casino?: Casino, onExit: () => void
                 ...prev,
                 [data.variable]: data.value,
             }
+        });
+    });
+    useNuiEvent("updateCasinoEntities", (data: any) => {
+        if (!casinoState || data.casinoId !== casinoState.id) return;
+        setCasinoState((prev) => {
+            if (prev) {
+                return {
+                    ...prev,
+                    entities: data.entities,
+                }
+            }
+            return null
         });
     });
     return (
@@ -538,7 +607,6 @@ function CasinoDisplay({ casino, onExit }: { casino?: Casino, onExit: () => void
 function Creator({ defaultCasinos }: { defaultCasinos: Casino[] }) {
     const [currentCasinoId, setCurrentCasinoId] = useState<number | null>(null)
     const [casinos, setCasinos] = useState<Casino[]>(defaultCasinos)
-    console.log(casinos)
     const currentCasino: Casino | null = casinos.find(casino => casino.id === currentCasinoId) || null
     const [creatingCasino, setCreatingCasino] = useState(false)
     const [hidden, setHidden] = useState(true)
@@ -602,7 +670,6 @@ export default function CreatorDisplay() {
     const [visible, setVisible] = useState(false)
     const [casinos, setCasinos] = useState<Casino[]>([])
     useNuiEvent("updateCasinos", (data: any) => {
-        console.log("UPDATE", data)
         setCasinos(data.casinos)
     });
     useEffect(() => {

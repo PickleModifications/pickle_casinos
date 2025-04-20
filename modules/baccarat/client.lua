@@ -199,8 +199,8 @@ function CreateBaccaratEntity(casinoId, entityId)
     local casino = Casinos[casinoId]
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
     if not casino or not casinoEntity then return end
-    local coords = casinoEntity.coords
-    local heading = casinoEntity.rotation.z
+    local coords = casinoEntity.settings.location.coords
+    local heading = casinoEntity.settings.location.rotation.z
     -- local tempCard = CreateProp(`vw_prop_cas_card_club_04`, GetOffsetFromEntityInWorldCoords(surfaceObject, 0.0, 0.0, 0.0), false, false, false)
     -- FreezeEntityPosition(tempCard, true)
     -- SetEntityHeading(tempCard, heading)
@@ -219,8 +219,8 @@ function RenderBaccaratEntity(casinoId, entityId)
     local localBaccaratTable = LocalBaccaratTables[casinoId][entityId]
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
     if not casinoEntity or not localBaccaratTable.visible then return end
-    local coords = casinoEntity.coords
-    local heading = casinoEntity.rotation.z
+    local coords = casinoEntity.settings.location.coords
+    local heading = casinoEntity.settings.location.rotation.z
     local tableObject = CreateProp(casinoEntity.settings.tableModel, coords, false, false, false)
     local surfaceObject = CreateProp(`prop_tennis_ball`, coords - vector3(0.0, 0.0, 0.11), false, false, false)
     FreezeEntityPosition(tableObject, true)
@@ -402,7 +402,7 @@ RegisterNetEvent("pickle_casinos:baccarat:updateSeatWager", function(casinoId, e
     if not baccaratTable or not baccaratTable.visible then return end
     local playArea = baccaratTable.playAreas[seatId]
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
-    local heading = casinoEntity.rotation.z
+    local heading = casinoEntity.settings.location.rotation.z
     local chipOffset = PLAY_AREA_OFFSETS[seatId].chips
     for a, b in pairs(playArea.wagers) do
         for j=1, #b do
@@ -442,7 +442,7 @@ RegisterNetEvent("pickle_casinos:baccarat:updateCards", function(casinoId, entit
         DeleteScriptObject(playArea.sides[side][i])
     end
     playArea.sides[side] = {}
-    local heading = casinoEntity.rotation.z
+    local heading = casinoEntity.settings.location.rotation.z
     local cardOffset = PLAY_AREA_OFFSETS[0].cards
     for i=1, #cards do
         local card = cards[i]
@@ -474,9 +474,9 @@ RegisterNetEvent("pickle_casinos:baccarat:performAction", function(casinoId, ent
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
     local dealerPed = baccaratTable.dealerPed
     if not baccaratTable.lastDealerRotation then
-        baccaratTable.lastDealerRotation = casinoEntity.rotation + vector3(0.0, 0.0, 180.0)
+        baccaratTable.lastDealerRotation = casinoEntity.settings.location.rotation + vector3(0.0, 0.0, 180.0)
     end
-    local targetRotation = casinoEntity.rotation + vector3(0.0, 0.0, 180.0)
+    local targetRotation = casinoEntity.settings.location.rotation + vector3(0.0, 0.0, 180.0)
     if (action.handId and action.handId == 2) then
         targetRotation = targetRotation + vector3(0.0, 0.0, 10.0)
     end
@@ -518,9 +518,9 @@ RegisterNetEvent("pickle_casinos:baccarat:updateStage", function(casinoId, entit
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
     local dealerPed = baccaratTable.dealerPed
     if not baccaratTable.lastDealerRotation then
-        baccaratTable.lastDealerRotation = casinoEntity.rotation + vector3(0.0, 0.0, 180.0)
+        baccaratTable.lastDealerRotation = casinoEntity.settings.location.rotation + vector3(0.0, 0.0, 180.0)
     end
-    local targetRotation = casinoEntity.rotation + vector3(0.0, 0.0, 180.0)
+    local targetRotation = casinoEntity.settings.location.rotation + vector3(0.0, 0.0, 180.0)
     if (stage.side) then
         local targetHeading = 0
         if (stage.side == "player") then

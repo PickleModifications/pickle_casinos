@@ -37,7 +37,7 @@ function AttemptSeatAtSlotEntity(casinoId, entityId)
         SendNUIMessage({
             type = "setCurrentGame",
             game = {
-                type = "slots",
+                type = "slot",
                 data = slotStructure
             }
         })
@@ -49,8 +49,8 @@ function CreateSlotEntity(casinoId, entityId)
     local casino = Casinos[casinoId]
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
     if not casino or not casinoEntity then return end
-    local coords = casinoEntity.coords
-    local heading = casinoEntity.rotation.z
+    local coords = casinoEntity.settings.location.coords
+    local heading = casinoEntity.settings.location.rotation.z
     local slotCfg = Config.Slots[casinoEntity.settings.game]
     if not slotCfg then return end
     if not LocalSlotMachines[casinoId] then
@@ -68,8 +68,8 @@ function RenderSlotEntity(casinoId, entityId)
     local localSlotMachine = LocalSlotMachines[casinoId][entityId]
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
     if not localSlotMachine.visible or not casinoEntity then return end
-    local coords = casinoEntity.coords
-    local heading = casinoEntity.rotation.z
+    local coords = casinoEntity.settings.location.coords
+    local heading = casinoEntity.settings.location.rotation.z
     local slotCfg = Config.Slots[casinoEntity.settings.game]
     local slotObject = CreateProp(slotCfg.model, coords.x, coords.y, coords.z, false, false, false)
     SetEntityRotation(slotObject, 0.0, 0.0, heading, 2, true)

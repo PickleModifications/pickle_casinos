@@ -189,8 +189,8 @@ function CreateBlackjackEntity(casinoId, entityId)
     local casino = Casinos[casinoId]
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
     if not casino or not casinoEntity then return end
-    local coords = casinoEntity.coords
-    local heading = casinoEntity.rotation.z
+    local coords = casinoEntity.settings.location.coords
+    local heading = casinoEntity.settings.location.rotation.z
     if not LocalBlackjackTables[casinoId] then LocalBlackjackTables[casinoId] = {} end
     LocalBlackjackTables[casinoId][entityId] = {
         visible = #(GetEntityCoords(PlayerPedId()) - coords) < Config.RenderDistance,
@@ -204,8 +204,8 @@ function RenderBlackjackEntity(casinoId, entityId)
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
     if not casinoEntity or not IsBlackjackEntityVisible(casinoId, entityId) then return end
     local localBlackjackTable = LocalBlackjackTables[casinoId][entityId]
-    local coords = casinoEntity.coords
-    local heading = casinoEntity.rotation.z
+    local coords = casinoEntity.settings.location.coords
+    local heading = casinoEntity.settings.location.rotation.z
     local tableObject = CreateProp(casinoEntity.settings.tableModel, coords, false, false, false)
     local surfaceObject = CreateProp(`prop_tennis_ball`, coords - vector3(0.0, 0.0, 0.11), false, false, false)
     FreezeEntityPosition(tableObject, true)
@@ -383,7 +383,7 @@ RegisterNetEvent("pickle_casinos:blackjack:updateSeatWager", function(casinoId, 
     if not blackjackTable or not blackjackTable.visible then return end
     local playArea = blackjackTable.playAreas[seatId]
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
-    local heading = casinoEntity.rotation.z
+    local heading = casinoEntity.settings.location.rotation.z
     local chipOffset = PLAY_AREA_OFFSETS[seatId].chips
     for i=1, #playArea.wagers[handId] do
         DeleteScriptObject(playArea.wagers[handId][i])
@@ -417,7 +417,7 @@ RegisterNetEvent("pickle_casinos:blackjack:updateSeatCards", function(casinoId, 
         DeleteScriptObject(playArea.hands[handId][i])
     end
     playArea.hands[handId] = {}
-    local heading = casinoEntity.rotation.z
+    local heading = casinoEntity.settings.location.rotation.z
     local cardOffset = PLAY_AREA_OFFSETS[seatId].cards
     local isSplit = handId == 2
     for i=1, #cards do
@@ -458,9 +458,9 @@ RegisterNetEvent("pickle_casinos:blackjack:performAction", function(casinoId, en
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
     local dealerPed = blackjackTable.dealerPed
     if not blackjackTable.lastDealerRotation then
-        blackjackTable.lastDealerRotation = casinoEntity.rotation + vector3(0.0, 0.0, 180.0)
+        blackjackTable.lastDealerRotation = casinoEntity.settings.location.rotation + vector3(0.0, 0.0, 180.0)
     end
-    local targetRotation = casinoEntity.rotation + vector3(0.0, 0.0, 180.0)
+    local targetRotation = casinoEntity.settings.location.rotation + vector3(0.0, 0.0, 180.0)
     if (action.handId and action.handId == 2) then
         targetRotation = targetRotation + vector3(0.0, 0.0, 10.0)
     end
@@ -495,9 +495,9 @@ RegisterNetEvent("pickle_casinos:blackjack:updateStage", function(casinoId, enti
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
     local dealerPed = blackjackTable.dealerPed
     if not blackjackTable.lastDealerRotation then
-        blackjackTable.lastDealerRotation = casinoEntity.rotation + vector3(0.0, 0.0, 180.0)
+        blackjackTable.lastDealerRotation = casinoEntity.settings.location.rotation + vector3(0.0, 0.0, 180.0)
     end
-    local targetRotation = casinoEntity.rotation + vector3(0.0, 0.0, 180.0)
+    local targetRotation = casinoEntity.settings.location.rotation + vector3(0.0, 0.0, 180.0)
     if (stage.handId and stage.handId == 2) then
         targetRotation = targetRotation + vector3(0.0, 0.0, 10.0)
     end

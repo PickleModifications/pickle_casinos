@@ -6,88 +6,130 @@ Config.InteractDistance = 2.0
 Config.UseTarget = true -- This enables the use of the target system when available.
 Config.WaitingTime = 10 -- Time to wait before starting a round for players to place bets.
 Config.SeatTurnTime = 10 -- Time to wait for players to place bets / decide before moving to the next player.
-Config.Casinos = {
-    ["casino-1"] = {
-        entities = {
-            {
-                id = "blackjack-1",
-                type = "blackjack",
-                coords = vector3(1102.4396972656, -2315.6953125, 23.347464752197),
-                rotation = vector3(0.0, 0.0, 172.6324),
-                settings = {
-                    dealerModel = `s_f_y_casino_01`,
-                    tableModel = `vw_prop_casino_blckjack_01b`,
-                }
-            },
-            {
-                id = "roulette-1",
-                type = "roulette",
-                coords = vector3(-964.8375, -3009.5615, 12.9451),
-                rotation = vector3(0.0, 0.0, 60.9669),
-                settings = {
-                    dealerModel = `s_f_y_casino_01`,
-                    tableModel = `vw_prop_casino_roulette_01`,
-                }
-            },
-            {
-                id = "baccarat-1",
-                type = "baccarat",
-                coords = vector3(-959.4362, -3008.0134, 12.9451),
-                rotation = vector3(0.0, 0.0, 240.9669),
-                settings = {
-                    dealerModel = `s_f_y_casino_01`,
-                    tableModel = `fury_p_baccarat`,
-                }
-            },
-            {
-                id = "slot-1",
-                type = "slot",
-                coords = vector3(1075.7423, -2323.3606, 23.4540),
-                rotation = vector3(0.0, 0.0, 84.3254),
-                settings = {
-                    game = "spacewarriors",
-                    betRange = {min = 1000, max = 10000},
-                }
-            },
-            {
-                id = "poker-1",
-                type = "poker",
-                coords = vector3(1100.8215, -2326.7092, 23.2540),
-                rotation = vector3(0.0, 0.0, 264.6634),
-                settings = {
-                    smallBlind = 10,
-                    bigBlind = 15,
-                    dealerModel = `s_f_y_casino_01`,
-                    tableModel = `fury_p_poker_table`,
-                }
-            },
-            {
-                id = "poker-2",
-                type = "poker",
-                coords = vector3(1096.9214, -2326.3220, 23.2540),
-                rotation = vector3(0.0, 0.0, 85.4802),
-                settings = {
-                    dealerModel = `s_f_y_casino_01`,
-                    tableModel = `fury_p_poker_table`,
-                }
-            },
-            {
-                id = "wheel-1",
-                type = "wheel",
-                coords = vector3(1076.3964, -2316.6580, 23.4540),
-                rotation = vector3(0.0, 0.0, 263.7225),
-                settings = {}
-            },
-            {
-                id = "horseracing-1",
-                type = "horseracing",
-                coords = vector3(1100.4280, -2310.2136, 23.4540),
-                rotation = vector3(0.0, 0.0, 178.0722),
-                settings = {}
-            }
+
+Config.CreatorOptions = {
+     -- MODELS MUST BE `MODEL_NAME` NOT "MODEL_NAME"
+    dealerModels = {
+        {
+            label = "Dealer #1", 
+            model = `h4_prop_casino_blckjack_01a`,
+            pedComponents = {}
+        },
+    },
+    blackjack = {
+        tableModels = {
+            {label = "Table #1", model = `h4_prop_casino_blckjack_01a`},
+            {label = "Table #2", model = `vw_prop_casino_blckjack_01`},
+            {label = "Table #3", model = `h4_prop_casino_blckjack_01c`},
+            {label = "Table #4", model = `h4_prop_casino_blckjack_01e`},
+            {label = "Table #5", model = `vw_prop_casino_blckjack_01b`},
+            {label = "Table #6", model = `h4_prop_casino_blckjack_01d`},
+            {label = "Table #7", model = `h4_prop_casino_blckjack_01b`},
         }
-    }
+    },
+    roulette = {
+        tableModels = {
+            {label = "Table #1", model = `vw_prop_casino_roulette_01`},
+            {label = "Table #2", model = `vw_prop_casino_roulette_01b`},
+        }
+    },
+    baccarat = {
+        tableModels = {
+            {label = "Table #1", model = `fury_p_baccarat`},
+        }
+    },
+    poker = {
+        tableModels = {
+            {label = "Table #1", model = `fury_p_poker_table`},
+        }
+    },
+    wheel = {}, -- No additional settings
+    horseracing = {}, -- No additional settings
+    slots = {}, -- No additional settings
 }
+
+-- Config.Casinos = {
+--     ["casino-1"] = {
+--         entities = {
+--             {
+--                 id = "blackjack-1",
+--                 type = "blackjack",
+--                 coords = vector3(1102.4396972656, -2315.6953125, 23.347464752197),
+--                 rotation = vector3(0.0, 0.0, 172.6324),
+--                 settings = {
+--                     dealerModel = `s_f_y_casino_01`,
+--                     tableModel = `vw_prop_casino_blckjack_01b`,
+--                 }
+--             },
+--             {
+--                 id = "roulette-1",
+--                 type = "roulette",
+--                 coords = vector3(-964.8375, -3009.5615, 12.9451),
+--                 rotation = vector3(0.0, 0.0, 60.9669),
+--                 settings = {
+--                     dealerModel = `s_f_y_casino_01`,
+--                     tableModel = `vw_prop_casino_roulette_01`,
+--                 }
+--             },
+--             {
+--                 id = "baccarat-1",
+--                 type = "baccarat",
+--                 coords = vector3(-959.4362, -3008.0134, 12.9451),
+--                 rotation = vector3(0.0, 0.0, 240.9669),
+--                 settings = {
+--                     dealerModel = `s_f_y_casino_01`,
+--                     tableModel = `fury_p_baccarat`,
+--                 }
+--             },
+--             -- {
+--             --     id = "slot-1",
+--             --     type = "slot",
+--             --     coords = vector3(1075.7423, -2323.3606, 23.4540),
+--             --     rotation = vector3(0.0, 0.0, 84.3254),
+--             --     settings = {
+--             --         game = "spacewarriors",
+--             --         betRange = {min = 1000, max = 10000},
+--             --     }
+--             -- },
+--             {
+--                 id = "poker-1",
+--                 type = "poker",
+--                 coords = vector3(1100.8215, -2326.7092, 23.2540),
+--                 rotation = vector3(0.0, 0.0, 264.6634),
+--                 settings = {
+--                     smallBlind = 10,
+--                     bigBlind = 15,
+--                     dealerModel = `s_f_y_casino_01`,
+--                     tableModel = `fury_p_poker_table`,
+--                 }
+--             },
+--             {
+--                 id = "poker-2",
+--                 type = "poker",
+--                 coords = vector3(1096.9214, -2326.3220, 23.2540),
+--                 rotation = vector3(0.0, 0.0, 85.4802),
+--                 settings = {
+--                     dealerModel = `s_f_y_casino_01`,
+--                     tableModel = `fury_p_poker_table`,
+--                 }
+--             },
+--             {
+--                 id = "wheel-1",
+--                 type = "wheel",
+--                 coords = vector3(1076.3964, -2316.6580, 23.4540),
+--                 rotation = vector3(0.0, 0.0, 263.7225),
+--                 settings = {}
+--             },
+--             {
+--                 id = "horseracing-1",
+--                 type = "horseracing",
+--                 coords = vector3(1100.4280, -2310.2136, 23.4540),
+--                 rotation = vector3(0.0, 0.0, 178.0722),
+--                 settings = {}
+--             }
+--         }
+--     }
+-- }
 
 Config.Poker = {
     buttonModel = `vw_prop_vw_colle_imporage`, -- This prop indicates who is the dealer.
@@ -131,6 +173,7 @@ Config.WheelBonus = {
 
 Config.Slots = {
     ["bananabonanza"] = {
+        label = "Banana Bonanza",
         model = `vw_prop_casino_slot_05a`,
         foldername = "bananabonanza",
         headerTextImage = "header_title.png",
@@ -202,6 +245,7 @@ Config.Slots = {
         },
     },
     ["spacewarriors"] = {
+        label = "Space Warriors",
         model = `vw_prop_casino_slot_03a`,
         foldername = "spacewarriors",
         headerTextImage = "header_title.png",

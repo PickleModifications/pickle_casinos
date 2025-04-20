@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { useNuiEvent } from './nui/useNui';
 import { Chip } from '@/components/casino/Casino';
+import { GameSettingsType } from '@/components/creator/Creator';
 
 export type Config = {
     bonusWheelMultipliers: {
@@ -12,6 +13,7 @@ export type Config = {
     countryCode?: string;
     currency?: string;
     chips?: Chip[];
+    gameSettings?: GameSettingsType;
 }
 
 interface ConfigContextProps {
@@ -35,6 +37,7 @@ export const ConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         ],
         bonusWheelMultipliers: [],
         locale: {
+            "casino_vipenabled": "VIP Exclusive",
             "casino_money": "Balance: %s",
             "casino_betrange": "Limit: %s - %s",
             "casino_owner": "Owner: %s",
@@ -143,8 +146,9 @@ export const ConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             "horseracing_ext_racing": "Racing",
             "horseracing_selecttrack": "Select Track",
             "horseracing_nextround": "Next Round: %s",
-            "slots_title": "Slots",
+            "slot_title": "Slot Machine",
         },
+        gameSettings: {}
     });
     useNuiEvent('setConfig', (data) => {
         setConfig({ ...config, ...data.config });
