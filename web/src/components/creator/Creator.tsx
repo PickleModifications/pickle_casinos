@@ -2,7 +2,9 @@ import { Translate } from "@/providers/locale/Locale"
 import { useEffect, useState } from "react"
 import { Button } from "../ui/button"
 import { Edit, Plus, Save } from "lucide-react"
-import { DisplayCurrency } from "../casino/Casino"
+import { CasinoControls, DisplayCurrency } from "../casino/Casino"
+import { useNuiEvent } from "@/providers/nui/useNui"
+import { fetchNui } from "@/providers/nui/fetchNui"
 
 type GameSetting = {
     variable: string,
@@ -78,22 +80,34 @@ type CasinoEntity = {
 
 type Casino = {
     id: number,
-    label: string,
+    settings: CasinoSettings,
+    transactions: any[],
     entities: CasinoEntity[],
     owner_info?: {
         identifier: string,
         name: string,
     },
-    location: Location
 }
 
-function Location({ defaultLocation, className, onUpdate }: { defaultLocation: Location, className?: string, onUpdate?: (location: Location) => void }) {
+function Location({ info, defaultLocation, className, onUpdate }: { info?: any, defaultLocation: Location, className?: string, onUpdate?: (location: Location) => void }) {
     const coordinates = defaultLocation.coords || {x: 0, y: 0, z: 0}
+    const rotation = defaultLocation.rotation || {x: 0, y: 0, z: 0}
+    useNuiEvent("setLocation", (data: any) => {
+        if (onUpdate) {
+            console.log(data.location)
+            onUpdate(data.location)
+        }
+    })
     return (
         <div className="flex flex-row items-center gap-2">
-            <div className={className}>{`vector3(${coordinates.x}, ${coordinates.y}, ${coordinates.z})`}</div>
+            <div className={className}>{`vector3(${coordinates.x.toFixed(2)}, ${coordinates.y.toFixed(2)}, ${coordinates.z.toFixed(2)})`}</div>
             {onUpdate && (
                 <Edit size={16} className="cursor-pointer hover:scale-95 transition-all duration-200" onClick={() => {
+                    fetchNui("editLocation", {
+                        info: info,
+                        coords: coordinates, 
+                        rotation: rotation,
+                    })
                     // Do cool stuff here
                 }}/>
             )}
@@ -157,7 +171,7 @@ function GameSettingsDisplay({ game, variable, defaultValue, onUpdate }: { game:
     )
 }
 
-function CasinoEntityDisplay({ entity, onExit }: { entity?: CasinoEntity, onExit: () => void }) {
+function CasinoEntityDisplay({casinoId, entity, onExit }: {casinoId: number, entity?: CasinoEntity, onExit: () => void }) {
     const [entityState, setEntityState] = useState<CasinoEntity | null>(entity || null)
     const [location, setLocation] = useState<Location>(DEFAULT_LOCATION)
     const [entityType, setEntityType] = useState<string>(entityState?.type || "slots")
@@ -175,7 +189,7 @@ function CasinoEntityDisplay({ entity, onExit }: { entity?: CasinoEntity, onExit
                     <div className="px-2 flex flex-col w-full gap-2 justify-between">
                         <div className="flex flex-row w-full items-center justify-between">
                             <div className="text-md font-bold"><Translate id="casino_location"/></div>
-                            <Location className="text-sm text-zinc-400" defaultLocation={entityState.location || DEFAULT_LOCATION} onUpdate={(location: Location) => {
+                            <Location info={{casinoId: casinoId, entityId: entityState.id}} className="text-sm text-zinc-400" defaultLocation={entityState.location || DEFAULT_LOCATION} onUpdate={(location: Location) => {
                                 setLocation(location)
                             }} />
                         </div>
@@ -186,6 +200,14 @@ function CasinoEntityDisplay({ entity, onExit }: { entity?: CasinoEntity, onExit
                                 }}/>
                             )
                         })}
+                        <Button variant="secondary" className="w-full" onClick={() => {
+                            fetchNui("teleportToEntity", {
+                                casinoId: casinoId,
+                                entityId: entityState.id,
+                            })
+                        }}>
+                            <Translate id="casino_entity_teleport"/>
+                        </Button>
                         <Button variant="secondary" className="w-full" onClick={onExit}>
                             <Translate id="casino_entity_exit"/>
                         </Button>
@@ -215,7 +237,7 @@ function CasinoEntityDisplay({ entity, onExit }: { entity?: CasinoEntity, onExit
                     <div className="px-2 flex flex-col w-full gap-2 justify-between">
                         <div className="flex flex-row w-full items-center justify-between">
                             <div className="text-md font-bold"><Translate id="casino_location"/></div>
-                            <Location className="text-sm text-zinc-400" defaultLocation={location || DEFAULT_LOCATION} onUpdate={(location: Location) => {
+                            <Location info={{casinoId: casinoId, entityType: entityType}} className="text-sm text-zinc-400" defaultLocation={location || DEFAULT_LOCATION} onUpdate={(location: Location) => {
                                 setLocation(location)
                             }} />
                         </div>
@@ -237,20 +259,58 @@ function CasinoEntityDisplay({ entity, onExit }: { entity?: CasinoEntity, onExit
     )
 }
 
+type CasinoSettings = {
+    label: string,
+    chipItem: string,
+    location: Location,
+    blipEnabled: boolean,
+}
+
 function CasinoDisplay({ casino, onExit }: { casino?: Casino, onExit: () => void }) {
     const [casinoState, setCasinoState] = useState<Casino | null>(casino || null)
-    const [label, setLabel] = useState<string>("")
-    const [location, setLocation] = useState<Location>(casinoState?.location || DEFAULT_LOCATION)
-    const [editingLabel, setEditingLabel] = useState(false);
+    const [currentEditingSetting, setCurrentEditingSetting] = useState<string | null>(null)
+    const [label, setLabel] = useState<string>(casino?.settings.label || "")
+    const [chipItem, setChipItem] = useState<string>(casino?.settings.chipItem || "")
+    const [settings, setSettings] = useState<CasinoSettings>({
+        label: casino?.settings.label || "",
+        chipItem: casino?.settings.chipItem || "",
+        location: casino?.settings.location || DEFAULT_LOCATION,
+        blipEnabled: casino?.settings.blipEnabled || false,
+    })
     const [currentEntityId, setCurrentEntityId] = useState<string | null>(null)
     const [creatingEntity, setCreatingEntity] = useState(false)
     const currentEntity = casinoState?.entities.find(entity => entity.id === currentEntityId) || null
+    useEffect(() => {
+        setLabel(settings.label || "")
+        setChipItem(settings.chipItem || "")
+    }, [settings])
+    useNuiEvent("updateCasinoSetting", (data: any) => {
+        if (!casinoState || data.casinoId !== casinoState.id) return;
+        setCasinoState((prev) => {
+            if (prev) {
+                return {
+                    ...prev,
+                    settings: {
+                        ...prev.settings,
+                        [data.variable]: data.value,
+                    },
+                }
+            }
+            return null
+        });
+        setSettings((prev) => {
+            return {
+                ...prev,
+                [data.variable]: data.value,
+            }
+        });
+    });
     return (
         <>
             {casinoState ? (
                 <>
                     {(currentEntity || creatingEntity) && (
-                        <CasinoEntityDisplay entity={currentEntity!} onExit={() => {
+                        <CasinoEntityDisplay casinoId={casinoState.id} entity={currentEntity!} onExit={() => {
                             setCurrentEntityId(null)
                             setCreatingEntity(false)
                         }}/>
@@ -258,51 +318,110 @@ function CasinoDisplay({ casino, onExit }: { casino?: Casino, onExit: () => void
                     {!(currentEntity || creatingEntity) && (
                         <>
                             <div className="px-2 pb-2 font-semibold text-lg flex flex-row items-center justify-between">
-                                {editingLabel ? (
-                                    <>
-                                        <p><Translate id="casino_name"/>:</p>
-                                        <div className="flex flex-row items-center justify-between gap-2">
-                                            <input type="text" className="bg-secondary/50 text-sm text-right text-zinc-400 rounded-md px-2 py-1" value={casinoState.label} onChange={(e) => setCasinoState((prev) => {
-                                                if (prev) {
-                                                    return {
-                                                        ...prev,
-                                                        label: e.target.value,
-                                                    }
-                                                }
-                                                return null
-                                            })} placeholder="Enter casino name..." />
-                                            <Save size={16} className="cursor-pointer hover:scale-95 transition-all duration-200" onClick={() => {
-                                                setEditingLabel(false)
-                                            }}/>
-                                        </div>
-                                    </>
-                                ) : ( 
-                                    <>
-                                        <div className="flex flex-row items-center">
-                                            <p>{casinoState.label}</p> 
-                                            <Edit size={16} className="cursor-pointer hover:scale-95 transition-all duration-200 ml-2" onClick={() => {
-                                                setEditingLabel(true)
-                                            }}/>
-                                        </div>
-                                        <p className="text-sm text-zinc-400"><Translate id="casino_id" args={[casinoState.id]}/></p>
-                                    </>
-                                )}
+                                <div className="flex flex-row items-center">
+                                    <p>{settings.label}</p> 
+                                </div>
+                                <p className="text-sm text-zinc-400"><Translate id="casino_id" args={[casinoState.id]}/></p>
                             </div>
                             <hr/>
-                            <div className="flex flex-col pt-2 gap-2 overflow-auto max-h-[950px] px-2">
+                            <div className="flex flex-col pt-2 gap-2 overflow-auto h-[90%] px-2">
                                 <div className="flex flex-row w-full items-center justify-between">
                                     <div className="text-md font-bold"><Translate id="casino_location"/></div>
-                                    <Location className="text-sm text-zinc-400" defaultLocation={casinoState.location} onUpdate={(location: Location) => {
-                                        setCasinoState((prev) => {
-                                            if (prev) {
-                                                return {
-                                                    ...prev,
-                                                    location: location,
-                                                }
+                                    <Location info={{casinoId: casinoState.id}} className="text-sm text-zinc-400" defaultLocation={settings.location} onUpdate={(location: Location) => {
+                                        setSettings((prev) => {
+                                            return {
+                                                ...prev,
+                                                location: location,
                                             }
-                                            return null
-                                        });
+                                        })
+                                        fetchNui("updateCasinoSetting", {
+                                            casinoId: casinoState.id,
+                                            variable: "location",
+                                            value: location,
+                                        })
                                     }}/>
+                                </div>
+                                <div className="flex flex-row w-full items-center justify-between">
+                                    <div className="text-md font-bold"><Translate id="casino_name"/></div>
+                                    {(currentEditingSetting == "label") ? (
+                                        <>
+                                            <div className="flex flex-row items-center gap-2">
+                                                <input type="text" className="bg-secondary/50 text-sm text-right text-zinc-400 rounded-md px-2 py-1" value={label} onChange={(e) => {
+                                                    setLabel(e.target.value)
+                                                }} placeholder="Enter casino name..." />
+                                                <Save size={16} className="cursor-pointer hover:scale-95 transition-all duration-200" onClick={() => {
+                                                    setSettings((prev) => {
+                                                        return {
+                                                            ...prev,
+                                                            label: label,
+                                                        }
+                                                    });
+                                                    fetchNui("updateCasinoSetting", {
+                                                        casinoId: casinoState.id,
+                                                        variable: "label",
+                                                        value: label,
+                                                    })
+                                                    setCurrentEditingSetting(null)
+                                                }}/>
+                                            </div>
+                                        </>
+                                    ) : ( 
+                                        <div className="flex flex-row items-center gap-2">
+                                            <div className="text-sm text-zinc-400">{settings.label}</div>
+                                            <Edit size={16} className="cursor-pointer hover:scale-95 transition-all duration-200 ml-2" onClick={() => {
+                                                setCurrentEditingSetting("label")
+                                            }}/>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="flex flex-row w-full items-center justify-between">
+                                    <div className="text-md font-bold"><Translate id="casino_item"/></div>
+                                    {(currentEditingSetting == "chipItem") ? (
+                                        <>
+                                            <div className="flex flex-row items-center gap-2">
+                                                <input type="text" className="bg-secondary/50 text-sm text-right text-zinc-400 rounded-md px-2 py-1" value={chipItem} onChange={(e) => {
+                                                    setChipItem(e.target.value)
+                                                }} placeholder="Enter item name..." />
+                                                <Save size={16} className="cursor-pointer hover:scale-95 transition-all duration-200" onClick={() => {
+                                                    setSettings((prev) => {
+                                                        return {
+                                                            ...prev,
+                                                            chipItem: chipItem,
+                                                        }
+                                                    });
+                                                    fetchNui("updateCasinoSetting", {
+                                                        casinoId: casinoState.id,
+                                                        variable: "chipItem",
+                                                        value: chipItem,
+                                                    })
+                                                    setCurrentEditingSetting(null)
+                                                }}/>
+                                            </div>
+                                        </>
+                                    ) : ( 
+                                        <div className="flex flex-row items-center gap-2">
+                                            <div className="text-sm text-zinc-400">{settings.chipItem}</div>
+                                            <Edit size={16} className="cursor-pointer hover:scale-95 transition-all duration-200 ml-2" onClick={() => {
+                                                setCurrentEditingSetting("chipItem")
+                                            }}/>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="flex flex-row w-full items-center justify-between">
+                                    <div className="text-md font-bold"><Translate id="casino_blipenabled"/></div>
+                                    <input type="checkbox" className="bg-secondary/50 text-sm text-right text-zinc-400 rounded-md px-2 py-1" checked={settings.blipEnabled} onChange={(e) => {
+                                        setSettings((prev) => {
+                                            return {
+                                                ...prev,
+                                                blipEnabled: e.target.checked,
+                                            }
+                                        })
+                                        fetchNui("updateCasinoSetting", {
+                                            casinoId: casinoState.id,
+                                            variable: "blipEnabled",
+                                            value: e.target.checked ? true : false,
+                                        })
+                                    }} />
                                 </div>
                                 <div className="flex flex-col w-full justify-between">
                                     <div className="text-md font-bold"><Translate id="casino_entities"/></div>
@@ -327,9 +446,22 @@ function CasinoDisplay({ casino, onExit }: { casino?: Casino, onExit: () => void
                                         ))}
                                     </div>
                                 </div>
-
+                                <Button variant="secondary" className="w-full" onClick={() => {
+                                    fetchNui("teleportToCasino", {
+                                        casinoId: casinoState.id,
+                                    })
+                                }}>
+                                    <Translate id="casino_teleport"/>
+                                </Button>
                                 <Button variant="secondary" className="w-full" onClick={onExit}>
                                     <Translate id="casino_exit"/>
+                                </Button>
+                                <Button variant="destructive" className="w-full mt-auto" onClick={() => {
+                                    fetchNui("deleteCasino", {
+                                        id: casinoState.id,
+                                    })
+                                }}>
+                                    <Translate id="casino_delete"/>
                                 </Button>
                             </div>
                         </>
@@ -343,16 +475,53 @@ function CasinoDisplay({ casino, onExit }: { casino?: Casino, onExit: () => void
                     <hr/>
                     <div className="flex flex-col pt-2 gap-2 overflow-auto max-h-[950px] px-2">
                         <div className="flex flex-row w-full items-center justify-between">
-                            <div className="text-md font-bold"><Translate id="casino_name"/></div>
-                            <input type="text" className="bg-secondary/50 text-sm text-right text-zinc-400 rounded-md px-2 py-1" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Enter casino name..." />
-                        </div>
-                        <div className="flex flex-row w-full items-center justify-between">
                             <div className="text-md font-bold"><Translate id="casino_location"/></div>
-                            <Location className="text-sm text-zinc-400" defaultLocation={location} onUpdate={(location: Location) => {
-                                setLocation(location)
+                            <Location className="text-sm text-zinc-400" defaultLocation={settings.location} onUpdate={(location: Location) => {
+                                setSettings((prev) => {
+                                    return {
+                                        ...prev,
+                                        location: location,
+                                    }
+                                })
                             }} />
                         </div>
-                        <Button variant="default" className="w-full" onClick={onExit}>
+                        <div className="flex flex-row w-full items-center justify-between">
+                            <div className="text-md font-bold"><Translate id="casino_name"/></div>
+                            <input type="text" className="bg-secondary/50 text-sm text-right text-zinc-400 rounded-md px-2 py-1" value={settings.label} onChange={(e) => {
+                                setSettings((prev) => {
+                                    return {
+                                        ...prev,
+                                        label: e.target.value,
+                                    }
+                                })
+                            }} placeholder="Enter casino name..." />
+                        </div>
+                        <div className="flex flex-row w-full items-center justify-between">
+                            <div className="text-md font-bold"><Translate id="casino_item"/></div>
+                            <input type="text" className="bg-secondary/50 text-sm text-right text-zinc-400 rounded-md px-2 py-1" value={settings.chipItem} onChange={(e) => {
+                                setSettings((prev) => {
+                                    return {
+                                        ...prev,
+                                        chipItem: e.target.value,
+                                    }
+                                })
+                            }} placeholder="Enter item name..." />
+                        </div>
+                        <div className="flex flex-row w-full items-center justify-between">
+                            <div className="text-md font-bold"><Translate id="casino_blipenabled"/></div>
+                            <input type="checkbox" className="bg-secondary/50 text-sm text-right text-zinc-400 rounded-md px-2 py-1" checked={settings.blipEnabled} onChange={(e) => {
+                                setSettings((prev) => {
+                                    return {
+                                        ...prev,
+                                        blipEnabled: e.target.checked,
+                                    }
+                                })
+                            }} />
+                        </div>
+                        <Button variant="default" className="w-full"  onClick={() => {
+                            fetchNui("createCasino", settings)
+                            onExit();
+                        }}>
                             <Save size={16}/>
                             <Translate id="casino_create"/>
                         </Button>
@@ -366,135 +535,106 @@ function CasinoDisplay({ casino, onExit }: { casino?: Casino, onExit: () => void
     )
 }
 
-function Creator() {
-    const [currentCasinoId, setCurrentCasinoId] = useState<number | null>(1)
-    const [casinos, setCasinos] = useState<Casino[]>([
-        {
-            id: 1,
-            label: "Casino 1",
-            owner_info: {
-                identifier: "owner1",
-                name: "Pickle Rick",
-            },
-            location: {
-                coords: {x: 123.45, y: 67.89, z: 10.11},
-                rotation: {x: 0, y: 0, z: 0},
-            },
-            entities: [
-                {
-                    id: "333333_333331",
-                    type: "blackjack",
-                    location: {
-                        coords: {x: 123.45, y: 67.89, z: 10.11},
-                        rotation: {x: 0, y: 0, z: 0},
-                    },
-                    settings: {
-                        maxWager: 10000,
-                    }
-                },
-                {
-                    id: "333333_333332",
-                    type: "roulette",
-                    location: {
-                        coords: {x: 123.45, y: 67.89, z: 10.11},
-                        rotation: {x: 0, y: 0, z: 0},
-                    },
-                    settings: {}
-                },
-                {
-                    id: "333333_333333",
-                    type: "baccarat",
-                    location: {
-                        coords: {x: 123.45, y: 67.89, z: 10.11},
-                        rotation: {x: 0, y: 0, z: 0},
-                    },
-                    settings: {}
-                },
-                {
-                    id: "333333_333334",
-                    type: "wheel",
-                    location: {
-                        coords: {x: 123.45, y: 67.89, z: 10.11},
-                        rotation: {x: 0, y: 0, z: 0},
-                    },
-                    settings: {}
-                },
-                {
-                    id: "333333_333335",
-                    type: "slots",
-                    location: {
-                        coords: {x: 123.45, y: 67.89, z: 10.11},
-                        rotation: {x: 0, y: 0, z: 0},
-                    },
-                    settings: {}
-                },
-                {
-                    id: "333333_333336",
-                    type: "horseracing",
-                    location: {
-                        coords: {x: 123.45, y: 67.89, z: 10.11},
-                        rotation: {x: 0, y: 0, z: 0},
-                    },
-                    settings: {}
-                },
-                {
-                    id: "333333_333337",
-                    type: "poker",
-                    location: {
-                        coords: {x: 123.45, y: 67.89, z: 10.11},
-                        rotation: {x: 0, y: 0, z: 0},
-                    },
-                    settings: {}
-                },
-            ],
-        },
-    ])
+function Creator({ defaultCasinos }: { defaultCasinos: Casino[] }) {
+    const [currentCasinoId, setCurrentCasinoId] = useState<number | null>(null)
+    const [casinos, setCasinos] = useState<Casino[]>(defaultCasinos)
+    console.log(casinos)
     const currentCasino: Casino | null = casinos.find(casino => casino.id === currentCasinoId) || null
     const [creatingCasino, setCreatingCasino] = useState(false)
+    const [hidden, setHidden] = useState(true)
+    useNuiEvent("updateCasinos", (data: any) => {
+        setCasinos(data.casinos)
+    });
+    useNuiEvent("setEditorHidden", (data: any) => {
+        setHidden(data.hidden)
+    });
+    useEffect(() => {
+        setTimeout(() => {
+            setHidden(false)
+        }, 100)
+    }, [])
     return (
-        <div className="relative ml-auto px-2 py-2 w-[400px] h-full bg-background/95">
-            {(currentCasino || creatingCasino) && (
+        <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
+            <div
+                className={`relative ml-auto px-2 py-2 w-[400px] h-full bg-background/95 transition-transform duration-300 ${
+                hidden ? "translate-x-full" : "translate-x-0"
+                }`}
+            >
+                {(currentCasino || creatingCasino) && (
                 <CasinoDisplay casino={currentCasino!} onExit={() => {
-                    setCurrentCasinoId(null)
-                    setCreatingCasino(false)
-                }}/>
-            )}
-            {(!currentCasino && !creatingCasino) && (
-                <>
-                    <div className="px-2 pb-2 font-semibold text-2xl">Casinos</div>
-                    <hr/>
-                    <div className="flex flex-col pt-4 gap-2 overflow-auto max-h-[950px] px-2">
-                        <Button variant="secondary" className="w-full hover:scale-95 transition-all duration-200" onClick={() => setCreatingCasino(true)}>
-                            <Plus size={16} />
-                            <Translate id="casino_create"/>
-                        </Button>   
-                        {casinos.map((casino) => (
-                            <div key={casino.id} className="p-4 bg-secondary cursor-pointer hover:scale-95 transition-all duration-200" onClick={() => setCurrentCasinoId(casino.id)}>
-                                <div className="flex flex-row items-center justify-between">
-                                    <h2 className="text-lg font-bold">{casino.label}</h2>
-                                    <Location className="text-sm text-zinc-400" defaultLocation={casino.location} />
-                                </div>
-                                <div className="flex flex-row items-center justify-between">
-                                    <p className="text-sm text-zinc-400"><Translate id="casino_id" args={[casino.id]}/></p>
-                                    {casino.owner_info && (<p className="text-sm text-zinc-400"><Translate id="casino_owner" args={[casino.owner_info?.name]}/></p>)}
-                                </div>
-                            </div> 
-                        ))}
-                    </div>
-                </>
-            )}
-            <div className="position absolute bottom-0 left-[50%] translate-x-[-50%] w-full h-[50px] bg-secondary/50 flex items-center justify-center gap-2">
-                <div className="font-semibold">&copy; Pickle Mods</div>
+                        setCurrentCasinoId(null)
+                        setCreatingCasino(false)
+                    }}/>
+                )}
+                {(!currentCasino && !creatingCasino) && (
+                    <>
+                        <div className="px-2 pb-2 font-semibold text-2xl">Casinos</div>
+                        <hr/>
+                        <div className="flex flex-col pt-4 gap-2 overflow-auto max-h-[950px] px-2">
+                            <Button variant="secondary" className="w-full hover:scale-95 transition-all duration-200" onClick={() => setCreatingCasino(true)}>
+                                <Plus size={16} />
+                                <Translate id="casino_create"/>
+                            </Button>   
+                            {casinos.map((casino) => (
+                                <div key={casino.id} className="p-4 bg-secondary cursor-pointer hover:scale-95 transition-all duration-200" onClick={() => setCurrentCasinoId(casino.id)}>
+                                    <div className="flex flex-row items-center justify-between">
+                                        <h2 className="text-md font-bold">{casino.settings.label}</h2>
+                                        <p className="text-sm text-zinc-400"><Translate id="casino_id" args={[casino.id]}/></p>
+                                    </div>
+                                    <div className="flex flex-row items-center justify-between">
+                                        <Location className="text-sm text-zinc-400" defaultLocation={casino.settings.location} />
+                                        {casino.owner_info && (<p className="text-sm text-zinc-400"><Translate id="casino_owner" args={[casino.owner_info?.name]}/></p>)}
+                                    </div>
+                                </div> 
+                            ))}
+                        </div>
+                    </>
+                )}
+                <div className="position absolute bottom-0 left-[50%] translate-x-[-50%] w-full h-[50px] bg-secondary/50 flex items-center justify-center gap-2">
+                    <div className="font-semibold">&copy; Pickle Mods</div>
+                </div>
             </div>
         </div>
     )
 }
 
 export default function CreatorDisplay() {
-    const [visible, setVisible] = useState(true)
+    const [visible, setVisible] = useState(false)
+    const [casinos, setCasinos] = useState<Casino[]>([])
+    useNuiEvent("updateCasinos", (data: any) => {
+        console.log("UPDATE", data)
+        setCasinos(data.casinos)
+    });
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
+            if (!visible) return;
+            if (event.key === "Escape" || event.key === "Backspace") {
+                fetchNui("exitCasinoEditor", {});
+            }
+            if (event.key === "g") {
+                fetchNui("disableEditorFocus", {});
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+
+        return () => {
+            window.removeEventListener("keydown", handleKeyDown);
+        };
+    });
+    useNuiEvent("openCasinoEditor", (data: any) => {
+        setCasinos(data.casinos)
+        setVisible(true)
+    });
+    useNuiEvent("closeCasinoEditor", () => {
+        setVisible(false)
+    });
     return (
         <>
-            {visible && <Creator />}
+            
+            {visible && <CasinoControls controls={[{key: "G", label: "Toggle Game Focus"}]} />}
+            {visible && <Creator defaultCasinos={casinos} />}
         </>
     )
 }

@@ -447,15 +447,22 @@ export function WagerComponent({wager, setWager, betRange, money, wagerData} : {
     );
 }
 
-export function CasinoControls() {
+export function CasinoControls({controls} : {controls?: {key: string, label: string}[]}) {
+    const controlsList = controls || [
+        {key: "ESC", label: <Translate id="casino_controls_exit" />},
+    ];
     return (
         <div className="bg-background/95 p-2 absolute top-[20px] left-[20px] flex items-center gap-2 rounded-md">
-            <div className="flex items-center justify-center gap-2">
-                <div className="font-bold text-sm p-[4px] text-black rounded-md bg-white">
-                    ESC
+            {controlsList.map((control, index) => (
+                <div className="flex items-center justify-center gap-2">
+                    <div className="relative font-bold text-sm w-[28px] h-[28px] text-black rounded-md bg-white">
+                        <div className="absolute top-[50%] left-[50%] z-1" style={{transform: "translate(-50%, -50%)"}}>
+                            {control.key}
+                        </div>
+                    </div>
+                    <div className="font-bold text-xl text-primary">{control.label}</div>
                 </div>
-                <div className="font-bold text-xl text-primary">Leave Game</div>
-            </div>
+            ))}
         </div>
     )
 }
@@ -465,6 +472,7 @@ export function CasinoGameDisplay() {
     const [isGameVisible, setGameVisible] = useState<boolean>(false);
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
+            if (!currentGame) return;
             if (event.key === "Escape" || event.key === "Backspace") {
                 fetchNui("exitGame", {});
             }
