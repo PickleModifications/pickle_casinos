@@ -151,7 +151,7 @@ type CasinoEntitySettings = {
 function CasinoEntityDisplay({casinoId, entity, onExit }: {casinoId: number, entity?: CasinoEntity, onExit: () => void }) {
     const {config} = useConfig()
     const GameSettings: GameSettingsType = config.gameSettings || {}
-    const [entityState, setEntityState] = useState<CasinoEntity | null>(entity || null)
+    const entityState = (entity || null)
     const [entityType, setEntityType] = useState<string>(entityState?.type || "slot")
     const [entitySettings, setEntitySettings] = useState<CasinoEntitySettings>({})
     useEffect(() => {
@@ -162,6 +162,7 @@ function CasinoEntityDisplay({casinoId, entity, onExit }: {casinoId: number, ent
         }
         initialSettings.location = DEFAULT_LOCATION
         if (entityState) {
+            console.log(entityState.settings)
             Object.keys(entityState.settings).map((key) => {
                 const value = entityState.settings[key];
                 initialSettings[key] = value;
@@ -173,10 +174,19 @@ function CasinoEntityDisplay({casinoId, entity, onExit }: {casinoId: number, ent
         fetchNui("exitCasinoEntityEditor", {})
         onExit()
     }
+    useNuiEvent("updateCasinoEntitySetting", (data: any) => {
+        if (!entityState || data.casinoId !== casinoId || data.entityId !== entityState.id) return;
+        setEntitySettings((prev) => {
+            return {
+                ...prev,
+                [data.variable]: data.value,
+            }
+        });
+    });
     return (
         <>
             {entityState && (
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-2 h-[92%]">
                     <div className="px-2 font-semibold text-lg flex flex-row items-center justify-between">
                         <div className="flex flex-row gap-0 items-center justify-between w-full">
                             <div className="text-md font-bold"><Translate id={entityState.type + "_title"}/></div>
@@ -184,27 +194,39 @@ function CasinoEntityDisplay({casinoId, entity, onExit }: {casinoId: number, ent
                         </div>
                     </div>
                     <hr/>
-                    <div className="px-2 flex flex-col w-full gap-2 justify-between h-[90%]">
+                    <div className="px-2 flex flex-col w-full gap-2 justify-between h-full">
                         <div className="flex flex-row w-full items-center justify-between">
                             <div className="text-md font-bold"><Translate id="casino_location"/></div>
-                            <Location info={{casinoId: casinoId, entityId: entityState.id}} className="text-sm text-zinc-400" defaultLocation={entityState.location || DEFAULT_LOCATION} onUpdate={(location: Location) => {
+                            <Location info={{casinoId: casinoId, entityId: entityState.id, settings: entitySettings}} className="text-sm text-zinc-400" defaultLocation={entitySettings.location || DEFAULT_LOCATION} onUpdate={(location: Location) => {
                                 setEntitySettings((prev) => {
                                     return {
                                         ...prev,
                                         location: location,
                                     }
                                 });
+                                fetchNui("updateCasinoEntitySetting", {
+                                    casinoId: casinoId,
+                                    entityId: entityState.id,
+                                    variable: "location",
+                                    value: location,
+                                })
                             }} />
                         </div>
                         {GameSettings[entityState.type].map((setting, index) => {
                             return (
-                                <GameSettingsDisplay game={entityState.type} variable={setting.variable} defaultValue={entityState.settings[setting.variable] || setting.default} key={index} onUpdate={(value: any) => {
+                                <GameSettingsDisplay game={entityState.type} variable={setting.variable} defaultValue={entitySettings[setting.variable] || setting.default} key={index} onUpdate={(value: any) => {
                                     setEntitySettings((prev) => {
                                         return {
                                             ...prev,
-                                            location: location,
+                                            [setting.variable]: value,
                                         }
                                     });
+                                    fetchNui("updateCasinoEntitySetting", {
+                                        casinoId: casinoId,
+                                        entityId: entityState.id,
+                                        variable: setting.variable,
+                                        value: value,
+                                    })
                                 }}/>
                             )
                         })}

@@ -93,7 +93,7 @@ function StartGizmoEditor(data)
     inGizmo = true
     local ped = PlayerPedId()
     local coords = data.coords or (GetEntityCoords(ped) + GetEntityForwardVector(ped) * 3)
-    local rotation = data.rotation or vector3(0.0, 0.0, GetEntityHeading(ped) + 180.0)
+    local rotation = data.rotation or vector3(0.0, 0.0, GetEntityHeading(ped))
     if data.entity then
         SetEntityCoords(data.entity, coords.x, coords.y, coords.z, false, false, false, false)
         SetEntityRotation(data.entity, rotation.x, rotation.y, rotation.z, 2, true)
@@ -182,6 +182,7 @@ RegisterNUICallback("pageLoaded", function(data, cb)
     SendNUIMessage({
         type = "setConfig",
         config = {
+            chips = Config.Chips,
             currency = "USD",
             countryCode = "en-US",
             bonusWheelMultipliers = GenerateWheelBonusConfig(),
@@ -211,6 +212,11 @@ RegisterNUICallback("updateCasinoSetting", function(data, cb)
     cb("ok")
 end)
 
+RegisterNUICallback("updateCasinoEntitySetting", function(data, cb)
+    TriggerServerEvent("pickle_casinos:updateCasinoEntitySetting", data.casinoId, data.entityId, data.variable, data.value)
+    cb("ok")
+end)
+
 RegisterNUICallback("deleteCasino", function(data, cb)
     TriggerServerEvent("pickle_casinos:deleteCasino", data.id)
     cb("ok")
@@ -226,7 +232,7 @@ RegisterNUICallback("editLocation", function(data, cb)
     local ped = PlayerPedId()
     local playerCoords = GetEntityCoords(ped)
     local coords = (data.coords and #(vector3(data.coords.x, data.coords.y, data.coords.z) - playerCoords) < 100.0) and data.coords or (GetEntityCoords(ped) + GetEntityForwardVector(ped) * 3)
-    local rotation = data.rotation or vector3(0.0, 0.0, GetEntityHeading(ped) + 180.0)
+    local rotation = (#(vector3(data.rotation.x, data.rotation.y, data.rotation.z) - vector3(0.0, 0.0, 0.0)) > 1.0 and vector3(data.rotation.x, data.rotation.y, data.rotation.z) or nil)
     if not data.info.entityType and not data.info.entityId then
         local result = StartGizmoEditor({model = `prop_tennis_ball`, coords = coords, rotation = rotation})
         SendNUIMessage({
@@ -237,35 +243,41 @@ RegisterNUICallback("editLocation", function(data, cb)
             }
         })
     else
-        if not data.info.entityId then 
-            if not CurrentCasinoEntity then
-                CurrentCasinoEntity = {
-                    casinoId = data.info.casinoId,
-                }
-                local model
-                if data.info.tableModel then
-                    model = data.info.settings.tableModel
-                else
-                    if data.info.entityType == "slot" then
-                        model = Config.Slots[data.info.settings.game].model
-                    elseif data.info.entityType == "wheel" then
-                        model = `vw_prop_vw_luckywheel_01a`
-                    elseif data.info.entityType == "horseracing" then
-                        model = Config.HorseRacing.machineModel
-                    end
+        if data.info.entityId then 
+            TriggerEvent("pickle_casinos:setCasinoEntityHidden", data.info.casinoId, data.info.entityId, true)
+        end
+        if not CurrentCasinoEntity then
+            CurrentCasinoEntity = {
+                casinoId = data.info.casinoId,
+            }
+            local model
+            if data.info.settings.tableModel then
+                model = data.info.settings.tableModel
+            else
+                if data.info.entityType == "slot" then
+                    model = Config.Slots[data.info.settings.game].model
+                elseif data.info.entityType == "wheel" then
+                    model = `vw_prop_vw_luckywheel_01a`
+                elseif data.info.entityType == "horseracing" then
+                    model = Config.HorseRacing.machineModel
                 end
-                CurrentCasinoEntity.object = CreateProp(model, coords.x, coords.y, coords.z, false, false, false)
             end
-            local result = StartGizmoEditor({entity = CurrentCasinoEntity.object, coords = coords, rotation = rotation})
-            SendNUIMessage({
-                type = "setLocation",
-                location = {
-                    coords = result.position,
-                    rotation = result.rotation,
-                }
-            })
-        else
-            -- TODO
+            CurrentCasinoEntity.object = CreateProp(model, coords.x, coords.y, coords.z, false, false, false)
+        end
+        local result = StartGizmoEditor({entity = CurrentCasinoEntity.object, coords = coords, rotation = rotation})
+        SendNUIMessage({
+            type = "setLocation",
+            location = {
+                coords = result.position,
+                rotation = result.rotation,
+            }
+        })
+        if data.info.entityId then 
+            DeleteScriptObject(CurrentCasinoEntity.object)
+            CurrentCasinoEntity = nil
+            SetTimeout(1000, function()
+                TriggerEvent("pickle_casinos:setCasinoEntityHidden", data.info.casinoId, data.info.entityId, false)
+            end)
         end
     end
     SetNuiFocus(true, true)
@@ -292,10 +304,9 @@ RegisterNUICallback("teleportToEntity", function(data, cb)
     if not casino then return end
     local casinoEntity = GetCasinoEntity(data.casinoId, data.entityId)
     if not casinoEntity then return end
-    -- IDK how yet
     local ped = PlayerPedId()
-    local coords = casinoEntity.location.coords
-    local rotation = casinoEntity.location.rotation
+    local coords = casinoEntity.settings.location.coords + vector3(0.0, 0.0, 1.0)
+    local rotation = casinoEntity.settings.location.rotation
     SetEntityCoords(ped, coords.x, coords.y, coords.z, false, false, false, false)
     SetEntityHeading(ped, rotation.z)
 end)
@@ -377,12 +388,25 @@ RegisterNetEvent("pickle_casinos:updateCasinoSetting", function(casinoId, variab
     })
 end)
 
+RegisterNetEvent("pickle_casinos:updateCasinoEntitySetting", function(casinoId, entityId, variable, value)
+    local casino = Casinos[casinoId]
+    if not casino then return end
+    local casinoEntity = GetCasinoEntity(casinoId, entityId)
+    if not casinoEntity then return end
+    casinoEntity.settings[variable] = value
+    SendNUIMessage({
+        type = "updateCasinoEntitySetting",
+        casinoId = casinoId,
+        entityId = entityId,
+        variable = variable,
+        value = value,
+    })
+    TriggerEvent("pickle_casinos:refreshCasinoEntity", casinoId, entityId)
+end)
+
 RegisterNetEvent("pickle_casinos:deleteCasino", function(casinoId)
     local casino = Casinos[casinoId]
     if not casino then return end
-    for i=1, #casino.entities do
-        DeleteCasinoEntity(casinoId, casino.entities[i].id)
-    end
     Casinos[casinoId] = nil
     SendNUIMessage({
         type = "updateCasinos",
@@ -420,7 +444,12 @@ end)
 RegisterNetEvent("pickle_casinos:deleteCasinoEntity", function(casinoId, entityId)
     local casino = Casinos[casinoId]
     if not casino then return end
-    DeleteCasinoEntity(casinoId, entityId)
+    for i=1, #casino.entities do
+        if casino.entities[i].id == entityId then
+            table.remove(casino.entities, i)
+            break
+        end
+    end
     SendNUIMessage({
         type = "updateCasinoEntities",
         casinoId = casinoId,

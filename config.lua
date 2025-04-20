@@ -7,12 +7,30 @@ Config.UseTarget = true -- This enables the use of the target system when availa
 Config.WaitingTime = 10 -- Time to wait before starting a round for players to place bets.
 Config.SeatTurnTime = 10 -- Time to wait for players to place bets / decide before moving to the next player.
 
+Config.Chips = {
+    {color = "#15803D", value = 1},
+    {color = "#C2410C", value = 5},
+    {color = "#BE185D", value = 10},
+    {color = "#3F3F46", value = 100},
+    {color = "#0369A1", value = 1000},
+    {color = "#15803D", value = 10000},
+    {color = "#C2410C", value = 25000},
+    {color = "#BE185D", value = 100000},
+    {color = "#3F3F46", value = 250000},
+    {color = "#0369A1", value = 1000000},
+}
+
 Config.CreatorOptions = {
      -- MODELS MUST BE `MODEL_NAME` NOT "MODEL_NAME"
     dealerModels = {
         {
             label = "Dealer #1", 
-            model = `h4_prop_casino_blckjack_01a`,
+            model = `s_m_y_casino_01`,
+            pedComponents = {}
+        },
+        {
+            label = "Dealer #2", 
+            model = `s_f_y_casino_01`,
             pedComponents = {}
         },
     },

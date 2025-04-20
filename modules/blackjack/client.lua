@@ -127,6 +127,7 @@ function AttemptSeatAtBlackjackEntity(casinoId, entityId)
         if not seatId then 
             return 
         end
+        print(entityInfo.betRange)
         CurrentBlackjackTable = {
             casinoId = casinoId,
             entityId = entityId,
@@ -135,6 +136,7 @@ function AttemptSeatAtBlackjackEntity(casinoId, entityId)
             stage = entityInfo.stage,
             wagers = entityInfo.wagers,
             money = entityInfo.money,
+            betRange = entityInfo.betRange,
         }
         EnsureBlackjackCamera()
         local tableCoords = GetOffsetFromEntityInWorldCoords(blackjackTable.surfaceObject, 0.0, -1.0, 2.25)
@@ -155,7 +157,7 @@ function AttemptSeatAtBlackjackEntity(casinoId, entityId)
                     seatId = seatId,
                     seats = GetBlackjackSeatsForUI(),
                     money = CurrentBlackjackTable.money,
-                    wagerLimit = {10, 100000},
+                    wagerLimit = CurrentBlackjackTable.betRange,
                     stage = stage,
                 }
             }
@@ -303,12 +305,48 @@ function DeleteBlackjackEntity(casinoId, entityId)
     LocalBlackjackTables[casinoId][entityId] = nil
 end
 
+RegisterNetEvent("pickle_casinos:deleteCasinoEntity", function(casinoId, entityId)
+    if not LocalBlackjackTables[casinoId] then return end
+    if not LocalBlackjackTables[casinoId][entityId] then return end
+    DeleteBlackjackEntity(casinoId, entityId)
+end)
+
+RegisterNetEvent("pickle_casinos:setCasinoEntityHidden", function(casinoId, entityId, toggle)
+    if not LocalBlackjackTables[casinoId] then return end
+    if not LocalBlackjackTables[casinoId][entityId] then return end
+    local blackjackTable = LocalBlackjackTables[casinoId][entityId]
+    blackjackTable.hidden = toggle
+    if toggle then
+        blackjackTable.visible = false
+        UnrenderBlackjackEntity(casinoId, entityId)
+    else
+        local playerCoords = GetEntityCoords(PlayerPedId())
+        if #(playerCoords - blackjackTable.coords) <= Config.RenderDistance then
+            blackjackTable.visible = true
+            RenderBlackjackEntity(casinoId, entityId)
+        end
+    end
+end)
+
+RegisterNetEvent("pickle_casinos:refreshCasinoEntity", function(casinoId, entityId)
+    if not LocalBlackjackTables[casinoId] then return end
+    if not LocalBlackjackTables[casinoId][entityId] then return end
+    local blackjackTable = LocalBlackjackTables[casinoId][entityId]
+    local casinoEntity = GetCasinoEntity(casinoId, entityId)
+    blackjackTable.coords = casinoEntity.settings.location.coords
+    blackjackTable.heading = casinoEntity.settings.location.rotation.z
+    if not blackjackTable.visible then return end
+    UnrenderBlackjackEntity(casinoId, entityId)
+    Wait(100)
+    RenderBlackjackEntity(casinoId, entityId)
+end)
+
 CreateThread(function()
     while true do 
         local coords = GetEntityCoords(PlayerPedId())
         for casinoId, entities in pairs(LocalBlackjackTables) do
             for entityId, entity in pairs(entities) do
-                if not entity.visible then
+                if not entity.visible and not entity.hidden then
                     if #(GetEntityCoords(PlayerPedId()) - entity.coords) <= Config.RenderDistance then
                         entity.visible = true
                         RenderBlackjackEntity(casinoId, entityId)

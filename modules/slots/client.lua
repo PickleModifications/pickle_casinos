@@ -128,6 +128,13 @@ RegisterNetEvent("pickle_casinos:slots:updateBalance", function(balance)
     })
 end)
 
+RegisterNetEvent("pickle_casinos:deleteCasinoEntity", function(casinoId, entityId)
+    if not LocalSlotMachines[casinoId] then return end
+    if not LocalSlotMachines[casinoId][entityId] then return end
+    DeleteSlotEntity(casinoId, entityId)
+    print("Deleted slot machine entity: " .. entityId)
+end)
+
 RegisterNUICallback("finishSpin", function(data, cb)
     TriggerServerEvent("pickle_casinos:slots:redeemSpin", data.id, data.spinIndex or 1)
     cb("ok")

@@ -34,6 +34,11 @@ export const ConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             {color: "#BE185D", value: 10},
             {color: "#3F3F46", value: 100},
             {color: "#0369A1", value: 1000},
+            {color: "#15803D", value: 10000},
+            {color: "#C2410C", value: 25000},
+            {color: "#BE185D", value: 100000},
+            {color: "#3F3F46", value: 250000},
+            {color: "#0369A1", value: 1000000},
         ],
         bonusWheelMultipliers: [],
         locale: {

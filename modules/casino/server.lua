@@ -102,6 +102,10 @@ function EnsureGameSettings(entityType, settings)
     if entityType == "blackjack" or entityType == "roulette" or entityType == "baccarat" or entityType == "slot" or entityType == "wheel" or entityType == "horseracing" then
         defaultSettings["maxWager"] = settings.maxWager or 1000
     end
+    if entityType == "blackjack" or entityType == "roulette" or entityType == "baccarat" or entityType == "poker" then
+        defaultSettings["tableModel"] = settings.tableModel
+        defaultSettings["dealerModel"] = settings.dealerModel
+    end
     if entityType == "slot" then
         defaultSettings["game"] = settings.game
     end
@@ -212,6 +216,18 @@ RegisterNetEvent("pickle_casinos:deleteCasinoEntity", function(casinoId, entityI
     end
     UpdateCasinoEntitiesSQL(casinoId)
     TriggerClientEvent("pickle_casinos:deleteCasinoEntity", -1, casinoId, entityId)
+end)
+
+RegisterNetEvent("pickle_casinos:updateCasinoEntitySetting", function(casinoId, entityId, variable, value)
+    if not IsPlayerAdmin(source) then return ShowNotification(source, _L("no_permission")) end
+    local casino = Casinos[casinoId]
+    if not casino then return end
+    local entity = GetCasinoEntity(casinoId, entityId)
+    if not entity then return end
+    entity.settings[variable] = value
+    entity.settings = EnsureGameSettings(entity.type, entity.settings)
+    UpdateCasinoEntitiesSQL(casinoId)
+    TriggerClientEvent("pickle_casinos:updateCasinoEntitySetting", -1, casinoId, entityId, variable, entity.settings[variable])
 end)
 
 RegisterCommand("casinos", function(source, args, raw)

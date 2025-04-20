@@ -59,7 +59,8 @@ function GetBlackjackEntity(casinoId, entityId)
     return {
         id = entity.id,
         seats = entity.seats,
-        stage = entity.stage
+        stage = entity.stage,
+        betRange = entity.betRange,
     }
 end
 
@@ -333,6 +334,10 @@ function InitializeBlackjackEntity(casinoId, entity)
     for i=0, 4 do 
         entity.seats[i] = GenerateDefaultBlackjackSeat()
     end
+    entity.betRange = {
+        math.floor(entity.settings.maxWager / 100),
+        entity.settings.maxWager
+    }
     SetTimeout(1000, function()
         StartBlackjackLobby(casinoId, entity.id)
     end)
@@ -361,6 +366,7 @@ RegisterCallback("pickle_casinos:blackjack:requestSeat", function(source, cb, ca
     if seatId then
         return cb(seatId, {
             id = entity.id,
+            betRange = entity.betRange,
             seats = entity.seats,
             stage = entity.stage,
             money = GetMoney(source)
