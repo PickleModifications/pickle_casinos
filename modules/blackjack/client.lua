@@ -127,7 +127,6 @@ function AttemptSeatAtBlackjackEntity(casinoId, entityId)
         if not seatId then 
             return 
         end
-        print(entityInfo.betRange)
         CurrentBlackjackTable = {
             casinoId = casinoId,
             entityId = entityId,

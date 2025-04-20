@@ -1,21 +1,21 @@
 CurrentPlayers = {}
 
-function InitializeCasinoEntity(casinoId, entity)
+function InitializeCasinoEntity(casinoId, entity, dataOnly)
     entity.settings = EnsureGameSettings(entity.type, entity.settings)
     if entity.type == "blackjack" then
-        entity = InitializeBlackjackEntity(casinoId, entity)
+        entity = InitializeBlackjackEntity(casinoId, entity, dataOnly)
     elseif entity.type == "roulette" then
-        entity = InitializeRouletteEntity(casinoId, entity)
+        entity = InitializeRouletteEntity(casinoId, entity, dataOnly)
     elseif entity.type == "baccarat" then
-        entity = InitializeBaccaratEntity(casinoId, entity)
+        entity = InitializeBaccaratEntity(casinoId, entity, dataOnly)
     elseif entity.type == "slot" then
-        entity = InitializeSlotEntity(casinoId, entity)
+        entity = InitializeSlotEntity(casinoId, entity, dataOnly)
     elseif entity.type == "poker" then
-        entity = InitializePokerEntity(casinoId, entity)
+        entity = InitializePokerEntity(casinoId, entity, dataOnly)
     elseif entity.type == "wheel" then
-        entity = InitializeWheelEntity(casinoId, entity)
+        entity = InitializeWheelEntity(casinoId, entity, dataOnly)
     elseif entity.type == "horseracing" then
-        entity = InitializeHorseRacingEntity(casinoId, entity)
+        entity = InitializeHorseRacingEntity(casinoId, entity, dataOnly)
     end
     return entity
 end
@@ -226,6 +226,7 @@ RegisterNetEvent("pickle_casinos:updateCasinoEntitySetting", function(casinoId, 
     if not entity then return end
     entity.settings[variable] = value
     entity.settings = EnsureGameSettings(entity.type, entity.settings)
+    InitializeCasinoEntity(casinoId, entity, true)
     UpdateCasinoEntitiesSQL(casinoId)
     TriggerClientEvent("pickle_casinos:updateCasinoEntitySetting", -1, casinoId, entityId, variable, entity.settings[variable])
 end)
@@ -246,7 +247,7 @@ CreateThread(function()
                 id = result.id,
                 owner_identifier = result.owner_identifier,
                 settings = settings,
-                entities = InitializeCasinoEntities(result.id, entities),
+                entities = entities,
                 transactions = transactions,
             }, true)
         end

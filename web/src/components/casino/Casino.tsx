@@ -180,7 +180,7 @@ export function AnimatedValue({ value, time }: { value: number, time?: number })
     return <DisplayCurrency value={Math.round(displayValue)} />;
 }
 
-export function DefaultWagerComponent({wager, setWager, betRange, money, chips, attemptWagerUpdate, closestChip, config} : {wager: number, setWager: (value: number) => void, betRange?: [number, number], money: number, chips: Chip[], attemptWagerUpdate: (wager: number, strictMode?: boolean) => boolean, closestChip: Chip, config: Config}) {
+export function DefaultWagerComponent({wager, setWager, betRange, money, chips, attemptWagerUpdate, closestChip, config} : {wager: number, setWager: (value: number) => void, betRange: [number, number], money: number, chips: Chip[], attemptWagerUpdate: (wager: number, strictMode?: boolean) => boolean, closestChip: Chip, config: Config}) {
     return (
         <div className="flex flex-col gap-2 items-center justify-center">
             {betRange && <div className="font-semibold text-zinc-400"><Translate id="casino_betrange" args={[GetCurrencyString(betRange[0], config), GetCurrencyString(betRange[1], config)]} /></div>}
@@ -210,7 +210,7 @@ export function DefaultWagerComponent({wager, setWager, betRange, money, chips, 
                         <div className="font-bold text-xl">x2</div>
                     </div>
                 </div>
-                {chips.map((chip, index) => (
+                {chips.map((chip, index) => (chip.value >= betRange[0] && chip.value <= betRange[1]) && (
                     <div className="cursor-pointer hover:scale-90 transition-transform" onClick={() => { attemptWagerUpdate(wager + chip.value); }} key={index}>
                         <ChipDisplay chip={chip} size={48} />
                     </div>
@@ -386,7 +386,7 @@ export function RouletteWagerComponent({connects, wager, setWager, betRange, mon
     )
 }
 
-export function WagerComponent({wager, setWager, betRange, money, wagerData} : {wagerData?: any, wager: number, setWager: (value: number, data?: any) => void, betRange?: [number, number], money: number}) {
+export function WagerComponent({wager, setWager, betRange, money, wagerData} : {wagerData?: any, wager: number, setWager: (value: number, data?: any) => void, betRange: [number, number], money: number}) {
     const wagerTypeString = (wagerData && wagerData.type) ? wagerData.type : "default";
     const {config} = useConfig();
     const [value, setValue] = useState(wager);
@@ -447,7 +447,7 @@ export function WagerComponent({wager, setWager, betRange, money, wagerData} : {
     );
 }
 
-export function CasinoControls({controls} : {controls?: {key: string, label: string}[]}) {
+export function CasinoControls({controls} : {controls?: {key: string, label: any}[]}) {
     const controlsList = controls || [
         {key: "ESC", label: <Translate id="casino_controls_exit" />},
     ];

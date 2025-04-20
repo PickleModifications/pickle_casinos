@@ -73,7 +73,7 @@ end
 function StartCasinoEditor()
     if isEditing then return end
     isEditing = true
-    SetNuiFocus(true, true)
+    SetEditorFocus(true)
     SendNUIMessage({
         type = "openCasinoEditor",
         casinos = CasinosArrayUI(),
@@ -81,7 +81,7 @@ function StartCasinoEditor()
     CreateThread(function()
         while isEditing do 
             if not inGizmo and IsControlJustPressed(1, 47) then 
-                SetNuiFocus(true, true)
+                SetEditorFocus(true)
                 SetCursorLocation(0.85, 0.5)
             end
             Wait(0)
@@ -173,8 +173,39 @@ function GenerateGameSettingsUI()
     }
 end
 
+function CreateCurrentCasinoEntity(coords, rotation, data)
+    if CurrentCasinoEntity then
+        DeleteScriptObject(CurrentCasinoEntity.object)
+        CurrentCasinoEntity = nil
+    end
+    CurrentCasinoEntity = {}
+    local model
+    
+    if data.info.settings.tableModel then
+        model = data.info.settings.tableModel
+    else
+        if data.info.entityType == "slot" then
+            model = Config.Slots[data.info.settings.game].model
+        elseif data.info.entityType == "wheel" then
+            model = `vw_prop_vw_luckywheel_01a`
+        elseif data.info.entityType == "horseracing" then
+            model = Config.HorseRacing.machineModel
+        end
+    end
+    CurrentCasinoEntity.object = CreateProp(model, coords.x, coords.y, coords.z, false, false, false)
+    SetEntityRotation(CurrentCasinoEntity.object, rotation.x, rotation.y, rotation.z, 2, true)
+end
+
+function SetEditorFocus(toggle)
+    SetNuiFocus(toggle, toggle)
+    SendNUIMessage({
+        type = "setEditorFocus",
+        toggle = toggle,
+    })
+end
+
 RegisterNUICallback("disableEditorFocus", function(data, cb)
-    SetNuiFocus(false, false)
+    SetEditorFocus(false)
     cb("ok")
 end)
 
@@ -228,11 +259,11 @@ RegisterNUICallback("editLocation", function(data, cb)
         type = "setEditorHidden",
         hidden = true,
     })
-    SetNuiFocus(false, false)
+    SetEditorFocus(false)
     local ped = PlayerPedId()
     local playerCoords = GetEntityCoords(ped)
     local coords = (data.coords and #(vector3(data.coords.x, data.coords.y, data.coords.z) - playerCoords) < 100.0) and data.coords or (GetEntityCoords(ped) + GetEntityForwardVector(ped) * 3)
-    local rotation = (#(vector3(data.rotation.x, data.rotation.y, data.rotation.z) - vector3(0.0, 0.0, 0.0)) > 1.0 and vector3(data.rotation.x, data.rotation.y, data.rotation.z) or nil)
+    local rotation = (#(vector3(data.rotation.x, data.rotation.y, data.rotation.z) - vector3(0.0, 0.0, 0.0)) > 1.0 and vector3(data.rotation.x, data.rotation.y, data.rotation.z) or vector3(0.0, 0.0, GetEntityHeading(ped)))
     if not data.info.entityType and not data.info.entityId then
         local result = StartGizmoEditor({model = `prop_tennis_ball`, coords = coords, rotation = rotation})
         SendNUIMessage({
@@ -247,22 +278,7 @@ RegisterNUICallback("editLocation", function(data, cb)
             TriggerEvent("pickle_casinos:setCasinoEntityHidden", data.info.casinoId, data.info.entityId, true)
         end
         if not CurrentCasinoEntity then
-            CurrentCasinoEntity = {
-                casinoId = data.info.casinoId,
-            }
-            local model
-            if data.info.settings.tableModel then
-                model = data.info.settings.tableModel
-            else
-                if data.info.entityType == "slot" then
-                    model = Config.Slots[data.info.settings.game].model
-                elseif data.info.entityType == "wheel" then
-                    model = `vw_prop_vw_luckywheel_01a`
-                elseif data.info.entityType == "horseracing" then
-                    model = Config.HorseRacing.machineModel
-                end
-            end
-            CurrentCasinoEntity.object = CreateProp(model, coords.x, coords.y, coords.z, false, false, false)
+            CreateCurrentCasinoEntity(coords, rotation, data)
         end
         local result = StartGizmoEditor({entity = CurrentCasinoEntity.object, coords = coords, rotation = rotation})
         SendNUIMessage({
@@ -280,7 +296,7 @@ RegisterNUICallback("editLocation", function(data, cb)
             end)
         end
     end
-    SetNuiFocus(true, true)
+    SetEditorFocus(true)
     SendNUIMessage({
         type = "setEditorHidden",
         hidden = false,
@@ -329,6 +345,38 @@ end)
 RegisterNUICallback("deleteCasinoEntity", function(data, cb)
     cb("ok")
     TriggerServerEvent("pickle_casinos:deleteCasinoEntity", data.casinoId, data.entityId)
+end)
+
+RegisterNUICallback("updateTempCasinoEntitySettings", function(data, cb)
+    cb("ok")
+    if not CurrentCasinoEntity then return end
+    CreateCurrentCasinoEntity(GetEntityCoords(CurrentCasinoEntity.object), GetEntityRotation(CurrentCasinoEntity.object), {
+        info = {
+            entityType = data.entityType,
+            settings = data.settings,
+        }
+    })
+end)
+
+RegisterNUICallback("highlightCasinoEntity", function(data, cb)
+    cb("ok")
+    if data.casinoId then
+        local casinoEntity = GetCasinoEntity(data.casinoId, data.entityId)
+        if not casinoEntity then return end
+        if CurrentHighlight then
+            CurrentHighlight.coords = data.coords
+        else
+            CurrentHighlight = {coords = casinoEntity.settings.location.coords}
+            CreateThread(function()
+                while CurrentHighlight do 
+                    DrawMarker(0, CurrentHighlight.coords.x, CurrentHighlight.coords.y, CurrentHighlight.coords.z + 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.5, 1.5, 1.5, 255, 255, 255, 255, false, true, false, true)
+                    Wait(0)
+                end
+            end)
+        end
+    elseif CurrentHighlight then
+        CurrentHighlight = nil
+    end
 end)
 
 RegisterNetEvent("pickle_casinos:syncCasinos", function(data)
@@ -400,6 +448,15 @@ RegisterNetEvent("pickle_casinos:updateCasinoEntitySetting", function(casinoId, 
         entityId = entityId,
         variable = variable,
         value = value,
+    })
+    SendNUIMessage({
+        type = "updateCasinoEntities",
+        casinoId = casinoId,
+        entities = casino.entities, 
+    })
+    SendNUIMessage({
+        type = "updateCasinos",
+        casinos = CasinosArrayUI(),
     })
     TriggerEvent("pickle_casinos:refreshCasinoEntity", casinoId, entityId)
 end)

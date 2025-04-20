@@ -153,8 +153,7 @@ function CasinoEntityDisplay({casinoId, entity, onExit }: {casinoId: number, ent
     const GameSettings: GameSettingsType = config.gameSettings || {}
     const entityState = (entity || null)
     const [entityType, setEntityType] = useState<string>(entityState?.type || "slot")
-    const [entitySettings, setEntitySettings] = useState<CasinoEntitySettings>({})
-    useEffect(() => {
+    const getDefaultSettings = () => {
         let initialSettings: CasinoEntitySettings = {}
         for (let i=0; i<GameSettings[entityType].length; i++) {
             let setting = GameSettings[entityType][i]
@@ -162,13 +161,16 @@ function CasinoEntityDisplay({casinoId, entity, onExit }: {casinoId: number, ent
         }
         initialSettings.location = DEFAULT_LOCATION
         if (entityState) {
-            console.log(entityState.settings)
             Object.keys(entityState.settings).map((key) => {
                 const value = entityState.settings[key];
                 initialSettings[key] = value;
             });
         }
-        setEntitySettings(initialSettings)
+        return initialSettings;
+    }
+    const [entitySettings, setEntitySettings] = useState<CasinoEntitySettings>(getDefaultSettings)
+    useEffect(() => {
+        setEntitySettings(getDefaultSettings)
     }, [entityType])
     const startExit = () => {
         fetchNui("exitCasinoEntityEditor", {})
@@ -298,12 +300,15 @@ function CasinoEntityDisplay({casinoId, entity, onExit }: {casinoId: number, ent
                         </div>
                         {GameSettings[entityType].map((setting, index) => (
                             <GameSettingsDisplay game={entityType} variable={setting.variable} defaultValue={setting.default} key={index} onUpdate={(value: any) => {
-                                setEntitySettings((prev) => {
-                                    return {
-                                        ...prev,
-                                        [setting.variable]: value,
-                                    }
-                                });
+                                let newSettings = {
+                                    ...entitySettings,
+                                    [setting.variable]: value,
+                                }
+                                setEntitySettings(newSettings)
+                                fetchNui("updateTempCasinoEntitySettings", {
+                                    entityType: entityType,
+                                    settings: newSettings,
+                                })
                             }}/>
                         ))}
                         <div className="flex flex-row w-full items-center justify-between">
@@ -359,6 +364,10 @@ function CasinoDisplay({ casino, onExit }: { casino?: Casino, onExit: () => void
     const [currentEntityId, setCurrentEntityId] = useState<string | null>(null)
     const [creatingEntity, setCreatingEntity] = useState(false)
     const currentEntity = casinoState?.entities.find(entity => entity.id === currentEntityId) || null
+    const startExit = () => {
+        fetchNui("highlightCasinoEntity", {})
+        onExit()
+    }
     useEffect(() => {
         setLabel(settings.label || "")
         setChipItem(settings.chipItem || "")
@@ -518,6 +527,7 @@ function CasinoDisplay({ casino, onExit }: { casino?: Casino, onExit: () => void
                                     <div className="text-md font-bold"><Translate id="casino_entities"/></div>
                                     <div className="flex flex-col w-full max-h-[300px] overflow-auto gap-2 justify-between bg-background/50 p-2 mt-2">
                                         <Button variant="secondary" className="w-full hover:scale-95 transition-all duration-200" onClick={() => {
+                                            fetchNui("highlightCasinoEntity", {})
                                             setCreatingEntity(true)
                                             setCurrentEntityId(null)
                                         }}>
@@ -525,7 +535,15 @@ function CasinoDisplay({ casino, onExit }: { casino?: Casino, onExit: () => void
                                             <Translate id="casino_entity_create"/>
                                         </Button>
                                         {casinoState.entities.map((entity, index) => (
-                                            <div key={index} className="flex flex-col justify-between w-full p-2 bg-secondary/50 rounded-md select-none hover:scale-95 transition-all duration-200 cursor-pointer" onClick={() => {
+                                            <div key={index} className="flex flex-col justify-between w-full p-2 bg-secondary/50 rounded-md select-none hover:scale-95 transition-all duration-200 cursor-pointer" onMouseEnter={ () => {
+                                                fetchNui("highlightCasinoEntity", {
+                                                    casinoId: casinoState.id,
+                                                    entityId: entity.id,
+                                                })
+                                            }} onMouseLeave={() => {
+                                                fetchNui("highlightCasinoEntity", {})
+                                            }} onClick={() => {
+                                                fetchNui("highlightCasinoEntity", {})
                                                 setCurrentEntityId(entity.id)
                                             }}>
                                                 <div className="flex flex-row gap-0 items-center justify-between w-full">
@@ -544,7 +562,7 @@ function CasinoDisplay({ casino, onExit }: { casino?: Casino, onExit: () => void
                                 }}>
                                     <Translate id="casino_teleport"/>
                                 </Button>
-                                <Button variant="secondary" className="w-full" onClick={onExit}>
+                                <Button variant="secondary" className="w-full" onClick={startExit}>
                                     <Translate id="casino_exit"/>
                                 </Button>
                                 <Button variant="destructive" className="w-full mt-auto" onClick={() => {
@@ -611,12 +629,12 @@ function CasinoDisplay({ casino, onExit }: { casino?: Casino, onExit: () => void
                         </div>
                         <Button variant="default" className="w-full"  onClick={() => {
                             fetchNui("createCasino", settings)
-                            onExit();
+                            startExit();
                         }}>
                             <Save size={16}/>
                             <Translate id="casino_create"/>
                         </Button>
-                        <Button variant="secondary" className="w-full" onClick={onExit}>
+                        <Button variant="secondary" className="w-full" onClick={startExit}>
                             <Translate id="casino_exit"/>
                         </Button>
                     </div>
@@ -631,68 +649,71 @@ function Creator({ defaultCasinos }: { defaultCasinos: Casino[] }) {
     const [casinos, setCasinos] = useState<Casino[]>(defaultCasinos)
     const currentCasino: Casino | null = casinos.find(casino => casino.id === currentCasinoId) || null
     const [creatingCasino, setCreatingCasino] = useState(false)
-    const [hidden, setHidden] = useState(true)
     useNuiEvent("updateCasinos", (data: any) => {
         setCasinos(data.casinos)
     });
-    useNuiEvent("setEditorHidden", (data: any) => {
-        setHidden(data.hidden)
-    });
-    useEffect(() => {
-        setTimeout(() => {
-            setHidden(false)
-        }, 100)
-    }, [])
     return (
-        <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
-            <div
-                className={`relative ml-auto px-2 py-2 w-[400px] h-full bg-background/95 transition-transform duration-300 ${
-                hidden ? "translate-x-full" : "translate-x-0"
-                }`}
-            >
-                {(currentCasino || creatingCasino) && (
-                <CasinoDisplay casino={currentCasino!} onExit={() => {
-                        setCurrentCasinoId(null)
-                        setCreatingCasino(false)
-                    }}/>
-                )}
-                {(!currentCasino && !creatingCasino) && (
-                    <>
-                        <div className="px-2 pb-2 font-semibold text-2xl">Casinos</div>
-                        <hr/>
-                        <div className="flex flex-col pt-4 gap-2 overflow-auto max-h-[950px] px-2">
-                            <Button variant="secondary" className="w-full hover:scale-95 transition-all duration-200" onClick={() => setCreatingCasino(true)}>
-                                <Plus size={16} />
-                                <Translate id="casino_create"/>
-                            </Button>   
-                            {casinos.map((casino) => (
-                                <div key={casino.id} className="p-4 bg-secondary cursor-pointer hover:scale-95 transition-all duration-200" onClick={() => setCurrentCasinoId(casino.id)}>
-                                    <div className="flex flex-row items-center justify-between">
-                                        <h2 className="text-md font-bold">{casino.settings.label}</h2>
-                                        <p className="text-sm text-zinc-400"><Translate id="casino_id" args={[casino.id]}/></p>
-                                    </div>
-                                    <div className="flex flex-row items-center justify-between">
-                                        <Location className="text-sm text-zinc-400" defaultLocation={casino.settings.location} />
-                                        {casino.owner_info && (<p className="text-sm text-zinc-400"><Translate id="casino_owner" args={[casino.owner_info?.name]}/></p>)}
-                                    </div>
-                                </div> 
-                            ))}
-                        </div>
-                    </>
-                )}
-                <div className="position absolute bottom-0 left-[50%] translate-x-[-50%] w-full h-[50px] bg-secondary/50 flex items-center justify-center gap-2">
-                    <div className="font-semibold">&copy; Pickle Mods</div>
-                </div>
+        <>
+            {(currentCasino || creatingCasino) && (
+            <CasinoDisplay casino={currentCasino!} onExit={() => {
+                    setCurrentCasinoId(null)
+                    setCreatingCasino(false)
+                }}/>
+            )}
+            {(!currentCasino && !creatingCasino) && (
+                <>
+                    <div className="px-2 pb-2 font-semibold text-2xl">Casinos</div>
+                    <hr/>
+                    <div className="flex flex-col pt-4 gap-2 overflow-auto max-h-[950px] px-2">
+                        <Button variant="secondary" className="w-full hover:scale-95 transition-all duration-200" onClick={() => setCreatingCasino(true)}>
+                            <Plus size={16} />
+                            <Translate id="casino_create"/>
+                        </Button>   
+                        {casinos.map((casino) => (
+                            <div key={casino.id} className="p-4 bg-secondary cursor-pointer hover:scale-95 transition-all duration-200" onClick={() => setCurrentCasinoId(casino.id)}>
+                                <div className="flex flex-row items-center justify-between">
+                                    <h2 className="text-md font-bold">{casino.settings.label}</h2>
+                                    <p className="text-sm text-zinc-400"><Translate id="casino_id" args={[casino.id]}/></p>
+                                </div>
+                                <div className="flex flex-row items-center justify-between">
+                                    <Location className="text-sm text-zinc-400" defaultLocation={casino.settings.location} />
+                                    {casino.owner_info && (<p className="text-sm text-zinc-400"><Translate id="casino_owner" args={[casino.owner_info?.name]}/></p>)}
+                                </div>
+                            </div> 
+                        ))}
+                    </div>
+                </>
+            )}
+            <div className="position absolute bottom-0 left-[50%] translate-x-[-50%] w-full h-[50px] bg-secondary/50 flex items-center justify-center gap-2">
+                <div className="font-semibold">&copy; Pickle Mods</div>
             </div>
-        </div>
+        </>
     )
 }
 
 export default function CreatorDisplay() {
     const [visible, setVisible] = useState(false)
     const [casinos, setCasinos] = useState<Casino[]>([])
+    const [focus, setFocus] = useState(false)
+    const [hidden, setHidden] = useState(true)
+    useNuiEvent("setEditorHidden", (data: any) => {
+        setHidden(data.hidden)
+    });
     useNuiEvent("updateCasinos", (data: any) => {
         setCasinos(data.casinos)
+    });
+    useNuiEvent("updateCasinoEntities", (data: any) => {
+        setCasinos((prev) => {
+            return prev.map((casino) => {
+                if (casino.id === data.casinoId) {
+                    return {
+                        ...casino,
+                        entities: data.entities,
+                    }
+                }
+                return casino
+            })
+        })
     });
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
@@ -712,18 +733,39 @@ export default function CreatorDisplay() {
             window.removeEventListener("keydown", handleKeyDown);
         };
     });
+    useNuiEvent("setEditorFocus", (data: any) => {
+        setFocus(data.toggle)
+    });
+
     useNuiEvent("openCasinoEditor", (data: any) => {
         setCasinos(data.casinos)
         setVisible(true)
+        setTimeout(() => {
+            setHidden(false)
+        }, 10)
     });
     useNuiEvent("closeCasinoEditor", () => {
-        setVisible(false)
+        setHidden(true)
+        setFocus(false)
+        setTimeout(() => {
+            setVisible(false)
+        }, 300)
     });
     return (
         <>
             
-            {visible && <CasinoControls controls={[{key: "G", label: "Toggle Game Focus"}]} />}
-            {visible && <Creator defaultCasinos={casinos} />}
+            {(visible && !hidden) && <CasinoControls controls={[{key: "G", label: <Translate id={"focus_" + (focus ? "off" :  "on")}/>}]} />}
+            {visible && (
+                <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
+                    <div
+                        className={`relative ml-auto px-2 py-2 w-[400px] h-full bg-background/95 transition-transform duration-300 ${
+                        hidden ? "translate-x-full" : "translate-x-0"
+                        }`}
+                    > 
+                    <Creator defaultCasinos={casinos} />
+                    </div>
+                </div>  
+            )}
         </>
     )
 }

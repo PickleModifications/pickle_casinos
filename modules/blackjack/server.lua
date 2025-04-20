@@ -328,7 +328,7 @@ function GenerateDefaultBlackjackSeat()
     return {source = nil, wagers = {0, 0}, hands = {{}, {}}, inSeat = false}
 end
 
-function InitializeBlackjackEntity(casinoId, entity)
+function InitializeBlackjackEntity(casinoId, entity, dataOnly)
     local entity = entity or { id = "ERR_BLACKJACK_ENTITY" }
     entity.seats = {}
     for i=0, 4 do 
@@ -338,9 +338,12 @@ function InitializeBlackjackEntity(casinoId, entity)
         math.floor(entity.settings.maxWager / 100),
         entity.settings.maxWager
     }
-    SetTimeout(1000, function()
-        StartBlackjackLobby(casinoId, entity.id)
-    end)
+    if not dataOnly then
+        SetTimeout(1000, function()
+            print("STARTING BLACKJACK LOBBY", entity.id, os.time())
+            StartBlackjackLobby(casinoId, entity.id)
+        end)
+    end
     return entity
 end
 

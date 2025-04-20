@@ -42,6 +42,8 @@ export const ConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         ],
         bonusWheelMultipliers: [],
         locale: {
+            "focus_on": "Enable Cursor",
+            "focus_off": "Disable Cursor",
             "casino_vipenabled": "VIP Exclusive",
             "casino_money": "Balance: %s",
             "casino_betrange": "Limit: %s - %s",
