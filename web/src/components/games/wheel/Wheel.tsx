@@ -1,4 +1,4 @@
-import { CasinoGame, ChipDisplay, GameIcon, GetChipForValue, playAudio, WagerControls } from "@/components/casino/Casino";
+import { CasinoGame, ChipDisplay, GameIcon, GetChipForValue, GetCurrencyString, playAudio, WagerControls } from "@/components/casino/Casino";
 import { useConfig } from "@/providers/config";
 import { Translate } from "@/providers/locale/Locale";
 import { fetchNui } from "@/providers/nui/fetchNui";
@@ -153,6 +153,7 @@ function WheelComponent({wheelWagers, isPlaying, onClick, winningSection} : {whe
 }
 
 export default function Wheel({game}: {game: CasinoGame}) {
+    const wagerLimit = game.data.wagerLimit;
     const {config} = useConfig();
     const [stage, setStage] = useState<WheelStage>(game.data.stage);
     const [money, setMoney] = useState<number>(game.data.money || 0);
@@ -242,6 +243,7 @@ export default function Wheel({game}: {game: CasinoGame}) {
                         </div>
                     </div>
                     <div className="flex flex-col gap-2 h-full items-center w-[33.333333%] px-8">
+                        {(wagerLimit && stage.type == "waiting") && <div className="font-semibold text-zinc-400"><Translate id="casino_betrange" args={[GetCurrencyString(wagerLimit[0], config), GetCurrencyString(wagerLimit[1], config)]} /></div>}
                         <WheelComponent winningSection={stage.section} isPlaying={stage.type !== "waiting"} wheelWagers={wheelWagers} onClick={(data: { type: string; id: keyof WheelWager }) => {
                             if (data.type == "attemptWager") {
                                 playAudio("bet");
@@ -255,7 +257,7 @@ export default function Wheel({game}: {game: CasinoGame}) {
                             }
                         }}/>
                         {stage.type == "waiting" && (
-                            <WagerControls chipValue={chipValue} money={money} wager={CalculateWheelWagers(wheelWagers)} onClick={(data: any) => {
+                            <WagerControls betRange={wagerLimit} chipValue={chipValue} money={money} wager={CalculateWheelWagers(wheelWagers)} onClick={(data: any) => {
                                 if (data.type == "setCurrentChip") {
                                     playAudio("bet");
                                     setChipValue(data.value);

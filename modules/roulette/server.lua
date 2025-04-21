@@ -77,7 +77,8 @@ function GetRouletteEntity(casinoId, entityId)
     return {
         id = entity.id,
         seats = entity.seats,
-        stage = entity.stage
+        stage = entity.stage,
+        betRange = entity.betRange,
     }
 end
 
@@ -256,15 +257,21 @@ function GenerateRouletteDefaultWagers()
     return GetDefaultRouletteConnections()
 end
 
-function InitializeRouletteEntity(casinoId, entity)
+function InitializeRouletteEntity(casinoId, entity, dataOnly)
     local entity = entity or { id = "ERR_ROULETTE_ENTITY" }
     entity.seats = {}
     for i=0, 4 do 
         entity.seats[i] = GenerateDefaultRouletteSeat()
     end
-    SetTimeout(1000, function()
-        StartRouletteLobby(casinoId, entity.id)
-    end)
+    entity.betRange = {
+        math.floor(entity.settings.maxWager / 100),
+        entity.settings.maxWager
+    }
+    if not dataOnly then
+        SetTimeout(1000, function()
+            StartRouletteLobby(casinoId, entity.id)
+        end)
+    end
     return entity
 end
 
@@ -307,6 +314,7 @@ RegisterCallback("pickle_casinos:roulette:requestSeat", function(source, cb, cas
             id = entity.id,
             seats = entity.seats,
             stage = entity.stage,
+            betRange = entity.betRange,
             money = GetMoney(source)
         })
     end
@@ -334,14 +342,14 @@ RegisterNetEvent("pickle_casinos:roulette:updateRouletteWagers", function(connec
     if not entity then return end
     if not entity.stage.type == "waiting" then return end
     local data = GetDefaultRouletteConnections()
+    local totalWager = 0
     for i=1, #data do 
         data[i].wager = (connects[i].wager and tonumber(connects[i].wager) and tonumber(connects[i].wager) > 0) and tonumber(connects[i].wager) or 0
+        totalWager = totalWager + data[i].wager
     end
-    entity.seats[info.seatId].connects = data
-    local totalWager = 0
-    for i=1, #entity.seats do
-        totalWager = totalWager + GetRouletteTotalWager(entity.seats[i].connects)
+    if totalWager <= entity.settings.maxWager then
+        entity.seats[info.seatId].connects = data
     end
     SendCasinoEntityUpdate(info.casinoId, info.entityId)
-    TriggerClientEvent("pickle_casinos:roulette:updateSeatWager", -1, info.casinoId, info.entityId, info.seatId, data)
+    TriggerClientEvent("pickle_casinos:roulette:updateSeatWager", -1, info.casinoId, info.entityId, info.seatId, entity.seats[info.seatId].connects)
 end)

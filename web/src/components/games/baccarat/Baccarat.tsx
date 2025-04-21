@@ -1,4 +1,4 @@
-import { AnimatedValue, Card, CardsDisplay, CasinoGame, ChipDisplay, GameIcon, GetChipForValue, playAudio, WagerComponent, WagerControls } from "@/components/casino/Casino";
+import { AnimatedValue, Card, CardsDisplay, CasinoGame, ChipDisplay, GameIcon, GetChipForValue, GetCurrencyString, playAudio, WagerComponent, WagerControls } from "@/components/casino/Casino";
 import { useConfig } from "@/providers/config";
 import { Translate } from "@/providers/locale/Locale";
 import { fetchNui } from "@/providers/nui/fetchNui";
@@ -253,6 +253,7 @@ export function GetBaccaratWinner(winningWagers: BaccaratWagerWinners) {
 export default function Baccarat({game}: {game: CasinoGame}) {
     const wagerLimit = game.data.wagerLimit;
     const currentSeat = game.data.seatId;
+    const {config} = useConfig();
     const [money, setMoney] = useState<number>(game.data.money || 0);
     const [chipValue, setChipValue] = useState<number>(0);
     const [seats, setSeats] = useState<BaccaratSeat[]>(game.data.seats);
@@ -345,6 +346,7 @@ export default function Baccarat({game}: {game: CasinoGame}) {
                     </div>)}
                 </div>
                 <div className="flex flex-col gap-2 items-center w-[33.333333%] px-8">
+                    {(wagerLimit && stage.type == "waiting") && <div className="font-semibold text-zinc-400"><Translate id="casino_betrange" args={[GetCurrencyString(wagerLimit[0], config), GetCurrencyString(wagerLimit[1], config)]} /></div>}
                     {<BaccaratComponent baccarat={{
                         cards: baccaratCards,
                         wagers: baccaratWagers,
@@ -359,7 +361,7 @@ export default function Baccarat({game}: {game: CasinoGame}) {
                         }
                     }}/>}
                     { stage.type === "waiting" && (
-                        <WagerControls chipValue={chipValue} money={money} wager={CalculateBaccaratWagers(baccaratWagers)} onClick={(data: any) => {
+                        <WagerControls chipValue={chipValue} betRange={wagerLimit} money={money} wager={CalculateBaccaratWagers(baccaratWagers)} onClick={(data: any) => {
                             if (data.type == "setCurrentChip") {
                                 playAudio("bet");
                                 setChipValue(data.value);

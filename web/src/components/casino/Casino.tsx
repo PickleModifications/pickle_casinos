@@ -234,7 +234,7 @@ export function DefaultWagerComponent({wager, setWager, betRange, money, chips, 
     )
 }
 
-export function WagerControls({money, wager, chipValue, onClick, betRange } : {money: number, wager: number, chipValue: number, onClick: (data: any) => void, betRange?: [number, number]}) {
+export function WagerControls({money, wager, chipValue, onClick, betRange } : {money: number, wager: number, chipValue: number, onClick: (data: any) => void, betRange: [number, number]}) {
     const {config} = useConfig();
     const chips = config.chips || [];
     const currentChip = chipValue > 0 ? GetChipForValue(chipValue, chips) : null;
@@ -256,7 +256,7 @@ export function WagerControls({money, wager, chipValue, onClick, betRange } : {m
                         <div className="font-bold text-xl">x2</div>
                     </div>
                 </div>
-                {chips.map((chip, index) => (
+                {chips.map((chip, index) => (chip.value >= betRange[0] && chip.value <= betRange[1]) && (
                     <div className="cursor-pointer hover:scale-90 transition-transform" style={{
                         filter: (currentChip != null && currentChip.value == chip.value) ? "brightness(1.0)" : "brightness(0.8)",
                     }} onClick={() => { onClick({type: "setCurrentChip", value: chip.value}); }} key={index}>
@@ -301,7 +301,7 @@ export function GetChipForValue(value: number, chips: Chip[], preserveNumber: bo
     return closestChip;
 }
 
-export function RouletteWagerComponent({connects, wager, setWager, betRange, money, chips, attemptWagerUpdate, closestChip, config} : {connects: any, wager: number, setWager: (value: number, data?: any) => void, betRange?: [number, number], money: number, chips: Chip[], attemptWagerUpdate: (wager: number, strictMode?: boolean) => boolean, closestChip: Chip, config: Config}) {
+export function RouletteWagerComponent({connects, wager, setWager, betRange, money, chips, attemptWagerUpdate, closestChip, config} : {connects: any, wager: number, setWager: (value: number, data?: any) => void, betRange: [number, number], money: number, chips: Chip[], attemptWagerUpdate: (wager: number, strictMode?: boolean) => boolean, closestChip: Chip, config: Config}) {
     const [selectedChip, setSelectedChip] = useState<Chip | null>(null);
     const [rows, setRows] = useState(GetDefaultRouletteRows());
     const [sections, setSections] = useState(GetDefaultRouletteSections()); 
@@ -352,7 +352,7 @@ export function RouletteWagerComponent({connects, wager, setWager, betRange, mon
                         <div className="font-bold text-sm">x2</div>
                     </div>
                 </div>
-                {chips.map((chip, index) => (
+                {chips.map((chip, index) => (chip.value >= betRange[0] && chip.value <= betRange[1]) && (
                     <div className="cursor-pointer hover:scale-90 transition-transform" style={{
                         filter: selectedChip == chip ? "brightness(1.2)" : "brightness(0.8)",
                     }} onClick={() => { 

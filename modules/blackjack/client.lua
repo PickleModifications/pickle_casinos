@@ -350,7 +350,7 @@ CreateThread(function()
                         entity.visible = true
                         RenderBlackjackEntity(casinoId, entityId)
                     end
-                else
+                elseif entity.visible then
                     if #(GetEntityCoords(PlayerPedId()) - entity.coords) > Config.RenderDistance then
                         entity.visible = false
                         UnrenderBlackjackEntity(casinoId, entityId)

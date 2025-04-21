@@ -34,6 +34,7 @@ function AttemptSeatAtWheelEntity(casinoId, entityId)
             money = entityInfo.money,
             history = entityInfo.history or {},
             stage = entityInfo.stage or {type = "waiting", time = 10},
+            betRange = entityInfo.betRange,
         }
         local casinoId = CurrentWheel.casinoId
         local entityId = CurrentWheel.entityId
@@ -49,14 +50,14 @@ function AttemptSeatAtWheelEntity(casinoId, entityId)
                 data = {
                     money = CurrentWheel.money,
                     history = CurrentWheel.history,
-                    wagerLimit = {10, 100000},
+                    wagerLimit = CurrentWheel.betRange,
                     stage = stage,
                 }
             }
         })
         EnsureWheelCamera()
         SetCamParams(CurrentCamera, tickCoords.x, tickCoords.y, tickCoords.z,
-            -15.0, 0.0, localWheel.heading + 180.0, 90.0, 
+            -15.0, 0.0, localWheel.heading + 0.0, 90.0, 
             2000, 0, 0, 2
         )
         CreateThread(function()
@@ -136,7 +137,7 @@ function SpinWheelEntity(casinoId, entityId, targetDegrees)
                     stage.spins = stage.spins - 1
                 end
             end
-            SetEntityRotation(localWheel.wheelObject, 0.0, rotation, localWheel.heading + 180.0, 2, true)
+            SetEntityRotation(localWheel.wheelObject, 0.0, rotation, localWheel.heading + 0.0, 2, true)
             Wait(0)
         end
         print("SPIN COMPLETE")
@@ -173,11 +174,11 @@ function RenderWheelEntity(casinoId, entityId)
     local wheelObject = CreateProp(`fury_p_wheeloff`, coords, false, false, false)
     local tickObject = CreateProp(`vw_prop_vw_jackpot_off`, coords, false, false, false)
     FreezeEntityPosition(standObject, true)
-    SetEntityHeading(standObject, heading + 180.0)
+    SetEntityHeading(standObject, heading)
     FreezeEntityPosition(wheelObject, true)
-    SetEntityHeading(wheelObject, heading + 180.0)
+    SetEntityHeading(wheelObject, heading)
     FreezeEntityPosition(tickObject, true)
-    SetEntityHeading(tickObject, heading + 180.0)
+    SetEntityHeading(tickObject, heading)
     local coordOff = GetOffsetFromEntityInWorldCoords(standObject, 0.0, -0.2, 1.612)
     SetEntityCoords(wheelObject, coordOff.x, coordOff.y, coordOff.z - 0.1)
     local coordOff = GetOffsetFromEntityInWorldCoords(standObject, 0.0, 0.0, 0.1)
@@ -206,6 +207,10 @@ function UnrenderWheelEntity(casinoId, entityId)
     if wheelEntity.tickObject then
         DeleteObject(wheelEntity.tickObject)
     end
+    if wheelEntity.interact then
+        DeleteInteraction(wheelEntity.interact)
+    end
+    wheelEntity.interact = nil
     wheelEntity.wheelObject = nil
     wheelEntity.standObject = nil
     wheelEntity.tickObject = nil
@@ -221,12 +226,12 @@ CreateThread(function()
         local coords = GetEntityCoords(PlayerPedId())
         for casinoId, entities in pairs(LocalWheels) do
             for entityId, entity in pairs(entities) do
-                if not entity.visible then
+                if not entity.visible and not entity.hidden then
                     if #(GetEntityCoords(PlayerPedId()) - entity.coords) <= Config.RenderDistance then
                         entity.visible = true
                         RenderWheelEntity(casinoId, entityId)
                     end
-                else
+                elseif entity.visible then
                     if #(GetEntityCoords(PlayerPedId()) - entity.coords) > Config.RenderDistance then
                         entity.visible = false
                         UnrenderWheelEntity(casinoId, entityId)
@@ -236,6 +241,42 @@ CreateThread(function()
         end
         Wait(1500)
     end
+end)
+
+RegisterNetEvent("pickle_casinos:deleteCasinoEntity", function(casinoId, entityId)
+    if not LocalWheels[casinoId] then return end
+    if not LocalWheels[casinoId][entityId] then return end
+    DeleteWheelEntity(casinoId, entityId)
+end)
+
+RegisterNetEvent("pickle_casinos:setCasinoEntityHidden", function(casinoId, entityId, toggle)
+    if not LocalWheels[casinoId] then return end
+    if not LocalWheels[casinoId][entityId] then return end
+    local localWheel = LocalWheels[casinoId][entityId]
+    localWheel.hidden = toggle
+    if toggle then
+        localWheel.visible = false
+        UnrenderWheelEntity(casinoId, entityId)
+    else
+        local playerCoords = GetEntityCoords(PlayerPedId())
+        if #(playerCoords - localWheel.coords) <= Config.RenderDistance then
+            localWheel.visible = true
+            RenderWheelEntity(casinoId, entityId)
+        end
+    end
+end)
+
+RegisterNetEvent("pickle_casinos:refreshCasinoEntity", function(casinoId, entityId)
+    if not LocalWheels[casinoId] then return end
+    if not LocalWheels[casinoId][entityId] then return end
+    local localWheel = LocalWheels[casinoId][entityId]
+    local casinoEntity = GetCasinoEntity(casinoId, entityId)
+    localWheel.coords = casinoEntity.settings.location.coords
+    localWheel.heading = casinoEntity.settings.location.rotation.z
+    if not localWheel.visible then return end
+    UnrenderWheelEntity(casinoId, entityId)
+    Wait(100)
+    RenderWheelEntity(casinoId, entityId)
 end)
 
 RegisterNUICallback("setWheelWager", function(data, cb)
@@ -281,7 +322,7 @@ RegisterNetEvent("pickle_casinos:wheel:updateStage", function(casinoId, entityId
                 EnsureWheelCamera()
                 local tickCoords = GetOffsetFromEntityInWorldCoords(localWheel.tickObject, 0.0, -2.25, 1.9)
                 SetCamParams(CurrentCamera, tickCoords.x, tickCoords.y, tickCoords.z,
-                    -15.0, 0.0, localWheel.heading + 180.0, 90.0, 
+                    -15.0, 0.0, localWheel.heading + 0.0, 90.0, 
                     2000, 0, 0, 2
                 )
             end
@@ -299,7 +340,7 @@ RegisterNetEvent("pickle_casinos:wheel:updateStage", function(casinoId, entityId
             SetTimeout(3000, function()
                 local tickCoords = GetOffsetFromEntityInWorldCoords(localWheel.tickObject, 0.0, -0.8, 2.65)
                 SetCamParams(CurrentCamera, tickCoords.x, tickCoords.y, tickCoords.z,
-                    -15.0, 0.0, localWheel.heading + 180.0, 90.0, 
+                    -15.0, 0.0, localWheel.heading + 0.0, 90.0, 
                     2000, 0, 0, 2
                 )
             end)

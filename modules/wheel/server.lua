@@ -1,13 +1,19 @@
 local PendingSpins = {}
 local LastWagers = {}
 
-function InitializeWheelEntity(casinoId, data)
+function InitializeWheelEntity(casinoId, data, dataOnly)
     local entity = data or { id = "ERR_NO_ID_POKER" }
     entity.players = {}
     entity.history = {}
-    SetTimeout(1000, function()
-        StartWheelLobby(casinoId, entity.id)
-    end)
+    entity.betRange = {
+        math.floor(entity.settings.maxWager / 100),
+        entity.settings.maxWager
+    }
+    if not dataOnly then
+        SetTimeout(1000, function()
+            StartWheelLobby(casinoId, entity.id)
+        end)
+    end
     return entity
 end
 
@@ -175,6 +181,7 @@ RegisterCallback("pickle_casinos:wheel:requestSeat", function(source, cb, casino
         stage = entity.stage,
         history = entity.history,
         money = GetMoney(source),
+        betRange = entity.betRange,
     })
 end)
 
@@ -220,6 +227,8 @@ RegisterNetEvent("pickle_casinos:wheel:setWager", function(wagers)
     if money - totalWager < 0 then
         local money = GetMoney(source)
         ShowNotification(source, "You don't have enough money to place this wager.")
+    elseif totalWager > entity.betRange[2] then
+        ShowNotification(source, "You can't wager more than " .. entity.betRange[2] .. "$.")
     else
         player.wagers = newWagers
     end

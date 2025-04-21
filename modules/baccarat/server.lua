@@ -60,7 +60,8 @@ function GetBaccaratEntity(casinoId, entityId)
     return {
         id = entity.id,
         seats = entity.seats,
-        stage = entity.stage
+        stage = entity.stage,
+        betRange = entity.betRange,
     }
 end
 
@@ -343,16 +344,22 @@ function GenerateDefaultBaccaratSeat()
     return {source = nil, wagers = GenerateBaccaratDefaultWagers(), inSeat = false}
 end
 
-function InitializeBaccaratEntity(casinoId, entity)
+function InitializeBaccaratEntity(casinoId, entity, dataOnly)
     local entity = entity or { id = "ERR_BACCARAT_ENTITY" }
     entity.seats = {}
     for i=1, 4 do 
         entity.seats[i] = GenerateDefaultBaccaratSeat()
     end
     entity.cards = {player = {}, banker = {}}
-    SetTimeout(1000, function()
-        StartBaccaratLobby(casinoId, entity.id)
-    end)
+    entity.betRange = {
+        math.floor(entity.settings.maxWager / 100),
+        entity.settings.maxWager
+    }
+    if not dataOnly then
+        SetTimeout(1000, function()
+            StartBaccaratLobby(casinoId, entity.id)
+        end)
+    end
     return entity
 end
 
@@ -380,7 +387,8 @@ RegisterCallback("pickle_casinos:baccarat:requestSeat", function(source, cb, cas
             id = entity.id,
             seats = entity.seats,
             stage = entity.stage,
-            money = GetMoney(source)
+            money = GetMoney(source),
+            betRange = entity.betRange,
         })
     end
     cb(seatId)
@@ -407,7 +415,7 @@ RegisterNetEvent("pickle_casinos:baccarat:setWager", function(wager)
     local entity = GetCasinoEntity(info.casinoId, info.entityId)
     if not entity then return end
     if not entity.stage.type == "waiting" then return end
-    entity.seats[info.seatId].wagers = {
+    local newWagers = {
         player = wager.player or 0,
         banker = wager.banker or 0,
         tie = wager.tie or 0,
@@ -416,5 +424,9 @@ RegisterNetEvent("pickle_casinos:baccarat:setWager", function(wager)
         eitherPair = wager.eitherPair or 0,
         suitedPair = wager.suitedPair or 0,
     }
+    local totalWager = GetBaccaratTotalWager(newWagers)
+    if totalWager <= entity.betRange[2] then
+        entity.seats[info.seatId].wagers = newWagers
+    end
     TriggerClientEvent("pickle_casinos:baccarat:updateSeatWager", -1, info.casinoId, info.entityId, info.seatId, entity.seats[info.seatId].wagers)
 end)

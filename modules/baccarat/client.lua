@@ -130,6 +130,7 @@ function AttemptSeatAtBaccaratEntity(casinoId, entityId)
             wagers = entityInfo.wagers,
             money = entityInfo.money,
             sides = {player = {}, banker = {}},
+            betRange = entityInfo.betRange,
         }
         EnsureBaccaratCamera()
         local tableCoords = GetOffsetFromEntityInWorldCoords(baccaratTable.surfaceObject, 0.0, -1.0, 2.25)
@@ -150,7 +151,7 @@ function AttemptSeatAtBaccaratEntity(casinoId, entityId)
                     seatId = seatId,
                     seats = GetBaccaratSeatsForUI(),
                     money = CurrentBaccaratTable.money,
-                    wagerLimit = {10, 100000},
+                    wagerLimit = CurrentBaccaratTable.betRange,
                     stage = stage,
                 }
             }
@@ -324,17 +325,53 @@ function DeleteBaccaratEntity(casinoId, entityId)
     LocalBaccaratTables[casinoId][entityId] = nil
 end
 
+RegisterNetEvent("pickle_casinos:deleteCasinoEntity", function(casinoId, entityId)
+    if not LocalBaccaratTables[casinoId] then return end
+    if not LocalBaccaratTables[casinoId][entityId] then return end
+    DeleteBaccaratEntity(casinoId, entityId)
+end)
+
+RegisterNetEvent("pickle_casinos:setCasinoEntityHidden", function(casinoId, entityId, toggle)
+    if not LocalBaccaratTables[casinoId] then return end
+    if not LocalBaccaratTables[casinoId][entityId] then return end
+    local baccaratTable = LocalBaccaratTables[casinoId][entityId]
+    baccaratTable.hidden = toggle
+    if toggle then
+        baccaratTable.visible = false
+        UnrenderBaccaratEntity(casinoId, entityId)
+    else
+        local playerCoords = GetEntityCoords(PlayerPedId())
+        if #(playerCoords - baccaratTable.coords) <= Config.RenderDistance then
+            baccaratTable.visible = true
+            RenderBaccaratEntity(casinoId, entityId)
+        end
+    end
+end)
+
+RegisterNetEvent("pickle_casinos:refreshCasinoEntity", function(casinoId, entityId)
+    if not LocalBaccaratTables[casinoId] then return end
+    if not LocalBaccaratTables[casinoId][entityId] then return end
+    local baccaratTable = LocalBaccaratTables[casinoId][entityId]
+    local casinoEntity = GetCasinoEntity(casinoId, entityId)
+    baccaratTable.coords = casinoEntity.settings.location.coords
+    baccaratTable.heading = casinoEntity.settings.location.rotation.z
+    if not baccaratTable.visible then return end
+    UnrenderBaccaratEntity(casinoId, entityId)
+    Wait(100)
+    RenderBaccaratEntity(casinoId, entityId)
+end)
+
 CreateThread(function()
     while true do 
         local coords = GetEntityCoords(PlayerPedId())
         for casinoId, entities in pairs(LocalBaccaratTables) do
             for entityId, entity in pairs(entities) do
-                if not entity.visible then
+                if not entity.visible and not entity.hidden then
                     if #(GetEntityCoords(PlayerPedId()) - entity.coords) <= Config.RenderDistance then
                         entity.visible = true
                         RenderBaccaratEntity(casinoId, entityId)
                     end
-                else
+                elseif entity.visible then
                     if #(GetEntityCoords(PlayerPedId()) - entity.coords) > Config.RenderDistance then
                         entity.visible = false
                         UnrenderBaccaratEntity(casinoId, entityId)

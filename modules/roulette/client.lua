@@ -54,29 +54,6 @@ function GetRouletteSeatsForUI(currentHand)
     return seats
 end
 
-function DisplayRouletteUI()
-    if not CurrentRouletteTable then return end
-    local casinoId = CurrentRouletteTable.casinoId
-    local entityId = CurrentRouletteTable.entityId
-    local seatId = CurrentRouletteTable.seatId
-    SetNuiFocus(true, true)
-    SendNUIMessage({
-        type = "setCurrentGame",
-        game = {
-            type = "roulette",
-            data = {
-                seatId = seatId,
-                seats = GetRouletteSeatsForUI(),
-                money = CurrentRouletteTable.money,
-                wagerLimit = {10, 100000},
-                stage = {
-                    type = "waiting",
-                },
-            }
-        }
-    })
-end
-
 function PlayRouletteAnimation(ped, animation, data)
     playingRouletteAnimation = true
     SetTimeout((data and data.time) or 1000, function()
@@ -113,6 +90,7 @@ function AttemptSeatAtRouletteEntity(casinoId, entityId)
             stage = entityInfo.stage,
             connects = entityInfo.connects,
             money = entityInfo.money,
+            betRange = entityInfo.betRange,
         }
         local casinoId = CurrentRouletteTable.casinoId
         local entityId = CurrentRouletteTable.entityId
@@ -126,7 +104,7 @@ function AttemptSeatAtRouletteEntity(casinoId, entityId)
                     seatId = seatId,
                     seats = GetRouletteSeatsForUI(),
                     money = CurrentRouletteTable.money,
-                    wagerLimit = {10, 100000},
+                    wagerLimit = CurrentRouletteTable.betRange,
                     stage = CurrentRouletteTable.stage,
                 }
             }
@@ -357,7 +335,7 @@ CreateThread(function()
         local coords = GetEntityCoords(PlayerPedId())
         for casinoId, entities in pairs(LocalRouletteTables) do
             for entityId, entity in pairs(entities) do
-                if not entity.visible then
+                if not entity.visible and not entity.hidden then
                     if #(GetEntityCoords(PlayerPedId()) - entity.coords) <= Config.RenderDistance then
                         entity.visible = true
                         RenderRouletteEntity(casinoId, entityId)
@@ -467,6 +445,42 @@ RegisterNetEvent("pickle_casinos:roulette:updateSeat", function(casinoId, entity
     if not rouletteTable or not rouletteTable.visible then return end
     RenderRouletteChips(casinoId, entityId)
     -- TriggerEvent("pickle_casinos:roulette:updateSeatWager", casinoId, entityId, seatId, 1, seatData.wagers)
+end)
+
+RegisterNetEvent("pickle_casinos:deleteCasinoEntity", function(casinoId, entityId)
+    if not LocalRouletteTables[casinoId] then return end
+    if not LocalRouletteTables[casinoId][entityId] then return end
+    DeleteRouletteEntity(casinoId, entityId)
+end)
+
+RegisterNetEvent("pickle_casinos:setCasinoEntityHidden", function(casinoId, entityId, toggle)
+    if not LocalRouletteTables[casinoId] then return end
+    if not LocalRouletteTables[casinoId][entityId] then return end
+    local rouletteTable = LocalRouletteTables[casinoId][entityId]
+    rouletteTable.hidden = toggle
+    if toggle then
+        rouletteTable.visible = false
+        UnrenderRouletteEntity(casinoId, entityId)
+    else
+        local playerCoords = GetEntityCoords(PlayerPedId())
+        if #(playerCoords - rouletteTable.coords) <= Config.RenderDistance then
+            rouletteTable.visible = true
+            RenderRouletteEntity(casinoId, entityId)
+        end
+    end
+end)
+
+RegisterNetEvent("pickle_casinos:refreshCasinoEntity", function(casinoId, entityId)
+    if not LocalRouletteTables[casinoId] then return end
+    if not LocalRouletteTables[casinoId][entityId] then return end
+    local rouletteTable = LocalRouletteTables[casinoId][entityId]
+    local casinoEntity = GetCasinoEntity(casinoId, entityId)
+    rouletteTable.coords = casinoEntity.settings.location.coords
+    rouletteTable.heading = casinoEntity.settings.location.rotation.z
+    if not rouletteTable.visible then return end
+    UnrenderRouletteEntity(casinoId, entityId)
+    Wait(100)
+    RenderRouletteEntity(casinoId, entityId)
 end)
 
 function EnsureRouletteCamera()

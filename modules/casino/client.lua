@@ -108,8 +108,8 @@ function StartGizmoEditor(data)
         DeleteScriptObject(gizmoEntity)
         gizmoEntity = nil
         inGizmo = false
+        return result
     end
-    return result
 end
 
 function CasinosArrayUI()
@@ -174,21 +174,28 @@ function GenerateGameSettingsUI()
 end
 
 function CreateCurrentCasinoEntity(coords, rotation, data)
+    print("CREATING OBJ", coords, rotation, json.encode(data, {indent = true}))
     if CurrentCasinoEntity then
         DeleteScriptObject(CurrentCasinoEntity.object)
         CurrentCasinoEntity = nil
     end
     CurrentCasinoEntity = {}
     local model
-    
+    local entityType = data.info.entityType
+    if not entityType and data.info.entityId then
+        local casinoEntity = GetCasinoEntity(data.info.casinoId, data.info.entityId)
+        if not casinoEntity then return end
+        entityType = casinoEntity.type
+    end
+    if not entityType then return end
     if data.info.settings.tableModel then
         model = data.info.settings.tableModel
     else
-        if data.info.entityType == "slot" then
+        if entityType == "slot" then
             model = Config.Slots[data.info.settings.game].model
-        elseif data.info.entityType == "wheel" then
+        elseif entityType == "wheel" then
             model = `vw_prop_vw_luckywheel_01a`
-        elseif data.info.entityType == "horseracing" then
+        elseif entityType == "horseracing" then
             model = Config.HorseRacing.machineModel
         end
     end
@@ -264,7 +271,7 @@ RegisterNUICallback("editLocation", function(data, cb)
     local playerCoords = GetEntityCoords(ped)
     local coords = (data.coords and #(vector3(data.coords.x, data.coords.y, data.coords.z) - playerCoords) < 100.0) and data.coords or (GetEntityCoords(ped) + GetEntityForwardVector(ped) * 3)
     local rotation = (#(vector3(data.rotation.x, data.rotation.y, data.rotation.z) - vector3(0.0, 0.0, 0.0)) > 1.0 and vector3(data.rotation.x, data.rotation.y, data.rotation.z) or vector3(0.0, 0.0, GetEntityHeading(ped)))
-    if not data.info.entityType and not data.info.entityId then
+    if not data.info or (not data.info.entityType and not data.info.entityId) then
         local result = StartGizmoEditor({model = `prop_tennis_ball`, coords = coords, rotation = rotation})
         SendNUIMessage({
             type = "setLocation",
@@ -390,7 +397,7 @@ RegisterNetEvent("pickle_casinos:syncCasinos", function(data)
         type = "updateCasinos",
         casinos = CasinosArrayUI(),
     })
-    StartCasinoEditor()
+    -- StartCasinoEditor()
 end)
 
 RegisterNetEvent("pickle_casinos:displayResults", function(totalWin, balance)

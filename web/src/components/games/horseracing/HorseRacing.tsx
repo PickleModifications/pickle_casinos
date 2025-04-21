@@ -1,4 +1,4 @@
-import { CasinoGame, ChipDisplay, GameIcon, GetChipForValue, playAudio, WagerControls } from "@/components/casino/Casino";
+import { CasinoGame, ChipDisplay, GameIcon, GetChipForValue, GetCurrencyString, playAudio, WagerControls } from "@/components/casino/Casino";
 import { Button } from "@/components/ui/button";
 import { useConfig } from "@/providers/config";
 import { Translate } from "@/providers/locale/Locale";
@@ -105,6 +105,8 @@ function CalculateHorseRacingWagers(wagers: HorseWager) {
 }
 
 export function HorseRacing({game} : {game: CasinoGame}) {
+    const {config} = useConfig();
+    const wagerLimit = game.data.wagerLimit;
     const [currentTrack, setCurrentTrack] = useState<number | null>(null);
     const [tracks, setTracks] = useState<HorseTrack[]>(game.data.tracks || []);
     const [horses, setHorses] = useState<Horse[]>([
@@ -242,6 +244,7 @@ export function HorseRacing({game} : {game: CasinoGame}) {
                         </div>
                     </div>
                     <div className="flex flex-col gap-2 h-full justify-center items-center w-[33.333333%] px-8">
+                        {(wagerLimit && stage.type == "waiting") && <div className="font-semibold text-zinc-400"><Translate id="casino_betrange" args={[GetCurrencyString(wagerLimit[0], config), GetCurrencyString(wagerLimit[1], config)]} /></div>}
                         {(stage.type == "waiting" || stage.type == "winner") && (
                             <HorseRacingComponent winningHorse={stage.winner != undefined ? stage.winner - 1 : undefined} horses={horses} horseWagers={horseWagers} isPlaying={stage.type !== "waiting"} onClick={(data) => {
                                 if (data.type == "attemptWager") {
@@ -258,7 +261,7 @@ export function HorseRacing({game} : {game: CasinoGame}) {
                         )}
                         {stage.type == "waiting" && (
                             <>
-                                <WagerControls chipValue={chipValue} money={money} wager={CalculateHorseRacingWagers(horseWagers)} onClick={(data: any) => {
+                                <WagerControls betRange={wagerLimit} chipValue={chipValue} money={money} wager={CalculateHorseRacingWagers(horseWagers)} onClick={(data: any) => {
                                     if (data.type == "setCurrentChip") {
                                         playAudio("bet");
                                         setChipValue(data.value);

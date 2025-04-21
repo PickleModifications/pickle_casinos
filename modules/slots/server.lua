@@ -193,6 +193,7 @@ RegisterCallback("pickle_casinos:slots:requestSeat", function(source, cb, casino
         game = entity.settings.game,
         bets = entity.bets,
     }
+    print("Player", source, "has taken a seat at slot machine", entityId)
     cb(1, entity.currentPlayer)
 end)
 

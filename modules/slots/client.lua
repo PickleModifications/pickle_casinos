@@ -75,9 +75,10 @@ function RenderSlotEntity(casinoId, entityId)
     SetEntityRotation(slotObject, 0.0, 0.0, heading, 2, true)
     localSlotMachine.slotObject = slotObject
     localSlotMachine.interact = CreateInteraction({
-        label = _L("interact_roulette"),
+        label = "Play " .. slotCfg.label .. entityId,
         coords = GetOffsetFromEntityInWorldCoords(slotObject, 0.0, 0.0, 1.0),
         heading = heading,
+        radius = 0.5
     }, function(selected)
         AttemptSeatAtSlotEntity(casinoId, entityId)
     end)
@@ -102,12 +103,12 @@ CreateThread(function()
         local coords = GetEntityCoords(PlayerPedId())
         for casinoId, entities in pairs(LocalSlotMachines) do
             for entityId, entity in pairs(entities) do
-                if not entity.visible then
+                if not entity.visible and not hidden then
                     if #(GetEntityCoords(PlayerPedId()) - entity.coords) <= Config.RenderDistance then
                         entity.visible = true
                         RenderSlotEntity(casinoId, entityId)
                     end
-                else
+                elseif entity.visible then
                     if #(GetEntityCoords(PlayerPedId()) - entity.coords) > Config.RenderDistance then
                         entity.visible = false
                         UnrenderSlotEntity(casinoId, entityId)
@@ -132,7 +133,36 @@ RegisterNetEvent("pickle_casinos:deleteCasinoEntity", function(casinoId, entityI
     if not LocalSlotMachines[casinoId] then return end
     if not LocalSlotMachines[casinoId][entityId] then return end
     DeleteSlotEntity(casinoId, entityId)
-    print("Deleted slot machine entity: " .. entityId)
+end)
+
+RegisterNetEvent("pickle_casinos:setCasinoEntityHidden", function(casinoId, entityId, toggle)
+    if not LocalSlotMachines[casinoId] then return end
+    if not LocalSlotMachines[casinoId][entityId] then return end
+    local slotMachine = LocalSlotMachines[casinoId][entityId]
+    slotMachine.hidden = toggle
+    if toggle then
+        slotMachine.visible = false
+        UnrenderSlotEntity(casinoId, entityId)
+    else
+        local playerCoords = GetEntityCoords(PlayerPedId())
+        if #(playerCoords - slotMachine.coords) <= Config.RenderDistance then
+            slotMachine.visible = true
+            RenderSlotEntity(casinoId, entityId)
+        end
+    end
+end)
+
+RegisterNetEvent("pickle_casinos:refreshCasinoEntity", function(casinoId, entityId)
+    if not LocalSlotMachines[casinoId] then return end
+    if not LocalSlotMachines[casinoId][entityId] then return end
+    local slotMachine = LocalSlotMachines[casinoId][entityId]
+    local casinoEntity = GetCasinoEntity(casinoId, entityId)
+    slotMachine.coords = casinoEntity.settings.location.coords
+    slotMachine.heading = casinoEntity.settings.location.rotation.z
+    if not slotMachine.visible then return end
+    UnrenderSlotEntity(casinoId, entityId)
+    Wait(100)
+    RenderSlotEntity(casinoId, entityId)
 end)
 
 RegisterNUICallback("finishSpin", function(data, cb)
