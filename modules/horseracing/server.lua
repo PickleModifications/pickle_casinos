@@ -103,8 +103,23 @@ function StartHorseRacingTrackLobby(trackId)
     end)
 end
 
+function GetHorseRacingEntity(casinoId, entityId)
+    local casino = Casinos[casinoId]
+    if not casino then return end
+    for i=1, #casino.entities do
+        local entity = casino.entities[i]
+        if entity.id == entityId then
+            return entity
+        end
+    end
+end
+
 function InitializeHorseRacingEntity(casinoId, data)
     local entity = data or { id = "ERR_NO_ID_HORSERACING" }
+    entity.betRange = {
+        math.floor(entity.settings.maxWager / 100),
+        entity.settings.maxWager
+    }
     return entity
 end
 
@@ -127,13 +142,14 @@ function GenerateHorses()
     return horses
 end
 
-RegisterNetEvent("pickle_casinos:horseracing:setWager", function(casinoId, trackId, wager)
+RegisterNetEvent("pickle_casinos:horseracing:setWager", function(casinoId, entityId, trackId, wager)
     local source = tonumber(source)
     local casino = Casinos[casinoId]
     if not casino then return end
     local track = Tracks[trackId]
     if not track then return end
     if track.stage.type ~= "waiting" then return end
+    local casinoEntity = GetHorseRacingEntity(casinoId, entityId)
     local wagers = {}
     if type(wager) == "table" then 
         for i,v in pairs(wager) do
@@ -151,7 +167,7 @@ RegisterNetEvent("pickle_casinos:horseracing:setWager", function(casinoId, track
             totalWager = totalWager + wagers[i]
         end
         local money = GetMoney(source)
-        if money < totalWager then      
+        if money < totalWager or totalWager > casinoEntity.betRange[2] then      
             wagers = track.players[source] and (track.players[source].wagers or GetDefaultWager()) or GetDefaultWager()  
         end
     elseif wager == "repeat" then

@@ -28,7 +28,7 @@ function EnsureMapObjectsRemoved()
                 local objectCoords = GetEntityCoords(object)
                 if #(objectCoords - v.coords) < 0.5 and not TransparentObjects[k] and not IsEntityScriptObject(object) then
                     SetEntityAsMissionEntity(object)
-                    DeleteEntity(object)
+                    SetEntityCoords(object, v.coords.x, v.coords.y, v.coords.z - 1000.0)
                     print("DELETE OBJ", object, v.coords)
                 end
             end
@@ -161,7 +161,7 @@ RegisterNetEvent("pickle_casinos:objects:addMapObject", function(objectId, objec
             local objectCoords = GetEntityCoords(object)
             if #(objectCoords - v.coords) < 0.5 and TransparentObjects[k] ~= object and not IsEntityScriptObject(object) then
                 SetEntityAsMissionEntity(object)
-                DeleteEntity(object)
+                SetEntityCoords(object, v.coords.x, v.coords.y, v.coords.z - 1000.0)
                 print("DELETE OBJ2", object, v.coords)
             end
         end

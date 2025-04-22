@@ -103,7 +103,7 @@ CreateThread(function()
         local coords = GetEntityCoords(PlayerPedId())
         for casinoId, entities in pairs(LocalSlotMachines) do
             for entityId, entity in pairs(entities) do
-                if not entity.visible and not hidden then
+                if not entity.visible and not entity.hidden then
                     if #(GetEntityCoords(PlayerPedId()) - entity.coords) <= Config.RenderDistance then
                         entity.visible = true
                         RenderSlotEntity(casinoId, entityId)
@@ -130,8 +130,11 @@ RegisterNetEvent("pickle_casinos:slots:updateBalance", function(balance)
 end)
 
 RegisterNetEvent("pickle_casinos:deleteCasinoEntity", function(casinoId, entityId)
+    print("deleteCasinoEntity slot", casinoId, entityId)
     if not LocalSlotMachines[casinoId] then return end
+    print("CASINO EXISTS")
     if not LocalSlotMachines[casinoId][entityId] then return end
+    print("CASINO ENTITY EXISTS")
     DeleteSlotEntity(casinoId, entityId)
 end)
 

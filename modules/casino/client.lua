@@ -1,8 +1,19 @@
+CLIENT_FPS = 60
+
 CurrentCasinoEntity = nil
 LOCAL_MONEY = 0
 local isEditing = false
 local inGizmo = false
 local gizmoEntity = nil
+
+CreateThread(function()
+    while true do 
+        local startCount = GetFrameCount()
+        Wait(1000)
+        local endCount = GetFrameCount()
+        CLIENT_FPS = endCount - startCount
+    end
+end)
 
 function CreateCasinoEntity(casinoId, entityId)
     local casino = Casinos[casinoId]
@@ -82,7 +93,7 @@ function StartCasinoEditor()
         while isEditing do 
             if not inGizmo and IsControlJustPressed(1, 47) then 
                 SetEditorFocus(true)
-                SetCursorLocation(0.85, 0.5)
+                -- SetCursorLocation(0.85, 0.5)
             end
             Wait(0)
         end
@@ -284,7 +295,7 @@ RegisterNUICallback("editLocation", function(data, cb)
         if data.info.entityId then 
             TriggerEvent("pickle_casinos:setCasinoEntityHidden", data.info.casinoId, data.info.entityId, true)
         end
-        if not CurrentCasinoEntity then
+        if not CurrentCasinoEntity or CurrentCasinoEntity.entityType ~= data.info.entityType then
             CreateCurrentCasinoEntity(coords, rotation, data)
         end
         local result = StartGizmoEditor({entity = CurrentCasinoEntity.object, coords = coords, rotation = rotation})

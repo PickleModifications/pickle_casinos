@@ -201,14 +201,14 @@ function CreatePokerEntity(casinoId, entityId)
         heading = heading,
     }
     RenderPokerEntity(casinoId, entityId)
-    AttemptSeatAtPokerEntity(casinoId, entityId)
+    -- AttemptSeatAtPokerEntity(casinoId, entityId)
 end
 
 function RenderPokerEntity(casinoId, entityId)
     local localPokerTable = LocalPokerTables[casinoId][entityId]
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
     if not localPokerTable.visible or not casinoEntity then return end
-    local coords = casinoEntity.settings.location.coords
+    local coords = casinoEntity.settings.location.coords - vector3(0.0, 0.0, 0.38)
     local heading = casinoEntity.settings.location.rotation.z
     local tableObject = CreateProp(casinoEntity.settings.tableModel, coords, false, false, false)
     local surfaceObject = CreateProp(`prop_tennis_ball`, coords + vector3(0.0, 0.0, 1.05), false, false, false)
@@ -342,17 +342,54 @@ function TurnDealerToSeat(casinoId, entityId, targetSeat, rotationOffset)
     SetEntitySmoothRotation(dealerPed, localPokerTable.lastDealerRotation, vector3(0.0, 0.0, targetHeading))
     localPokerTable.lastDealerRotation = vector3(0.0, 0.0, targetHeading)
 end
+
+RegisterNetEvent("pickle_casinos:deleteCasinoEntity", function(casinoId, entityId)
+    if not LocalPokerTables[casinoId] then return end
+    if not LocalPokerTables[casinoId][entityId] then return end
+    DeletePokerEntity(casinoId, entityId)
+end)
+
+RegisterNetEvent("pickle_casinos:setCasinoEntityHidden", function(casinoId, entityId, toggle)
+    if not LocalPokerTables[casinoId] then return end
+    if not LocalPokerTables[casinoId][entityId] then return end
+    local pokerTable = LocalPokerTables[casinoId][entityId]
+    pokerTable.hidden = toggle
+    if toggle then
+        pokerTable.visible = false
+        UnrenderPokerEntity(casinoId, entityId)
+    else
+        local playerCoords = GetEntityCoords(PlayerPedId())
+        if #(playerCoords - pokerTable.coords) <= Config.RenderDistance then
+            pokerTable.visible = true
+            RenderPokerEntity(casinoId, entityId)
+        end
+    end
+end)
+
+RegisterNetEvent("pickle_casinos:refreshCasinoEntity", function(casinoId, entityId)
+    if not LocalPokerTables[casinoId] then return end
+    if not LocalPokerTables[casinoId][entityId] then return end
+    local pokerTable = LocalPokerTables[casinoId][entityId]
+    local casinoEntity = GetCasinoEntity(casinoId, entityId)
+    pokerTable.coords = casinoEntity.settings.location.coords
+    pokerTable.heading = casinoEntity.settings.location.rotation.z
+    if not pokerTable.visible then return end
+    UnrenderPokerEntity(casinoId, entityId)
+    Wait(100)
+    RenderPokerEntity(casinoId, entityId)
+end)
+
 CreateThread(function()
     while true do 
         local coords = GetEntityCoords(PlayerPedId())
         for casinoId, entities in pairs(LocalPokerTables) do
             for entityId, entity in pairs(entities) do
-                if not entity.visible then
+                if not entity.visible and not entity.hidden then
                     if #(GetEntityCoords(PlayerPedId()) - entity.coords) <= Config.RenderDistance then
                         entity.visible = true
                         RenderPokerEntity(casinoId, entityId)
                     end
-                else
+                elseif entity.visible then
                     if #(GetEntityCoords(PlayerPedId()) - entity.coords) > Config.RenderDistance then
                         entity.visible = false
                         UnrenderPokerEntity(casinoId, entityId)

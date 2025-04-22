@@ -192,7 +192,7 @@ Config.WheelBonus = {
 Config.Slots = {
     ["bananabonanza"] = {
         label = "Banana Bonanza",
-        model = `vw_prop_casino_slot_05a`,
+        model = `fury_p_slot_01`,
         foldername = "bananabonanza",
         headerTextImage = "header_title.png",
         backgroundImage = "background.png",
@@ -264,7 +264,7 @@ Config.Slots = {
     },
     ["spacewarriors"] = {
         label = "Space Warriors",
-        model = `vw_prop_casino_slot_03a`,
+        model = `fury_p_slot_02`,
         foldername = "spacewarriors",
         headerTextImage = "header_title.png",
         backgroundImage = "background.png",
@@ -336,7 +336,7 @@ Config.Slots = {
     },
     ["candybonanza"] = {
         label = "Candy Bonanza",
-        model = `vw_prop_casino_slot_05a`,
+        model = `fury_p_slot_03`,
         foldername = "candybonanza",
         headerTextImage = "header_title.png",
         backgroundImage = "background.png",
@@ -409,7 +409,7 @@ Config.Slots = {
 }
 
 Config.HorseRacing = {
-    machineModel = `ch_prop_arcade_street_01b`,
+    machineModel = `npds_bettingmachine_01`,
     tracks = {
         {
             label = "Track #1",

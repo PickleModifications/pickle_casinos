@@ -138,7 +138,10 @@ function SpinWheelEntity(casinoId, entityId, targetDegrees)
                 end
             end
             SetEntityRotation(localWheel.wheelObject, 0.0, rotation, localWheel.heading + 0.0, 2, true)
-            Wait(0)
+            local gameSpeed = math.floor((8 * (CLIENT_FPS / 60)) - 8)
+            if gameSpeed < 0 then gameSpeed = 0 end
+            print("Game Speed: ", gameSpeed)
+            Wait(gameSpeed)
         end
         print("SPIN COMPLETE")
     end)

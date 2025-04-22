@@ -42,7 +42,7 @@ function JoinPokerEntity(source, casinoId, entityId, seatId)
     return seatId
 end
 
-function InitializePokerEntity(casinoId, data)
+function InitializePokerEntity(casinoId, data, dataOnly)
     local entity = data or { id = "ERR_NO_ID_POKER" }
     entity.seats = {}
     for i=1, 10 do
@@ -56,9 +56,11 @@ function InitializePokerEntity(casinoId, data)
             entity.seats[i].inSeat = true
         end
     end
-    SetTimeout(100 * 1, function()
-        StartPokerLobby(casinoId, entity.id)
-    end)
+    if not dataOnly then
+        SetTimeout(100 * 1, function()
+            StartPokerLobby(casinoId, entity.id)
+        end)
+    end
     return entity
 end
 

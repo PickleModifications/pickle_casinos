@@ -19,6 +19,8 @@ local CurrentTrack = nil
 function DisplayHorseRacingMenu(casinoId, entityId)
     if viewingHorseRacingMenu then return end
     ServerCallback("pickle_casinos:horseracing:getHorseRacingInfo", function(result)
+        local casinoEntity = GetCasinoEntity(casinoId, entityId)
+        if not casinoEntity then return end
         if not result then return end
         viewingHorseRacingMenu = {casinoId = casinoId, entityId = entityId}
         SetNuiFocus(true, true)
@@ -29,6 +31,7 @@ function DisplayHorseRacingMenu(casinoId, entityId)
                 data = {
                     money = result.money,
                     tracks = result.tracks,
+                    wagerLimit = casinoEntity.betRange,
                 }
             }
         })
@@ -51,7 +54,6 @@ function DisplayHorseRacingMenu(casinoId, entityId)
 end
 
 function CreateHorseRacingEntity(casinoId, entityId)
-    if DoesSlotEntityExist(casinoId, entityId) then return end
     local casino = Casinos[casinoId]
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
     if not casino or not casinoEntity then return end
@@ -75,7 +77,7 @@ function RenderHorseRacingEntity(casinoId, entityId)
     local coords = casinoEntity.settings.location.coords
     local heading = casinoEntity.settings.location.rotation.z
     local machineObject = CreateProp(Config.HorseRacing.machineModel, coords.x, coords.y, coords.z, false, false, false)
-    SetEntityRotation(slotObject, 0.0, 0.0, heading, 2, true)
+    SetEntityRotation(machineObject, 0.0, 0.0, heading, 2, true)
     localHorseRacingMachine.machineObject = machineObject
     localHorseRacingMachine.interact = CreateInteraction({
         label = _L("interact_horseracing"),
@@ -92,7 +94,16 @@ function UnrenderHorseRacingEntity(casinoId, entityId)
     if localHorseRacingMachine.machineObject then
         DeleteObject(localHorseRacingMachine.machineObject)
     end
+    if localHorseRacingMachine.interact then
+        DeleteInteraction(localHorseRacingMachine.interact)
+    end
     localHorseRacingMachine.machineObject = nil
+    localHorseRacingMachine.interact = nil
+end
+
+function DeleteHorseRacingEntity(casinoId, entityId)
+    UnrenderHorseRacingEntity(casinoId, entityId)
+    LocalHorseRacingMachines[casinoId][entityId] = nil
 end
 
 function GenerateHorseRacingTrackArray(newTrack)
@@ -117,12 +128,12 @@ RegisterNetEvent("pickle_casinos:horseracing:updateWager", function(casinoId, tr
 end)
 
 RegisterNUICallback("setHorseRacingWager", function(data, cb)
-    TriggerServerEvent("pickle_casinos:horseracing:setWager", viewingHorseRacingMenu.casinoId, CurrentTrack.id, data.wager)
+    TriggerServerEvent("pickle_casinos:horseracing:setWager", viewingHorseRacingMenu.casinoId, viewingHorseRacingMenu.entityId, CurrentTrack.id, data.wager)
     cb("ok")
 end)
 
 RegisterNUICallback("repeatHorseRacingWager", function()
-    TriggerServerEvent("pickle_casinos:horseracing:setWager", viewingHorseRacingMenu.casinoId, CurrentTrack.id, "repeat")
+    TriggerServerEvent("pickle_casinos:horseracing:setWager", viewingHorseRacingMenu.casinoId, viewingHorseRacingMenu.entityId, CurrentTrack.id, "repeat")
     cb("ok")
 end)
 
@@ -151,12 +162,12 @@ CreateThread(function()
         local coords = GetEntityCoords(PlayerPedId())
         for casinoId, entities in pairs(LocalHorseRacingMachines) do
             for entityId, entity in pairs(entities) do
-                if not entity.visible then
+                if not entity.visible and not entity.hidden then
                     if #(GetEntityCoords(PlayerPedId()) - entity.coords) <= Config.RenderDistance then
                         entity.visible = true
                         RenderHorseRacingEntity(casinoId, entityId)
                     end
-                else
+                elseif entity.visible then
                     if #(GetEntityCoords(PlayerPedId()) - entity.coords) > Config.RenderDistance then
                         entity.visible = false
                         UnrenderHorseRacingEntity(casinoId, entityId)
@@ -166,6 +177,43 @@ CreateThread(function()
         end
         Wait(1500)
     end
+end)
+
+
+RegisterNetEvent("pickle_casinos:deleteCasinoEntity", function(casinoId, entityId)
+    if not LocalHorseRacingMachines[casinoId] then return end
+    if not LocalHorseRacingMachines[casinoId][entityId] then return end
+    DeleteHorseRacingEntity(casinoId, entityId)
+end)
+
+RegisterNetEvent("pickle_casinos:setCasinoEntityHidden", function(casinoId, entityId, toggle)
+    if not LocalHorseRacingMachines[casinoId] then return end
+    if not LocalHorseRacingMachines[casinoId][entityId] then return end
+    local horseMachine = LocalHorseRacingMachines[casinoId][entityId]
+    horseMachine.hidden = toggle
+    if toggle then
+        horseMachine.visible = false
+        UnrenderHorseRacingEntity(casinoId, entityId)
+    else
+        local playerCoords = GetEntityCoords(PlayerPedId())
+        if #(playerCoords - horseMachine.coords) <= Config.RenderDistance then
+            horseMachine.visible = true
+            RenderHorseRacingEntity(casinoId, entityId)
+        end
+    end
+end)
+
+RegisterNetEvent("pickle_casinos:refreshCasinoEntity", function(casinoId, entityId)
+    if not LocalHorseRacingMachines[casinoId] then return end
+    if not LocalHorseRacingMachines[casinoId][entityId] then return end
+    local horseMachine = LocalHorseRacingMachines[casinoId][entityId]
+    local casinoEntity = GetCasinoEntity(casinoId, entityId)
+    horseMachine.coords = casinoEntity.settings.location.coords
+    horseMachine.heading = casinoEntity.settings.location.rotation.z
+    if not horseMachine.visible then return end
+    UnrenderHorseRacingEntity(casinoId, entityId)
+    Wait(100)
+    RenderHorseRacingEntity(casinoId, entityId)
 end)
 
 -- Tracks
@@ -392,7 +440,9 @@ function StartHorseRace(trackId, targetWinner)
             SetPedToRagdoll(entity, 5000, 5000, 0, false, false, false)
         end
         if done then break end
-        Wait(0)
+        local gameSpeed = math.floor((8 * (CLIENT_FPS / 60)) - 8)
+        if gameSpeed < 0 then gameSpeed = 0 end
+        Wait(gameSpeed)
     end
     winnerSpeed = -1
     if viewingHorseRacingMenu and CurrentTrack and CurrentTrack.id == trackId then
@@ -455,7 +505,7 @@ end
 
 function ExitHorseTrackView()
     if CurrentTrack then 
-        TriggerServerEvent("pickle_casinos:horseracing:setWager", viewingHorseRacingMenu.casinoId, CurrentTrack.id, "clear")
+        TriggerServerEvent("pickle_casinos:horseracing:setWager", viewingHorseRacingMenu.casinoId, viewingHorseRacingMenu.entityId, CurrentTrack.id, "clear")
     end
     if CurrentTrack then
         LocalHorseRacingTracks[CurrentTrack.id].visible = false
@@ -463,6 +513,7 @@ function ExitHorseTrackView()
         CurrentTrack = nil
     end
     if CurrentCamera then
+        SetFocusEntity(PlayerPedId())
         DestroyCam(CurrentCamera, false)
         RenderScriptCams(false, true, 0, false, false) 
         CurrentCamera = nil
