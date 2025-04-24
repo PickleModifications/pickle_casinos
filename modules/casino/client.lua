@@ -491,6 +491,18 @@ RegisterNUICallback("highlightCasinoEntity", function(data, cb)
     end
 end)
 
+RegisterNetEvent("pickle_casino:updateCasinoBalance", function(casinoId, balance, marked_balance)
+    if not Casinos[casinoId] then return end
+    Casinos[casinoId].balance = balance
+    Casinos[casinoId].marked_balance = marked_balance
+    SendNUIMessage({
+        type = "updateCasinoBalance",
+        casinoId = casinoId,
+        balance = balance,
+        marked_balance = marked_balance,
+    })
+end)
+
 RegisterNetEvent("pickle_casinos:syncCasinos", function(data)
     for k,v in pairs(data) do
         RegisterCasino(k, v)

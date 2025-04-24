@@ -7,6 +7,8 @@ Config.UseTarget = true -- This enables the use of the target system when availa
 Config.WaitingTime = 10 -- Time to wait before starting a round for players to place bets.
 Config.SeatTurnTime = 10 -- Time to wait for players to place bets / decide before moving to the next player.
 Config.UseObjectGizmo = false -- This enables the use of object_gizmo for placing objects. If false, it uses the default movement system.
+Config.MaximumChipPurchaseAmount = 1000000 -- Maximum amount of chips a player can purchase at once.
+
 Config.Chips = {
     {color = "#15803D", value = 1},
     {color = "#C2410C", value = 5},

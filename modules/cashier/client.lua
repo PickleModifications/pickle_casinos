@@ -23,9 +23,59 @@ function CreateCashierEntity(casinoId, entityId)
     RenderCashierEntity(casinoId, entityId)
 end
 
+function OpenCashierExchangeAmountMenu(casinoId, entityId, exchangeType, currency, balances)
+    local options = {}
+    local maxAmount = exchangeType == "buy" and (
+        balances[currency] < Config.MaximumChipPurchaseAmount and balances[currency] or Config.MaximumChipPurchaseAmount
+    ) or (
+        balances.balance > balances.casinoBalance and balances.casinoBalance or balances.balance
+    )
+    if maxAmount <= 0 then
+        SetTimeout(200, function()
+            OpenCashierMenu(casinoId, entityId)
+        end)
+        ShowNotification(_L("cashier_no_money"))
+        return
+    end
+    options[#options + 1] =  {
+        type = 'slider', 
+        label = _L("cashier_".. exchangeType.. "_input"),
+        description = _L("cashier_".. exchangeType.. "_input_desc"), 
+        required = true, 
+        min = 1, 
+        max = maxAmount,
+        icon = "coins"
+    }
+    local input = lib.inputDialog(_L("cashier_"..exchangeType.."_chips"), options)
+    SetTimeout(200, function()
+        OpenCashierMenu(casinoId, entityId)
+    end)
+    if not input or not input[1] then 
+        return 
+    end
+    TriggerServerEvent("pickle_casinos:casinoExchange", casinoId, entityId, exchangeType, currency, input[1])
+end
+
 function OpenCashierExchangeMenu(casinoId, entityId, exchangeType)
+    local casino = Casinos[casinoId]
     ServerCallback("pickle_casinos:getBalances", function(balances)
-        print(json.encode(balances))
+        if exchangeType == "buy" then
+            local options = {}
+            options[#options + 1] = {required = true, type = 'select', label = _L("cashier_buy_currency"), description = _L("cashier_buy_currency_desc"), icon = 'money-bills', default = "money", options = {
+                {label = _L("cashier_buy_currency_cash", casino.settings.moneyExchangeRate .. "%"), value = "money"},
+                {label = _L("cashier_buy_currency_dirty", casino.settings.dirtyExchangeRate .. "%"), value = "dirty"},
+            }}
+            local input = lib.inputDialog(_L("cashier_"..exchangeType.."_chips"), options)
+            if not input or not input[1] then 
+                SetTimeout(200, function()
+                    OpenCashierMenu(casinoId, entityId)
+                end)
+                return 
+            end
+            OpenCashierExchangeAmountMenu(casinoId, entityId, exchangeType, input[1], balances)
+        else
+            OpenCashierExchangeAmountMenu(casinoId, entityId, exchangeType, "money", balances)
+        end
     end, casinoId, entityId)
 end
 
@@ -61,6 +111,7 @@ function OpenCashierMenu(casinoId, entityId)
         options[#options + 1] = {
             title = _L("cashier_vip_owned"),
             description = _L("cashier_vip_desc"),
+            disabled = true,
             icon = 'star',
         }
     end
