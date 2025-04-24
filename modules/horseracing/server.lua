@@ -142,6 +142,10 @@ function GenerateHorses()
     return horses
 end
 
+function UpdateHorseTracks(source)
+    TriggerClientEvent("pickle_casinos:horseracing:updateTracks", source, Tracks)
+end
+
 RegisterNetEvent("pickle_casinos:horseracing:setWager", function(casinoId, entityId, trackId, wager)
     local source = tonumber(source)
     local casino = Casinos[casinoId]
@@ -189,8 +193,6 @@ end)
 CreateThread(function()
     Wait(100)
     InitializeHorseRacingTracks()
-    Wait(1000)
-    TriggerClientEvent("pickle_casinos:horseracing:updateTracks", -1, Tracks)
 end)
 
 RegisterCallback("pickle_casinos:horseracing:getHorseRacingInfo", function(source, cb)

@@ -187,6 +187,8 @@ end)
 
 RegisterNetEvent("pickle_casinos:initializePlayer", function()
     TriggerClientEvent("pickle_casinos:syncCasinos", source, Casinos)
+    UpdateHorseTracks(source)
+    UpdateObjects(source)
 end)
 
 RegisterNetEvent("pickle_casinos:createCasino", function(data)

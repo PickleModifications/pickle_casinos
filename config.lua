@@ -20,6 +20,41 @@ Config.Chips = {
     {color = "#0369A1", value = 1000000},
 }
 
+Config.TargetedModels = { -- These are the models that when scanning with /mapobjects will be added to the map objects list.
+    -- SLOT MACHINES
+    `vw_prop_casino_slot_01a`,
+    `vw_prop_casino_slot_02a`,
+    `vw_prop_casino_slot_03a`,
+    `vw_prop_casino_slot_04a`,
+    `vw_prop_casino_slot_05a`,
+    `vw_prop_casino_slot_06a`,
+    `vw_prop_casino_slot_07a`,
+    `vw_prop_casino_slot_08a`,
+    -- BLACKJACK TABLES
+    `vw_prop_casino_blckjack_01`,
+    `h4_prop_casino_blckjack_01a`,
+    `h4_prop_casino_blckjack_01b`,
+    `h4_prop_casino_blckjack_01c`,
+    `h4_prop_casino_blckjack_01d`,
+    `h4_prop_casino_blckjack_01e`,
+    `vw_prop_casino_blckjack_01b`,
+    -- ROULETTE TABLES
+    `vw_prop_casino_roulette_01`,
+    `vw_prop_casino_roulette_01b`,
+    -- THREE CARD POKER TABLES
+    `vw_prop_casino_3cardpoker_01`,
+    `h4_prop_casino_3cardpoker_01c`,
+    `h4_prop_casino_3cardpoker_01b`,
+    `ch_prop_casino_poker_01a`,
+    `h4_prop_casino_3cardpoker_01e`,
+    `ch_prop_casino_poker_01b`,
+    `h4_prop_casino_3cardpoker_01a`,
+    `h4_prop_casino_3cardpoker_01d`,
+    -- WHEEL
+    `vw_prop_vw_luckywheel_01a`,
+    `vw_prop_vw_luckywheel_02a`,
+}
+
 Config.CreatorOptions = {
      -- MODELS MUST BE `MODEL_NAME` NOT "MODEL_NAME"
     dealerModels = {

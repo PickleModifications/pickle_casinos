@@ -25,6 +25,10 @@ function GetMapObjectFromData(model, coords, rotation)
     end
 end
 
+function UpdateObjects(source)
+    TriggerClientEvent("pickle_casinos:objects:updateMapObjects", -1, MapObjects)
+end
+
 RegisterNetEvent("pickle_casinos:objects:toggleMapObject", function(model, coords, rotation)
     local objectId, objectData = GetMapObjectFromData(model, coords, rotation)
     if objectId then
@@ -46,6 +50,28 @@ RegisterNetEvent("pickle_casinos:objects:toggleMapObject", function(model, coord
     end
 end)
 
+RegisterNetEvent("pickle_casinos:objects:addMapObjects", function(objects)
+    for i=1, #objects do 
+        local model = objects[i].model
+        local coords = objects[i].coords
+        local rotation = objects[i].rotation
+        local objectId, objectData = GetMapObjectFromData(model, coords, rotation)
+        if not objectId then
+            local objectId
+            repeat
+                objectId = math.random(1, 999999) .. "_" .. math.random(1, 999999)
+            until not MapObjects[objectId]
+            MapObjects[objectId] = {
+                model = model,
+                coords = vector3(coords.x, coords.y, coords.z),
+                rotation = vector3(rotation.x, rotation.y, rotation.z),
+            }
+        end
+    end
+    UpdateMapObjects()
+    TriggerClientEvent("pickle_casinos:objects:updateMapObjects", -1, MapObjects)
+end)
+
 RegisterCommand("mapobjects", function(source, args, rawCommand)
     PlayersEditing[source] = not PlayersEditing[source]
     TriggerClientEvent("pickle_casinos:objects:toggleMapMode", source, MapObjects, PlayersEditing[source])
@@ -53,7 +79,4 @@ end, false)
 
 CreateThread(function()
     InitializeMapObjects()
-    Wait(2000)
-    TriggerClientEvent("pickle_casinos:objects:updateMapObjects", -1, MapObjects)
-    TriggerClientEvent("pickle_casinos:objects:startMapMode", -1, MapObjects)
 end)
