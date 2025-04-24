@@ -214,10 +214,7 @@ function RenderBlackjackEntity(casinoId, entityId)
     FreezeEntityPosition(surfaceObject, true)
     SetEntityHeading(surfaceObject, heading)
     local dealerCoords = GetOffsetFromEntityInWorldCoords(surfaceObject, 0.0, 0.75, 0.03)
-    local dealerPed = CreateNPC(casinoEntity.settings.dealerModel, dealerCoords, heading + 180.0, false, false)
-    SetEntityInvincible(dealerPed, true)
-    SetBlockingOfNonTemporaryEvents(dealerPed, true)
-    FreezeEntityPosition(dealerPed, true)
+    local dealerPed = CreateDealerPed(casinoEntity.settings.dealerModel, dealerCoords, heading + 180.0)
     localBlackjackTable.dealerPed = dealerPed
     localBlackjackTable.tableObject = tableObject
     localBlackjackTable.surfaceObject = surfaceObject

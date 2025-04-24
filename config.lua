@@ -59,14 +59,112 @@ Config.CreatorOptions = {
      -- MODELS MUST BE `MODEL_NAME` NOT "MODEL_NAME"
     dealerModels = {
         {
-            label = "Dealer #1", 
+            label = "Male Dealer #1", 
             model = `s_m_y_casino_01`,
-            pedComponents = {}
+            pedComponents = {
+                {id = 0, drawable = 3, texture = 0}, -- Head
+                {id = 1, drawable = 1, texture = 0}, -- Beard
+                {id = 2, drawable = 3, texture = 0}, -- Hair   
+                {id = 3, drawable = 1, texture = 0}, -- Upper
+                {id = 4, drawable = 0, texture = 0}, -- Lower
+                {id = 5, drawable = 0, texture = 0}, -- Hand
+                {id = 6, drawable = 1, texture = 0}, -- Feet
+                {id = 7, drawable = 2, texture = 0}, -- Teeth
+                {id = 8, drawable = 3, texture = 0}, -- Accessories
+                {id = 9, drawable = 0, texture = 0}, -- Task
+                {id = 10, drawable = 1, texture = 0}, -- Decals
+                {id = 11, drawable = 1, texture = 0}, -- Torso
+            }
         },
         {
-            label = "Dealer #2", 
+            label = "Male Dealer #2", 
+            model = `s_m_y_casino_01`,
+            pedComponents = {
+                {id = 0, drawable = 2, texture = 0}, -- Head
+                {id = 1, drawable = 1, texture = 0}, -- Beard
+                {id = 2, drawable = 4, texture = 0}, -- Hair   
+                {id = 3, drawable = 0, texture = 0}, -- Upper
+                {id = 4, drawable = 0, texture = 0}, -- Lower
+                {id = 5, drawable = 0, texture = 0}, -- Hand
+                {id = 6, drawable = 1, texture = 0}, -- Feet
+                {id = 7, drawable = 2, texture = 0}, -- Teeth
+                {id = 8, drawable = 1, texture = 0}, -- Accessories
+                {id = 9, drawable = 0, texture = 0}, -- Task
+                {id = 10, drawable = 1, texture = 0}, -- Decals
+                {id = 11, drawable = 1, texture = 0}, -- Torso
+            }
+        },
+        {
+            label = "Male Dealer #3", 
+            model = `s_m_y_casino_01`,
+            pedComponents = {
+                {id = 0, drawable = 0, texture = 0}, -- Head
+                {id = 1, drawable = 0, texture = 0}, -- Beard
+                {id = 2, drawable = 0, texture = 0}, -- Hair   
+                {id = 3, drawable = 0, texture = 0}, -- Upper
+                {id = 4, drawable = 0, texture = 0}, -- Lower
+                {id = 5, drawable = 0, texture = 0}, -- Hand
+                {id = 6, drawable = 0, texture = 0}, -- Feet
+                {id = 7, drawable = 0, texture = 0}, -- Teeth
+                {id = 8, drawable = 0, texture = 0}, -- Accessories
+                {id = 9, drawable = 0, texture = 0}, -- Task
+                {id = 10, drawable = 0, texture = 0}, -- Decals
+                {id = 11, drawable = 0, texture = 0}, -- Torso
+            }
+        },
+        {
+            label = "Female Dealer #1", 
             model = `s_f_y_casino_01`,
-            pedComponents = {}
+            pedComponents = {
+                {id = 0, drawable = 3, texture = 0}, -- Head
+                {id = 1, drawable = 0, texture = 0}, -- Beard
+                {id = 2, drawable = 3, texture = 0}, -- Hair   
+                {id = 3, drawable = 0, texture = 0}, -- Upper
+                {id = 4, drawable = 1, texture = 0}, -- Lower
+                -- {id = 5, drawable = 1, texture = 0}, -- Hand
+                {id = 6, drawable = 1, texture = 0}, -- Feet
+                {id = 7, drawable = 1, texture = 0}, -- Teeth
+                {id = 8, drawable = 0, texture = 0}, -- Accessories
+                -- {id = 9, drawable = 0, texture = 0}, -- Task
+                {id = 10, drawable = 0, texture = 0}, -- Decals
+                {id = 11, drawable = 0, texture = 0}, -- Torso
+            }
+        },
+        {
+            label = "Female Dealer #2", 
+            model = `s_f_y_casino_01`,
+            pedComponents = {
+                {id = 0, drawable = 2, texture = 0}, -- Head
+                {id = 1, drawable = 0, texture = 0}, -- Beard
+                {id = 2, drawable = 2, texture = 0}, -- Hair   
+                {id = 3, drawable = 3, texture = 0}, -- Upper
+                {id = 4, drawable = 1, texture = 0}, -- Lower
+                -- {id = 5, drawable = 0, texture = 0}, -- Hand
+                {id = 6, drawable = 1, texture = 0}, -- Feet
+                {id = 7, drawable = 2, texture = 0}, -- Teeth
+                {id = 8, drawable = 3, texture = 0}, -- Accessories
+                -- {id = 9, drawable = 0, texture = 0}, -- Task
+                {id = 10, drawable = 0, texture = 0}, -- Decals
+                {id = 11, drawable = 0, texture = 0}, -- Torso
+            }
+        },
+        {
+            label = "Female Dealer #3", 
+            model = `s_f_y_casino_01`,
+            pedComponents = {
+                {id = 0, drawable = 0, texture = 0}, -- Head
+                {id = 1, drawable = 0, texture = 0}, -- Beard
+                {id = 2, drawable = 0, texture = 0}, -- Hair   
+                {id = 3, drawable = 0, texture = 0}, -- Upper
+                {id = 4, drawable = 0, texture = 0}, -- Lower
+                {id = 5, drawable = 0, texture = 0}, -- Hand
+                {id = 6, drawable = 0, texture = 0}, -- Feet
+                {id = 7, drawable = 0, texture = 0}, -- Teeth
+                {id = 8, drawable = 0, texture = 0}, -- Accessories
+                {id = 9, drawable = 0, texture = 0}, -- Task
+                {id = 10, drawable = 0, texture = 0}, -- Decals
+                {id = 11, drawable = 0, texture = 0}, -- Torso
+            }
         },
     },
     blackjack = {

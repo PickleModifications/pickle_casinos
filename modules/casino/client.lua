@@ -32,6 +32,8 @@ function CreateCasinoEntity(casinoId, entityId)
         CreateWheelEntity(casinoId, entityId)
     elseif casinoEntity.type == "horseracing" then
         CreateHorseRacingEntity(casinoId, entityId)
+    elseif casinoEntity.type == "cashier" then
+        CreateCashierEntity(casinoId, entityId)
     end
 end
 
@@ -50,7 +52,6 @@ function UpdateCasinoEntity(casinoId, entity)
     if not casino then return end
     local casinoEntity, index = GetCasinoEntity(casinoId, entity.id)
     if not casinoEntity then return end
-    print("Updating casino entity", casinoId, entity.id, index)
     casino.entities[index] = entity
 end
 
@@ -124,53 +125,55 @@ function GenerateGameSettingsUI()
             value = k,
         })
     end
-    local modelToOptions = function(models)
+    local modelToOptions = function(models, isDealerModel)
         local options = {}
         for i=1, #models do
             table.insert(options, {
                 label = models[i].label,
-                value = models[i].model,
+                value = isDealerModel and i or models[i].model,
             })
         end
         return options
     end
     return {
         ["blackjack"] = {
-            {variable = "dealerModel", type = "dropdown", label = "Dealer Ped", default = Config.CreatorOptions.dealerModels[1].model, options = modelToOptions(Config.CreatorOptions.dealerModels)},
-            {variable = "tableModel", type = "dropdown", label = "Table Prop", default = Config.CreatorOptions.blackjack.tableModels[1].model, options = modelToOptions(Config.CreatorOptions.blackjack.tableModels)},
-            {variable = "maxWager", type = "money", default = 100, min = 100, label = "Max Wager"},
+            {variable = "dealerModel", type = "dropdown", label = _L("dealer_model"), default = 1, options = modelToOptions(Config.CreatorOptions.dealerModels, true)},
+            {variable = "tableModel", type = "dropdown", label = _L("table_model"), default = Config.CreatorOptions.blackjack.tableModels[1].model, options = modelToOptions(Config.CreatorOptions.blackjack.tableModels)},
+            {variable = "maxWager", type = "money", default = 100, min = 100, label = _L("max_wager")},
         },
         ["roulette"] = {
-            {variable = "dealerModel", type = "dropdown", label = "Dealer Ped", default = Config.CreatorOptions.dealerModels[1].model, options = modelToOptions(Config.CreatorOptions.dealerModels)},
-            {variable = "tableModel", type = "dropdown", label = "Table Prop", default = Config.CreatorOptions.roulette.tableModels[1].model, options = modelToOptions(Config.CreatorOptions.roulette.tableModels)},
-            {variable = "maxWager", type = "money", default = 100, min = 100, label = "Max Wager"},
+            {variable = "dealerModel", type = "dropdown", label = _L("dealer_model"), default = 1, options = modelToOptions(Config.CreatorOptions.dealerModels, true)},
+            {variable = "tableModel", type = "dropdown", label = _L("table_model"), default = Config.CreatorOptions.roulette.tableModels[1].model, options = modelToOptions(Config.CreatorOptions.roulette.tableModels)},
+            {variable = "maxWager", type = "money", default = 100, min = 100, label = _L("max_wager")},
         },
         ["baccarat"] = {
-            {variable = "dealerModel", type = "dropdown", label = "Dealer Ped", default = Config.CreatorOptions.dealerModels[1].model, options = modelToOptions(Config.CreatorOptions.dealerModels)},
-            {variable = "tableModel", type = "dropdown", label = "Table Prop", default = Config.CreatorOptions.baccarat.tableModels[1].model, options = modelToOptions(Config.CreatorOptions.baccarat.tableModels)},
-            {variable = "maxWager", type = "money", default = 100, min = 100, label = "Max Wager"},        
+            {variable = "dealerModel", type = "dropdown", label = _L("dealer_model"), default = 1, options = modelToOptions(Config.CreatorOptions.dealerModels, true)},
+            {variable = "tableModel", type = "dropdown", label = _L("table_model"), default = Config.CreatorOptions.baccarat.tableModels[1].model, options = modelToOptions(Config.CreatorOptions.baccarat.tableModels)},
+            {variable = "maxWager", type = "money", default = 100, min = 100, label = _L("max_wager")},        
         },
         ["wheel"] = {
-            {variable = "maxWager", type = "money", default = 100, min = 100, label = "Max Wager"},
+            {variable = "maxWager", type = "money", default = 100, min = 100, label = _L("max_wager")},
         },
         ["horseracing"] = {
-            {variable = "maxWager", type = "money", default = 100, min = 100, label = "Max Wager"},
+            {variable = "maxWager", type = "money", default = 100, min = 100, label = _L("max_wager")},
         },
         ["slot"] = {
             {variable = "game", type = "dropdown", label = "Game", default = slotOptions[1].value, options = slotOptions},
-            {variable = "maxWager", type = "money", default = 100, min = 100, label = "Max Wager"},
+            {variable = "maxWager", type = "money", default = 100, min = 100, label = _L("max_wager")},
         },
         ["poker"] = {
-            {variable = "dealerModel", type = "dropdown", label = "Dealer Ped", default = Config.CreatorOptions.dealerModels[1].model, options = modelToOptions(Config.CreatorOptions.dealerModels)},
-            {variable = "tableModel", type = "dropdown", label = "Table Prop", default = Config.CreatorOptions.poker.tableModels[1].model, options = modelToOptions(Config.CreatorOptions.poker.tableModels)},
-            {variable = "smallBlind", type = "money", default = 10, min = 10, label = "Small Blind"},
-            {variable = "bigBlind", type = "money", default = 15, min = 15, label = "Big Blind"},
+            {variable = "dealerModel", type = "dropdown", label = _L("dealer_model"), default = 1, options = modelToOptions(Config.CreatorOptions.dealerModels, true)},
+            {variable = "tableModel", type = "dropdown", label = _L("table_model"), default = Config.CreatorOptions.poker.tableModels[1].model, options = modelToOptions(Config.CreatorOptions.poker.tableModels)},
+            {variable = "smallBlind", type = "money", default = 10, min = 10, label = _L("poker_smallblind")},
+            {variable = "bigBlind", type = "money", default = 15, min = 15, label = _L("poker_bigblind")},
         },
+        ["cashier"] = {
+            {variable = "dealerModel", type = "dropdown", label = _L("cashier_model"), default = 1, options = modelToOptions(Config.CreatorOptions.dealerModels, true)},
+        }
     }
 end
 
 function CreateCurrentCasinoEntity(coords, rotation, data)
-    print("CREATING OBJ", coords, rotation, json.encode(data, {indent = true}))
     if CurrentCasinoEntity then
         DeleteScriptObject(CurrentCasinoEntity.object)
         CurrentCasinoEntity = nil
@@ -193,6 +196,11 @@ function CreateCurrentCasinoEntity(coords, rotation, data)
             model = `vw_prop_vw_luckywheel_01a`
         elseif entityType == "horseracing" then
             model = Config.HorseRacing.machineModel
+        elseif entityType == "cashier" then
+            CurrentCasinoEntity.object = CreateDealerPed(data.info.settings.dealerModel, coords, rotation.z)
+            return
+        else
+            model = Config.CreatorOptions[entityType].tableModels[1].model
         end
     end
     CurrentCasinoEntity.object = CreateProp(model, coords.x, coords.y, coords.z, false, false, false)
@@ -219,9 +227,6 @@ end
 
 function RegisterCasino(casinoId, data)
     Casinos[casinoId] = data
-    for k,v in pairs(data) do 
-        print(k, v)
-    end
     for i=1, #Casinos[casinoId].entities do
         CreateCasinoEntity(casinoId, Casinos[casinoId].entities[i].id)
     end
@@ -255,6 +260,24 @@ function ExitCasinoManagement()
         type = "setManagementInfo",
         info = nil,
     })
+end
+
+function CreateDealerPed(dealerIndex, coords, heading)
+    local dealerCfg = Config.CreatorOptions.dealerModels[dealerIndex]
+    if not dealerCfg then 
+        dealerCfg = Config.CreatorOptions.dealerModels[1]
+    end
+    local ped = CreateNPC(dealerCfg.model, coords.x, coords.y, coords.z, heading, false, false)
+    SetEntityHeading(ped, heading)
+    SetEntityInvincible(ped, true)
+    SetBlockingOfNonTemporaryEvents(ped, true)
+    FreezeEntityPosition(ped, true)
+    SetPedDefaultComponentVariation(ped)
+    local components = dealerCfg.pedComponents
+    for i=1, #components do
+        SetPedComponentVariation(ped, components[i].id, components[i].drawable, components[i].texture, 0)
+    end
+    return ped
 end
 
 RegisterNUICallback("openCasinoEditor", function(data, cb)
@@ -353,13 +376,23 @@ RegisterNUICallback("editLocation", function(data, cb)
             }
         })
     else
+        local zOffset = 0.0
         if data.info.entityId then 
+            local casinoEntity = GetCasinoEntity(data.info.casinoId, data.info.entityId)
+            if not casinoEntity then return end
+            if casinoEntity.type == "poker" then
+                zOffset = 0.185
+            end
             TriggerEvent("pickle_casinos:setCasinoEntityHidden", data.info.casinoId, data.info.entityId, true)
+        end
+        if data.info.entityType == "poker" then
+            zOffset = 0.185
         end
         if not CurrentCasinoEntity or CurrentCasinoEntity.entityType ~= data.info.entityType then
             CreateCurrentCasinoEntity(coords, rotation, data)
         end
         local result = StartGizmoEditor({entity = CurrentCasinoEntity.object, coords = coords, rotation = rotation})
+        result.position = result.position + vector3(0.0, 0.0, zOffset)
         SendNUIMessage({
             type = "setLocation",
             location = {
@@ -565,6 +598,8 @@ RegisterNetEvent("pickle_casinos:deleteCasino", function(casinoId)
             DeleteWheelEntity(casinoId, entity.id)
         elseif entity.type == "horseracing" then
             DeleteHorseRacingEntity(casinoId, entity.id)
+        elseif entity.type == "cashier" then
+            DeleteCashierEntity(casinoId, entity.id)
         end
         if LocalCasinos[casinoId].interact then
             DeleteInteraction(LocalCasinos[casinoId].interact)

@@ -25,6 +25,8 @@ function InitializeCasinoEntity(casinoId, entity, dataOnly)
         entity = InitializeWheelEntity(casinoId, entity, dataOnly)
     elseif entity.type == "horseracing" then
         entity = InitializeHorseRacingEntity(casinoId, entity, dataOnly)
+    elseif entity.type == "cashier" then
+        entity = InitializeCashierEntity(casinoId, entity, dataOnly)
     end
     return entity
 end
@@ -159,6 +161,9 @@ function EnsureGameSettings(entityType, settings)
         defaultSettings["tableModel"] = settings.tableModel
         defaultSettings["dealerModel"] = settings.dealerModel
     end
+    if entityType == "cashier" then
+        defaultSettings["dealerModel"] = settings.dealerModel
+    end
     if entityType == "slot" then
         defaultSettings["game"] = settings.game
     end
@@ -241,8 +246,9 @@ RegisterNetEvent("pickle_casinos:updateCasinoSetting", function(casinoId, variab
     elseif variable == "dirtyExchangeRate" then
         casino.settings.dirtyExchangeRate = tonumber(value) or 75
     end
+    casino.settings = EnsureCasinoSettings(casino.settings)
     MySQL.Async.execute('UPDATE `pickle_casinos` SET settings = ? WHERE id = ?', {json.encode(casino.settings), casinoId})
-    TriggerClientEvent("pickle_casinos:updateCasinoSetting", -1, casinoId, variable, value)
+    TriggerClientEvent("pickle_casinos:updateCasinoSetting", -1, casinoId, variable, casino.settings[variable])
 end)
 
 RegisterNetEvent("pickle_casinos:createCasinoEntity", function(casinoId, entityType, settings)

@@ -1,5 +1,22 @@
 local LocalSlotMachines = {}
 local CurrentSlotMachine = nil
+local CurrentCamera
+
+function EnsureSlotCamera()
+    if not CurrentCamera then
+        local initialCamSettings = {
+            coords = GetGameplayCamCoord(),
+            rotation = GetGameplayCamRot(),
+            fov = GetGameplayCamFov(),
+        }
+        CurrentCamera = CreateCamWithParams("DEFAULT_SCRIPTED_CAMERA", 
+            initialCamSettings.coords.x, initialCamSettings.coords.y, initialCamSettings.coords.z, 
+            initialCamSettings.rotation.x, initialCamSettings.rotation.y, initialCamSettings.rotation.z, initialCamSettings.fov
+        )
+        SetCamActive(CurrentCamera, true)
+        RenderScriptCams(true, false, 0, true, true)
+    end
+end
 
 function DoesSlotEntityExist(casinoId, entityId) 
     return LocalSlotMachines[casinoId] and LocalSlotMachines[casinoId][entityId]
@@ -18,9 +35,23 @@ function GetSlotStructure()
     return slotStructure
 end
 
+function PlaySlotAnimation(ped, animation, data)
+    playingSlotAnimation = true
+    SetTimeout((data and data.time) or 1000, function()
+        playingSlotAnimation = false
+    end)
+    local surfaceObject = LocalSlotMachines[CurrentSlotMachine.casinoId][CurrentSlotMachine.entityId].slotObject
+    local coords = GetOffsetFromEntityInWorldCoords(surfaceObject, 0.0, -0.75, 0.0275)
+    local rotation = GetEntityRotation(surfaceObject) + vector3(0.0, 0.0, 90.0)
+    local netScene = NetworkCreateSynchronisedScene(coords.x, coords.y, coords.z, rotation.x, rotation.y, rotation.z, 2, 1, 0, 1065353216, 0, 1065353216)
+    NetworkAddPedToSynchronisedScene(ped, netScene, animation.dict, animation.name, 2.0, -2.0, 13, 16, 2.0, 0) -- 8.0, -1.5, 157, 16, 1148846080, 0) ?
+    NetworkStartSynchronisedScene(netScene)
+end
+
 function AttemptSeatAtSlotEntity(casinoId, entityId)
     ServerCallback("pickle_casinos:slots:requestSeat", function(seatId, entityInfo)
         if not seatId then return end
+        local localSlotMachine = LocalSlotMachines[casinoId][entityId]
         CurrentSlotMachine = {
             casinoId = casinoId,
             entityId = entityId,
@@ -32,15 +63,26 @@ function AttemptSeatAtSlotEntity(casinoId, entityId)
         local casinoId = CurrentSlotMachine.casinoId
         local entityId = CurrentSlotMachine.entityId
         local seatId = CurrentSlotMachine.seatId
-        local slotStructure = GetSlotStructure()
-        SetNuiFocus(true, true)
-        SendNUIMessage({
-            type = "setCurrentGame",
-            game = {
-                type = "slot",
-                data = slotStructure
-            }
-        })
+        local playerPed = PlayerPedId()
+        local camCoords = GetOffsetFromEntityInWorldCoords(localSlotMachine.slotObject, 0.0, -0.5, 1.3)
+        EnsureSlotCamera()
+        SetCamParams(CurrentCamera, camCoords.x, camCoords.y, camCoords.z,
+            -20.0, 0.0, localSlotMachine.heading, 65.0, 
+            2000, 0, 0, 2
+        )
+        PlaySlotAnimation(playerPed, {dict = "anim_casino_b@amb@casino@games@shared@player@", name = "sit_enter_left"}, {time = 6000})
+        SetTimeout(2000, function()
+            local slotStructure = GetSlotStructure()
+            if not slotStructure then return end
+            SetNuiFocus(true, true)
+            SendNUIMessage({
+                type = "setCurrentGame",
+                game = {
+                    type = "slot",
+                    data = slotStructure
+                }
+            })
+        end)
     end, casinoId, entityId)
 end
 
@@ -90,6 +132,10 @@ function UnrenderSlotEntity(casinoId, entityId)
     if slotEntity.slotObject then
         DeleteObject(slotEntity.slotObject)
     end
+    if slotEntity.interact then
+        DeleteInteraction(slotEntity.interact)
+    end
+    slotEntity.interact = nil
     slotEntity.slotObject = nil
 end
 
@@ -186,7 +232,15 @@ end)
 
 AddEventHandler("pickle_casinos:exitGame", function()
     if not CurrentSlotMachine then return end
+    local playerPed = PlayerPedId()
+    PlaySlotAnimation(playerPed, {dict = "anim_casino_b@amb@casino@games@shared@player@", name = "sit_exit_left"}, {time = 4000})
     TriggerServerEvent("pickle_casinos:slots:leaveSlotMachine")
+    SetTimeout(4000, function()
+        ClearPedTasks(playerPed)
+    end)
+    DestroyCam(CurrentCamera)
+    RenderScriptCams(false, true, 2000, false, false) 
+    CurrentCamera = nil
     CurrentSlotMachine = nil
 end)
 
