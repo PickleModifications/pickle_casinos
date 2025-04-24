@@ -3,9 +3,8 @@ CLIENT_FPS = 60
 CurrentCasinoEntity = nil
 LOCAL_MONEY = 0
 local isEditing = false
-local inGizmo = false
 local gizmoEntity = nil
-
+local LocalCasinos = {}
 CreateThread(function()
     while true do 
         local startCount = GetFrameCount()
@@ -81,13 +80,14 @@ function SetEntitySmoothRotation(entity, from, to, speed)
     end)
 end
 
-function StartCasinoEditor()
+function StartCasinoEditor(casinoId)
     if isEditing then return end
     isEditing = true
     SetEditorFocus(true)
     SendNUIMessage({
         type = "openCasinoEditor",
         casinos = CasinosArrayUI(),
+        casinoId = casinoId,
     })
     CreateThread(function()
         while isEditing do 
@@ -100,27 +100,12 @@ function StartCasinoEditor()
     end)
 end
 
-function StartGizmoEditor(data)
-    inGizmo = true
-    local ped = PlayerPedId()
-    local coords = data.coords or (GetEntityCoords(ped) + GetEntityForwardVector(ped) * 3)
-    local rotation = data.rotation or vector3(0.0, 0.0, GetEntityHeading(ped))
-    if data.entity then
-        SetEntityCoords(data.entity, coords.x, coords.y, coords.z, false, false, false, false)
-        SetEntityRotation(data.entity, rotation.x, rotation.y, rotation.z, 2, true)
-        local result = exports.object_gizmo:useGizmo(data.entity)
-        inGizmo = false
-        return result
-    else
-        gizmoEntity = CreateProp(data.model, coords.x, coords.y, coords.z, false, false, false)
-        SetEntityRotation(gizmoEntity, rotation.x, rotation.y, rotation.z, 2, true)
-        SetEntityCollision(gizmoEntity, false, false)
-        local result = exports.object_gizmo:useGizmo(gizmoEntity)
-        DeleteScriptObject(gizmoEntity)
-        gizmoEntity = nil
-        inGizmo = false
-        return result
-    end
+function StopCasinoEditor()
+    isEditing = false
+    SetEditorFocus(false)
+    SendNUIMessage({
+        type = "closeCasinoEditor",
+    })
 end
 
 function CasinosArrayUI()
@@ -222,6 +207,81 @@ function SetEditorFocus(toggle)
     })
 end
 
+function CreateCasinoInteract(casinoId)
+    return CreateInteraction({
+        label = _L("interact_casino_manage"),
+        coords = Casinos[casinoId].settings.location.coords,
+        heading = Casinos[casinoId].settings.location.rotation.z,
+    }, function(selected)
+        StartCasinoManagement(casinoId)
+    end)
+end
+
+function RegisterCasino(casinoId, data)
+    Casinos[casinoId] = data
+    for k,v in pairs(data) do 
+        print(k, v)
+    end
+    for i=1, #Casinos[casinoId].entities do
+        CreateCasinoEntity(casinoId, Casinos[casinoId].entities[i].id)
+    end
+    LocalCasinos[casinoId] = {
+        location = Casinos[casinoId].settings.location,
+        interact = CreateCasinoInteract(casinoId),
+    }
+end
+
+function StartCasinoManagement(casinoId)
+    if isEditing then return end
+    local casino = Casinos[casinoId]
+    if not casino then return end
+    CurrentCasinoManagement = {casinoId = casinoId}
+    SendNUIMessage({
+        type = "setManagementInfo",
+        info = {
+            casinoId = casinoId,
+            balance = casino.balance,
+            marked_balance = casino.marked_balance,
+            transactions = casino.transactions,
+        }
+    })
+    SetNuiFocus(true, true)
+end
+
+function ExitCasinoManagement()
+    CurrentCasinoManagement = nil
+    SetNuiFocus(false, false)
+    SendNUIMessage({
+        type = "setManagementInfo",
+        info = nil,
+    })
+end
+
+RegisterNUICallback("openCasinoEditor", function(data, cb)
+    ExitCasinoManagement()
+    StartCasinoEditor(data.casinoId)
+end)
+
+RegisterNUICallback("startCasinoTransfer", function(data, cb)
+    if not CurrentCasinoManagement then return end
+    TriggerServerEvent("pickle_casinos:startCasinoTransfer", CurrentCasinoManagement.casinoId, {
+        type = data.type,
+        balanceType = data.balanceType,
+        amount = data.amount,
+    })
+    cb("ok")
+end)
+
+RegisterNUICallback("exitManagement", function(data, cb)
+    ExitCasinoManagement()
+    cb("ok")
+end)
+
+RegisterNUICallback("exitCasinoEditor", function(data, cb)
+    StopCasinoEditor()
+    cb("ok")
+end)
+
 RegisterNUICallback("disableEditorFocus", function(data, cb)
     SetEditorFocus(false)
     cb("ok")
@@ -235,7 +295,8 @@ RegisterNUICallback("pageLoaded", function(data, cb)
             currency = "USD",
             countryCode = "en-US",
             bonusWheelMultipliers = GenerateWheelBonusConfig(),
-            gameSettings = GenerateGameSettingsUI()
+            gameSettings = GenerateGameSettingsUI(),
+            locale = Language[Config.Language],
         }
     })
     TriggerServerEvent("pickle_casinos:initializePlayer")
@@ -399,10 +460,11 @@ end)
 
 RegisterNetEvent("pickle_casinos:syncCasinos", function(data)
     for k,v in pairs(data) do
-        Casinos[k] = v
-        for i=1, #v.entities do
-            CreateCasinoEntity(k, v.entities[i].id)
-        end
+        RegisterCasino(k, v)
+        -- Casinos[k] = v
+        -- for i=1, #v.entities do
+        --     CreateCasinoEntity(k, v.entities[i].id)
+        -- end
     end
     SendNUIMessage({
         type = "updateCasinos",
@@ -442,6 +504,11 @@ RegisterNetEvent("pickle_casinos:updateCasinoSetting", function(casinoId, variab
     local casino = Casinos[casinoId]
     if not casino then return end
     casino.settings[variable] = value
+    if LocalCasinos[casinoId] then
+        LocalCasinos[casinoId].location = casino.settings.location
+        DeleteInteraction(LocalCasinos[casinoId].interact)
+        LocalCasinos[casinoId].interact = CreateCasinoInteract(casinoId)
+    end
     SendNUIMessage({
         type = "updateCasinoSetting",
         casinoId = casinoId,
@@ -482,6 +549,27 @@ end)
 RegisterNetEvent("pickle_casinos:deleteCasino", function(casinoId)
     local casino = Casinos[casinoId]
     if not casino then return end
+    for i=1, #Casinos[casinoId].entities do 
+        local entity = Casinos[casinoId].entities[i]
+        if entity.type == "blackjack" then
+            DeleteBlackjackEntity(casinoId, entity.id)
+        elseif entity.type == "roulette" then
+            DeleteRouletteEntity(casinoId, entity.id)
+        elseif entity.type == "baccarat" then
+            DeleteBaccaratEntity(casinoId, entity.id)
+        elseif entity.type == "slot" then
+            DeleteSlotEntity(casinoId, entity.id)
+        elseif entity.type == "poker" then
+            DeletePokerEntity(casinoId, entity.id)
+        elseif entity.type == "wheel" then
+            DeleteWheelEntity(casinoId, entity.id)
+        elseif entity.type == "horseracing" then
+            DeleteHorseRacingEntity(casinoId, entity.id)
+        end
+        if LocalCasinos[casinoId].interact then
+            DeleteInteraction(LocalCasinos[casinoId].interact)
+        end
+    end
     Casinos[casinoId] = nil
     SendNUIMessage({
         type = "updateCasinos",
@@ -490,10 +578,7 @@ RegisterNetEvent("pickle_casinos:deleteCasino", function(casinoId)
 end)
 
 RegisterNetEvent("pickle_casinos:registerCasino", function(casinoId, data)
-    Casinos[casinoId] = data
-    for i=1, #Casinos[casinoId].entities do
-        CreateCasinoEntity(casinoId, Casinos[casinoId].entities[i].id)
-    end
+    RegisterCasino(casinoId, data)
     SendNUIMessage({
         type = "updateCasinos",
         casinos = CasinosArrayUI(),

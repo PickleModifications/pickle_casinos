@@ -74,7 +74,7 @@ function RenderHorseRacingEntity(casinoId, entityId)
     local localHorseRacingMachine = LocalHorseRacingMachines[casinoId][entityId]
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
     if not localHorseRacingMachine.visible or not casinoEntity then return end
-    local coords = casinoEntity.settings.location.coords
+    local coords = casinoEntity.settings.location.coords - vector3(0.0, 0.0, 0.075)
     local heading = casinoEntity.settings.location.rotation.z
     local machineObject = CreateProp(Config.HorseRacing.machineModel, coords.x, coords.y, coords.z, false, false, false)
     SetEntityRotation(machineObject, 0.0, 0.0, heading, 2, true)

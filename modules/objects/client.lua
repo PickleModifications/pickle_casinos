@@ -28,8 +28,8 @@ function EnsureMapObjectsRemoved()
                 local objectCoords = GetEntityCoords(object)
                 if #(objectCoords - v.coords) < 0.5 and not TransparentObjects[k] and not IsEntityScriptObject(object) then
                     SetEntityAsMissionEntity(object)
-                    SetEntityCoords(object, v.coords.x, v.coords.y, v.coords.z - 1000.0)
-                    print("DELETE OBJ", object, v.coords)
+                    SetEntityCollision(object, false, false)
+                    SetEntityVisible(object, false, false)
                 end
             end
         end

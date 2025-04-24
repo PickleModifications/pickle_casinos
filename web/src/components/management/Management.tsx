@@ -5,6 +5,8 @@ import { useConfig } from "@/providers/config";
 import { Button } from "../ui/button";
 import { Translate } from "@/providers/locale/Locale";
 import { Settings } from "lucide-react";
+import { useNuiEvent } from "@/providers/nui/useNui";
+import { fetchNui } from "@/providers/nui/fetchNui";
 
 const DEFAULT_CASINO_BALANCE = {
     money: 0,
@@ -17,7 +19,6 @@ type CasinoBalance = {
 }
 
 type CasinoTransaction = {
-    id: number;
     origin: {
         identifier: string;
         name: string;
@@ -44,14 +45,14 @@ function DisplayTransactions({transactions} : {transactions: CasinoTransaction[]
     return (
         <div className="p-1 bg-background/50 max-h-[310px] relative rounded-lg">
             <div className="flex flex-col gap-2 h-full overflow-y-auto p-2">
-                {transactions.map((transaction) => (
-                    <div key={transaction.id} className="gap-2">
+                {transactions.map((transaction, index) => (
+                    <div key={index} className="gap-2">
                         <div className="flex flex-row justify-between items-center w-full">
                             <div className="text-sm font-bold">{transaction.origin.name}</div>
-                            <div className="text-sm font-bold"><DisplayCurrency value={transaction.amount} /></div>
+                            <div className="text-sm font-bold"><DisplayCurrency value={transaction.amount * (transaction.type == "withdraw" ? -1 : 1)} /></div>
                         </div>
                         <div className="flex flex-row justify-between items-center w-full">
-                        <div className="text-xs text-muted-foreground">{new Date(transaction.datetime).toLocaleString()}</div>
+                        <div className="text-xs text-muted-foreground">{new Date(transaction.datetime * 1000).toLocaleString()}</div>
                         <div className="text-xs text-muted-foreground"><Translate id={"casino_manage_" + transaction.type}/></div>
                         </div>
                     </div>
@@ -61,7 +62,7 @@ function DisplayTransactions({transactions} : {transactions: CasinoTransaction[]
     )
 }
 
-function DisplaySettings({settings} : {settings: CasinoSettings}) {
+function DisplaySettings({casinoId, settings} : {casinoId: number, settings: CasinoSettings}) {
     const [settingsState, setSettingsState] = useState<CasinoSettings>(settings);
     const settingsConfig = [
         {variable: "moneyExchangeRate", type: "range", min: 1, max: 100, default: 100, step: 1},
@@ -74,6 +75,13 @@ function DisplaySettings({settings} : {settings: CasinoSettings}) {
         });
         setSettingsState(newSettings);
     }, [settings]);
+    useNuiEvent("updateCasinoSetting", (data: any) => {
+        if (data.casinoId !== casinoId) return;
+        setSettingsState((prevState) => ({
+            ...prevState,
+            [data.variable]: data.value,
+        }));
+    })
     return (
         <div className="flex flex-col gap-2 h-full overflow-y-auto p-2">
             {settingsConfig.map((setting, settingIndex) => (
@@ -88,7 +96,13 @@ function DisplaySettings({settings} : {settings: CasinoSettings}) {
                         </div>
                         {setting.type === "range" && (
                             <div className="flex flex-row w-full">
-                                <input className="w-full" type="range" min={setting.min} max={setting.max} step={setting.step} value={settingsState[setting.variable]} onChange={(e) => {
+                                <input className="w-full" type="range" min={setting.min} max={setting.max} step={setting.step} value={settingsState[setting.variable]} onMouseUp={() => {
+                                    fetchNui("updateCasinoSetting", {
+                                        casinoId: casinoId,
+                                        variable: setting.variable,
+                                        value: settingsState[setting.variable],
+                                    })
+                                }} onChange={(e) => {
                                     const newValue = parseInt(e.target.value);
                                     setSettingsState((prevState) => ({
                                         ...prevState,
@@ -100,7 +114,11 @@ function DisplaySettings({settings} : {settings: CasinoSettings}) {
                     </div>
                 </div>
             ))}
-            <Button variant={"default"} className="w-full" onClick={() => {}}>
+            <Button variant={"default"} className="w-full" onClick={() => {
+                fetchNui("openCasinoEditor", {
+                    casinoId: casinoId,
+                });
+            }}>
                 <Settings size={16} /> 
                 <Translate id={"casino_manage_editor"}/>
             </Button>
@@ -108,18 +126,61 @@ function DisplaySettings({settings} : {settings: CasinoSettings}) {
     )
 }
 
-function Management() {
+function GetWeeklyProfit(transactions: CasinoTransaction[]) {
+    let dayIndex = 0;
+    let days = [];
+    while (dayIndex < 7) {
+        const startOfDay = new Date(new Date().setDate(new Date().getDate() - dayIndex)).setHours(0, 0, 0, 0);
+        const endOfDay = new Date(new Date().setDate(new Date().getDate() - dayIndex)).setHours(23, 59, 59, 999);
+        const dayTransactions = transactions.filter((transaction) => {
+            return transaction.datetime >= startOfDay / 1000 && transaction.datetime <= endOfDay / 1000;
+        });
+        const dayProfit = dayTransactions.reduce((acc, transaction) => {
+            if (transaction.type === "withdraw") {
+                return acc - transaction.amount;
+            }
+            else {
+                return acc + transaction.amount;
+            }
+        }, 0);
+        days.push(dayProfit);
+        dayIndex += 1;
+    }
+    return days.reverse();
+}
+
+function GetWeeklyDate() {
+    let dayIndex = 0;
+    let days = [];
+    while (dayIndex < 7) {
+        const date = new Date(new Date().setDate(new Date().getDate() - dayIndex)).toLocaleDateString("en-US");
+        days.push(date)
+        dayIndex += 1;
+    }
+    return days.reverse();
+}
+
+type ManagementTransfer = {
+    type: "deposit" | "withdraw",
+    balanceType: "balance" | "marked_balance",
+    amount: number,
+}
+
+function Management({info} : {info: any}) {
     const managementGraphRef = useRef<HTMLDivElement>(null);
     const {config} = useConfig();
-    const [profit, setProfit] = useState(10100);
-    const [balance, setBalance] = useState<CasinoBalance>(DEFAULT_CASINO_BALANCE);
-    const [settings, setSettings] = useState<CasinoSettings>({});
-    const [transactions, setTransactions] = useState<CasinoTransaction[]>([
-        {id: 1, origin: {identifier: "steam:123456789", name: "John Doe"}, type: "deposit", amount: 1000, datetime: Date.now() - 1000000},
-        {id: 1, origin: {identifier: "steam:123456789", name: "John Doe"}, type: "deposit", amount: 1000, datetime: Date.now() - 1000000},
-        {id: 2, origin: {identifier: "steam:123456789", name: "John Doe"}, type: "withdraw", amount: 500, datetime: Date.now() - 2000000},
-    ]);
+    const [money, setMoney] = useState<number>(info.balance || 0);
+    const [dirty_money, setDirtyMoney] = useState<number>(info.marked_balance || 0);
+    const [settings, setSettings] = useState<CasinoSettings>(info.settings || {});
+    const [transactions, setTransactions] = useState<CasinoTransaction[]>(info.transactions || []);
+    const [transfer, setTransfer] = useState<ManagementTransfer | null>(null);
+    //     {"origin": {"identifier": "steam:123456789", "name": "John Doe"}, "type": "deposit", "amount: "1000, "datetime": 1745353321},
+    //     {id: 1, origin: {identifier: "steam:123456789", name: "John Doe"}, type: "deposit", amount: 1000, datetime: Date.now() - 1000000},
+    //     {id: 2, origin: {identifier: "steam:123456789", name: "John Doe"}, type: "withdraw", amount: 500, datetime: Date.now() - 2000000},
+    // ]);
     const [sidebarSection, setSidebarSection] = useState("transactions");
+    const weeklyProfit = GetWeeklyProfit(transactions);
+    const profit = weeklyProfit.reduce((acc, value) => acc + value, 0);
     const sidebarConfig = [
         {id: "transactions", label: <Translate id={"casino_manage_transactions"}/>},
         {id: "settings", label: <Translate id={"casino_manage_settings"}/>},
@@ -137,10 +198,10 @@ function Management() {
             const chart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: ['01/01', '01/02', '01/03', '01/04', '01/05', '01/06'],
+                    labels: GetWeeklyDate(),
                     datasets: [
                         {
-                            data: Array.from({ length: 6 }, () => Math.floor(Math.random() * 20000) - 10000),
+                            data: weeklyProfit,
                             pointBackgroundColor: profit > 0 ? colors.positive : profit < 0 ? colors.negative : colors.neutral,
                             borderColor: profit > 0 ? colors.positive : profit < 0 ? colors.negative : colors.neutral,
                             borderWidth: 1,
@@ -182,6 +243,56 @@ function Management() {
     }, [managementGraphRef]);
     return (
         <div className="absolute top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] w-[800px]  bg-background/95">
+            {transfer && (
+                <div className="absolute top-0 left-0 w-full h-full bg-background/50 flex flex-col items-center justify-center z-10">
+                    <Card className="flex flex-col gap-2 items-center justify-center">
+                        <div className="flex flex-row gap-2 items-center justify-between w-full">
+                            <div className="text-sm font-bold whitespace-nowrap"><Translate id={"casino_manage_transfer_balancetype"}/></div>
+                            <select value={transfer.balanceType} onChange={(e) => {
+                                setTransfer((prevState: any) => ({
+                                    ...prevState,
+                                    balanceType: e.target.value,
+                                }));
+                            }} className="bg-background/50 rounded-md p-1 text-right">
+                                <option value="balance"><Translate id={"casino_manage_balance"}/></option>
+                                <option value="marked_balance"><Translate id={"casino_manage_markedbalance"}/></option>
+                            </select>
+                        </div>
+                        <div className="flex flex-row gap-2 items-center justify-between w-full">
+                            <div className="text-sm font-bold whitespace-nowrap"><Translate id={"casino_manage_transfer_type"}/></div>
+                            <select value={transfer.type} onChange={(e) => {
+                                setTransfer((prevState: any) => ({
+                                    ...prevState,
+                                    type: e.target.value,
+                                }));
+                            }} className="bg-background/50 rounded-md p-1 text-right">
+                                <option value="withdraw"><Translate id={"casino_manage_transfer_withdraw"}/></option>
+                                <option value="deposit"><Translate id={"casino_manage_transfer_deposit"}/></option>
+                            </select>
+                        </div>
+                        <div className="flex flex-row gap-2 items-center justify-between w-full">
+                            <div className="text-sm font-bold whitespace-nowrap"><Translate id={"casino_manage_transfer_amount"}/></div>
+                            <input type="number" min={1} value={transfer.amount} onChange={(e) => {
+                                setTransfer((prevState: any) => ({
+                                    ...prevState,
+                                    amount: parseInt(e.target.value),
+                                }));
+                            }} className="bg-background/50 rounded-md p-1 text-right" />
+                        </div>
+                        <Button className="w-full" variant={"default"} onClick={() => {
+                            fetchNui("startCasinoTransfer", {
+                                balanceType: transfer.balanceType,
+                                type: transfer.type,
+                                amount: transfer.amount,
+                            });
+                            setTransfer(null);
+                        }}><Translate id={"casino_manage_transfer"}/></Button>
+                        <Button className="w-full" variant={"destructive"} onClick={() => {
+                            setTransfer(null);
+                        }}><Translate id={"casino_manage_transfer_cancel"}/></Button>
+                    </Card>
+                </div>
+            )}
             <div className="flex flex-col gap-2 relative p-2 h-full">
                 <div className="grid grid-cols-2 gap-2 h-full">
                     <div className="flex flex-col gap-2">
@@ -190,17 +301,19 @@ function Management() {
                                 <div className="flex flex-row gap-8 justify-between items-center w-full">
                                     <div className="text-md font-bold"><Translate id={"casino_manage_balance"}/></div>
                                     <div className="flex flex-row gap-2 items-center">
-                                        <div className="text-md font-bold" style={{color: colors.positive}}><DisplayCurrency value={balance.money} /></div>
+                                        <div className="text-md font-bold" style={{color: colors.positive}}><DisplayCurrency value={money} /></div>
                                     </div>
                                 </div>
                                 <div className="flex flex-row gap-8 justify-between items-center w-full">
                                     <div className="text-md font-bold"><Translate id={"casino_manage_markedbalance"}/></div>
                                     <div className="flex flex-row gap-2 items-center">
-                                        <div className="text-md font-bold" style={{color: colors.negative}}><DisplayCurrency value={balance.dirty_money} /></div>
+                                        <div className="text-md font-bold" style={{color: colors.negative}}><DisplayCurrency value={dirty_money} /></div>
                                     </div>
                                 </div>
                             </div>
-                            <Button className="w-full" size={"sm"} variant={"default"}><Translate id={"casino_manage_transfer"}/></Button>
+                            <Button className="w-full" size={"sm"} variant={"default"} onClick={() => {
+                                setTransfer({type: "deposit", balanceType: "balance", amount: 0});
+                            }}><Translate id={"casino_manage_transfer"}/></Button>
                         </Card>
                         <Card className="gap-2 h-full">
                             <div className="flex flex-row justify-between items-center">
@@ -227,7 +340,7 @@ function Management() {
                             <DisplayTransactions transactions={transactions} />
                         )}
                         {sidebarSection === "settings" && (
-                            <DisplaySettings settings={settings} />
+                            <DisplaySettings casinoId={info.casinoId} settings={settings} />
                         )}
                     </Card>
                 </div>
@@ -237,10 +350,27 @@ function Management() {
 }
 
 export default function ManagementDisplay() {
-    const [visible, setVisible] = useState(false)
+    const [managementInfo, setManagementInfo] = useState<any>(null);
+    useNuiEvent("setManagementInfo", (data: any) => {
+        setManagementInfo(data.info);
+    })
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (!managementInfo) return;
+            if (event.key === "Escape" || event.key === "Backspace") {
+                fetchNui("exitManagement", {});
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+
+        return () => {
+            window.removeEventListener("keydown", handleKeyDown);
+        };
+    });
     return (
         <>
-            {visible && <Management />}
+            {managementInfo && <Management info={managementInfo} />}
         </>
     )
 }

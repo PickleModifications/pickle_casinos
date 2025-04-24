@@ -350,7 +350,7 @@ type CasinoSettings = {
     blipEnabled: boolean,
 }
 
-function CasinoDisplay({ casino, onExit }: { casino?: Casino, onExit: () => void }) {
+function CasinoDisplay({ isManager, casino, onExit }: { isManager?: boolean, casino?: Casino, onExit: () => void }) {
     const [casinoState, setCasinoState] = useState<Casino | null>(casino || null)
     const [currentEditingSetting, setCurrentEditingSetting] = useState<string | null>(null)
     const [label, setLabel] = useState<string>(casino?.settings.label || "")
@@ -474,7 +474,7 @@ function CasinoDisplay({ casino, onExit }: { casino?: Casino, onExit: () => void
                                         </div>
                                     )}
                                 </div>
-                                <div className="flex flex-row w-full items-center justify-between">
+                                {!isManager && (<div className="flex flex-row w-full items-center justify-between">
                                     <div className="text-md font-bold"><Translate id="casino_item"/></div>
                                     {(currentEditingSetting == "chipItem") ? (
                                         <>
@@ -506,7 +506,7 @@ function CasinoDisplay({ casino, onExit }: { casino?: Casino, onExit: () => void
                                             }}/>
                                         </div>
                                     )}
-                                </div>
+                                </div>)}
                                 <div className="flex flex-row w-full items-center justify-between">
                                     <div className="text-md font-bold"><Translate id="casino_blipenabled"/></div>
                                     <input type="checkbox" className="bg-secondary/50 text-sm text-right text-zinc-400 rounded-md px-2 py-1" checked={settings.blipEnabled} onChange={(e) => {
@@ -563,15 +563,15 @@ function CasinoDisplay({ casino, onExit }: { casino?: Casino, onExit: () => void
                                     <Translate id="casino_teleport"/>
                                 </Button>
                                 <Button variant="secondary" className="w-full" onClick={startExit}>
-                                    <Translate id="casino_exit"/>
+                                    <Translate id={isManager ? "casino_exit_editor" : "casino_exit"}/>
                                 </Button>
-                                <Button variant="destructive" className="w-full mt-auto" onClick={() => {
+                                {!isManager && (<Button variant="destructive" className="w-full mt-auto" onClick={() => {
                                     fetchNui("deleteCasino", {
                                         id: casinoState.id,
                                     })
                                 }}>
                                     <Translate id="casino_delete"/>
-                                </Button>
+                                </Button>)}
                             </div>
                         </>
                     )}
@@ -696,6 +696,7 @@ export default function CreatorDisplay() {
     const [casinos, setCasinos] = useState<Casino[]>([])
     const [focus, setFocus] = useState(false)
     const [hidden, setHidden] = useState(true)
+    const [casinoId, setCasinoId] = useState<number | null>(null)
     useNuiEvent("setEditorHidden", (data: any) => {
         setHidden(data.hidden)
     });
@@ -739,6 +740,10 @@ export default function CreatorDisplay() {
 
     useNuiEvent("openCasinoEditor", (data: any) => {
         setCasinos(data.casinos)
+        setCasinoId(data.casinoId || null)
+        console.log("Casino ID: ", data.casinoId)
+        console.log(data.casinos)
+        setHidden(true)
         setVisible(true)
         setTimeout(() => {
             setHidden(false)
@@ -762,7 +767,13 @@ export default function CreatorDisplay() {
                         hidden ? "translate-x-full" : "translate-x-0"
                         }`}
                     > 
-                    <Creator defaultCasinos={casinos} />
+                    {casinoId ? (
+                        <CasinoDisplay isManager={true} casino={casinos.find(casino => casino.id === casinoId)} onExit={() => {
+                            fetchNui("exitCasinoEditor", {})
+                        }}/>
+                    ) : (
+                        <Creator defaultCasinos={casinos} />
+                    )}
                     </div>
                 </div>  
             )}

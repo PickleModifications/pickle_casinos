@@ -1,5 +1,14 @@
 CurrentPlayers = {}
 
+function CanManageCasino(source, casinoId)
+    if IsPlayerAdmin(source) then return true end
+    if not casinoId then return false end
+    local casino = Casinos[casinoId]
+    if not casino then return false end
+    if casino.owner_identifier and casino.owner_identifier == GetIdentifier(source) then return true end
+    return false
+end
+
 function InitializeCasinoEntity(casinoId, entity, dataOnly)
     entity.settings = EnsureGameSettings(entity.type, entity.settings)
     if entity.type == "blackjack" then
@@ -27,15 +36,61 @@ function InitializeCasinoEntities(casinoId, entities)
     return entities
 end
 
+function EnsureCasinoSettings(settings)
+    local newSettings = {}
+    for k,v in pairs(settings) do
+        newSettings[k] = v
+    end
+    if not newSettings.label then newSettings.label = "UNKNOWN_LABEL" end
+    if not newSettings.location then newSettings.location = { coords = vector3(0, 0, 0), rotation = vector3(0, 0, 0) } end
+    newSettings.location.coords = vector3(newSettings.location.coords.x, newSettings.location.coords.y, newSettings.location.coords.z)
+    newSettings.location.rotation = vector3(newSettings.location.rotation.x, newSettings.location.rotation.y, newSettings.location.rotation.z)
+    if not newSettings.chipItem then newSettings.chipItem = "UNKNOWN_CHIP_ITEM" end
+    if not newSettings.blipEnabled then newSettings.blipEnabled = false end
+    if tonumber(newSettings.moneyExchangeRate or "a") == nil then newSettings.moneyExchangeRate = 100 end
+    if tonumber(newSettings.dirtyExchangeRate or "a") == nil then newSettings.dirtyExchangeRate = 75 end
+    return newSettings
+end
+
+function EnsureCasinoTransactions(transactions)
+    local expireTime = os.time() - (86400 * 7)
+    local newTransactions = {}
+    -- for i=1, #transactions do
+    --     local transaction = transactions[i]
+    --     if transaction and transaction.datetime then
+    --         if transaction.datetime > expireTime then
+    --             table.insert(newTransactions, transaction)
+    --         end
+    --     end
+    -- end
+    local time = os.time()
+    for i=1, 10 do 
+        newTransactions[i] = {
+            origin = {
+                identifier = "steam:123456789",
+                name = "John Doe " .. i,
+            },
+            type = math.random(1, 2) == 1 and "deposit" or "withdraw",
+            amount = math.random(1, 1000),
+            datetime = time,
+        }
+        time = time - 86400
+    end
+    return newTransactions
+end
+
 function RegisterCasino(id, data, dontSync)
     Casinos[id] = {
         id = id,
+        balance = data.balance or 0,
+        marked_balance = data.marked_balance or 0,
         owner_identifier = data.owner_identifier or nil,
-        settings = data.settings,
+        transactions = EnsureCasinoTransactions(data.transactions or {}),
+        settings = EnsureCasinoSettings(data.settings),
         entities = InitializeCasinoEntities(id, data.entities or {})
     }
     if dontSync then return end
-    TriggerClientEvent("pickle_casinos:registerCasino", -1, id, data)
+    TriggerClientEvent("pickle_casinos:registerCasino", -1, id, Casinos[id])
 end
 
 function JoinCasinoEntity(source, casinoId, entityId)
@@ -51,8 +106,6 @@ function JoinCasinoEntity(source, casinoId, entityId)
         JoinBaccaratEntity(source, casinoId, entityId)
     end
 end
-
-local inc = 0
 
 function GenerateCard() 
     local classes = {"spd", "club", "dia", "hrt"}
@@ -138,7 +191,7 @@ end)
 
 RegisterNetEvent("pickle_casinos:createCasino", function(data)
     if not type(data) == "table" then return end
-    if not IsPlayerAdmin(source) then return ShowNotification(source, _L("no_permission")) end
+    if not CanManageCasino(source) then return ShowNotification(source, _L("no_permission")) end
     local casinoSettings = {
         label = data.label or "UNKNOWN_LABEL",
         location = data.location or {
@@ -153,16 +206,13 @@ RegisterNetEvent("pickle_casinos:createCasino", function(data)
     }, function(id)
         RegisterCasino(id, {
             id = id,
-            owner_identifier = nil,
             settings = casinoSettings,
-            entities = {},
-            transactions = {},
         })
     end)
 end)
 
 RegisterNetEvent("pickle_casinos:deleteCasino", function(casinoId)
-    if not IsPlayerAdmin(source) then return ShowNotification(source, _L("no_permission")) end
+    if not CanManageCasino(source) then return ShowNotification(source, _L("no_permission")) end
     local casino = Casinos[casinoId]
     if not casino then return end
     MySQL.Async.execute('DELETE FROM `pickle_casinos` WHERE id = ?', {casinoId})
@@ -171,7 +221,8 @@ RegisterNetEvent("pickle_casinos:deleteCasino", function(casinoId)
 end)
 
 RegisterNetEvent("pickle_casinos:updateCasinoSetting", function(casinoId, variable, value)
-    if not IsPlayerAdmin(source) then return ShowNotification(source, _L("no_permission")) end
+    if not CanManageCasino(source, casinoId) then return ShowNotification(source, _L("no_permission")) end
+    if variable == "chipItem" and not CanManageCasino(source) then return ShowNotification(source, _L("no_permission")) end
     local casino = Casinos[casinoId]
     if not casino then return end
     if variable == "label" then
@@ -183,13 +234,17 @@ RegisterNetEvent("pickle_casinos:updateCasinoSetting", function(casinoId, variab
     elseif variable == "location" then
         if not value or not value.coords or not value.rotation then return end
         casino.settings.location = value
+    elseif variable == "moneyExchangeRate" then
+        casino.settings.moneyExchangeRate = tonumber(value) or 100
+    elseif variable == "dirtyExchangeRate" then
+        casino.settings.dirtyExchangeRate = tonumber(value) or 75
     end
     MySQL.Async.execute('UPDATE `pickle_casinos` SET settings = ? WHERE id = ?', {json.encode(casino.settings), casinoId})
     TriggerClientEvent("pickle_casinos:updateCasinoSetting", -1, casinoId, variable, value)
 end)
 
 RegisterNetEvent("pickle_casinos:createCasinoEntity", function(casinoId, entityType, settings)
-    if not IsPlayerAdmin(source) then return ShowNotification(source, _L("no_permission")) end
+    if not CanManageCasino(source, casinoId) then return ShowNotification(source, _L("no_permission")) end
     local casino = Casinos[casinoId]
     if not casino then return end
     local entityId = GenerateEntityId(casinoId)
@@ -205,7 +260,7 @@ RegisterNetEvent("pickle_casinos:createCasinoEntity", function(casinoId, entityT
 end)
 
 RegisterNetEvent("pickle_casinos:deleteCasinoEntity", function(casinoId, entityId)
-    if not IsPlayerAdmin(source) then return ShowNotification(source, _L("no_permission")) end
+    if not CanManageCasino(source, casinoId) then return ShowNotification(source, _L("no_permission")) end
     local casino = Casinos[casinoId]
     if not casino then return end
     for i=1, #casino.entities do
@@ -219,7 +274,7 @@ RegisterNetEvent("pickle_casinos:deleteCasinoEntity", function(casinoId, entityI
 end)
 
 RegisterNetEvent("pickle_casinos:updateCasinoEntitySetting", function(casinoId, entityId, variable, value)
-    if not IsPlayerAdmin(source) then return ShowNotification(source, _L("no_permission")) end
+    if not CanManageCasino(source, casinoId) then return ShowNotification(source, _L("no_permission")) end
     local casino = Casinos[casinoId]
     if not casino then return end
     local entity = GetCasinoEntity(casinoId, entityId)
@@ -231,8 +286,21 @@ RegisterNetEvent("pickle_casinos:updateCasinoEntitySetting", function(casinoId, 
     TriggerClientEvent("pickle_casinos:updateCasinoEntitySetting", -1, casinoId, entityId, variable, entity.settings[variable])
 end)
 
+RegisterNetEvent("pickle_casinos:startCasinoTransfer", function(casinoId, transferInfo)
+    if not CanManageCasino(source, casinoId) then return ShowNotification(source, _L("no_permission")) end
+    local casino = Casinos[casinoId]
+    if not casino then return end
+    local targetCasino = Casinos[transferInfo.targetCasinoId]
+    if not targetCasino then return end
+    casino.balance = casino.balance - transferInfo.amount
+    targetCasino.balance = targetCasino.balance + transferInfo.amount
+    MySQL.Async.execute('UPDATE `pickle_casinos` SET balance = ? WHERE id = ?', {casino.balance, casinoId})
+    MySQL.Async.execute('UPDATE `pickle_casinos` SET balance = ? WHERE id = ?', {targetCasino.balance, transferInfo.targetCasinoId})
+    TriggerClientEvent("pickle_casinos:syncCasinos", -1, Casinos)
+end)
+
 RegisterCommand("casinos", function(source, args, raw)
-    if not IsPlayerAdmin(source) then return ShowNotification(source, _L("no_permission")) end
+    if not CanManageCasino(source) then return ShowNotification(source, _L("no_permission")) end
     TriggerClientEvent("pickle_casinos:casinosMenu", source)
 end)
 
@@ -245,6 +313,8 @@ CreateThread(function()
             local transactions = json.decode(result.transactions)
             RegisterCasino(result.id, {
                 id = result.id,
+                balance = result.balance,
+                marked_balance = result.marked_balance,
                 owner_identifier = result.owner_identifier,
                 settings = settings,
                 entities = entities,
