@@ -8,6 +8,7 @@ export type Config = {
         id: string;
         multiplier: number;
     }[];
+    maxVipPrice: number;
     identifier: string;
     locale?: Record<string, string>;
     countryCode?: string;
@@ -25,6 +26,7 @@ const ConfigContext = createContext<ConfigContextProps | undefined>(undefined);
 
 export const ConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [config, setConfig] = useState<Config>({
+        maxVipPrice: 1000000,
         identifier: "ERR_NO_IDENTIFIER",
         currency: "GBP",
         countryCode: "en-GB",

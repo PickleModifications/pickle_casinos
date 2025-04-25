@@ -34,7 +34,13 @@ function OpenCashierExchangeAmountMenu(casinoId, entityId, exchangeType, currenc
         SetTimeout(200, function()
             OpenCashierMenu(casinoId, entityId)
         end)
-        ShowNotification(_L("cashier_no_money"))
+        if exchangeType == "buy" then
+            ShowNotification(_L("cashier_no_money"))
+        elseif balances.balance <= 0 then
+            ShowNotification(_L("cashier_no_chips"))
+        else
+            ShowNotification(_L("cashier_out_money"))
+        end
         return
     end
     options[#options + 1] =  {
@@ -81,49 +87,58 @@ end
 
 function OpenCashierMenu(casinoId, entityId)
     CurrentCashier = { casinoId = casinoId, entityId = entityId }
-    local isVIP = false
-    local vipPrice = 10000
-    local menuId = "pickle_casinos_cashier_" .. casinoId
-    local options = {}
-    options[#options + 1] = {
-        title = _L("cashier_buy_chips"),
-        description = _L("cashier_buy_chips_desc"),
-        icon = 'coins',
-        onSelect = function()
-            OpenCashierExchangeMenu(casinoId, entityId, "buy")
-        end
-    }
-    options[#options + 1] = {
-        title = _L("cashier_sell_chips"),
-        description = _L("cashier_sell_chips_desc"),
-        icon = 'money-bills',
-        onSelect = function()
-            OpenCashierExchangeMenu(casinoId, entityId, "sell")
-        end
-    }
-    if isVIP then
+    local casino = Casinos[casinoId]
+    if not casino then return end
+    ServerCallback("pickle_casinos:getVIPStatus", function(isVIP)
+        local vipPrice = casino.settings.vipPrice or 0
+        local menuId = "pickle_casinos_cashier_" .. casinoId
+        local options = {}
         options[#options + 1] = {
-            title = _L("cashier_vip", NumberWithCommas(vipPrice)),
-            description = _L("cashier_vip_desc"),
-            icon = 'star',
+            title = _L("cashier_buy_chips"),
+            description = _L("cashier_buy_chips_desc"),
+            icon = 'coins',
+            onSelect = function()
+                OpenCashierExchangeMenu(casinoId, entityId, "buy")
+            end
         }
-    else
         options[#options + 1] = {
-            title = _L("cashier_vip_owned"),
-            description = _L("cashier_vip_desc"),
-            disabled = true,
-            icon = 'star',
+            title = _L("cashier_sell_chips"),
+            description = _L("cashier_sell_chips_desc"),
+            icon = 'money-bills',
+            onSelect = function()
+                OpenCashierExchangeMenu(casinoId, entityId, "sell")
+            end
         }
-    end
-    lib.registerContext({
-        id = menuId,
-        title = _L("cashier_title"),
-        options = options,
-        onExit = function()
-            CurrentCashier = nil
-        end,
-    })
-    lib.showContext(menuId)
+        if not isVIP then
+            options[#options + 1] = {
+                title = _L("cashier_vip", NumberWithCommas(vipPrice)),
+                description = _L("cashier_vip_desc"),
+                icon = 'star',
+                onSelect = function()
+                    TriggerServerEvent("pickle_casinos:purchaseVIP", casinoId, entityId)
+                    SetTimeout(200, function()
+                        OpenCashierMenu(casinoId, entityId)
+                    end)
+                end
+            }
+        else
+            options[#options + 1] = {
+                title = _L("cashier_vip_owned"),
+                description = _L("cashier_vip_desc"),
+                disabled = true,
+                icon = 'star',
+            }
+        end
+        lib.registerContext({
+            id = menuId,
+            title = _L("cashier_title"),
+            options = options,
+            onExit = function()
+                CurrentCashier = nil
+            end,
+        })
+        lib.showContext(menuId)
+    end, casinoId)
 end
 
 function RenderCashierEntity(casinoId, entityId)

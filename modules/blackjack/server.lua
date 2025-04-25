@@ -154,11 +154,11 @@ function ProcessBlackjackWager(casinoId, entityId, seat, handId)
     local entity = GetCasinoEntity(casinoId, entityId)
     if not entity then return end
     local wager = entity.seats[seat].wagers[handId]
-    if wager > GetMoney(entity.seats[seat].source) then
-        ShowNotification(entity.seats[seat].source, "You do not have enough money to place this wager.")
+    if wager > GetCasinoChips(entity.seats[seat].source, casinoId) then
+        ShowNotification(entity.seats[seat].source, _L("insufficient_chips"))
         return false
     end
-    RemoveMoney(entity.seats[seat].source, wager)
+    RemoveCasinoChips(entity.seats[seat].source, casinoId, wager)
     return true
 end
 
@@ -265,9 +265,9 @@ function StartBlackjackGame(casinoId, entityId)
         end
         for i=1, 4 do
             if entity.seats[i].source  then
-                seatResults[i].money = GetMoney(entity.seats[i].source) + seatResults[i].won
-                if entity.seats[i].wagers[1] > 0 then
-                    AddMoney(entity.seats[i].source, seatResults[i].won)
+                seatResults[i].money = GetCasinoChips(entity.seats[i].source, casinoId) + seatResults[i].won
+                if entity.seats[i].wagers[1] > 0 and seatResults[i].won > 0 then
+                    AddCasinoChips(entity.seats[i].source, casinoId, seatResults[i].won)
                 end
             end
         end
@@ -372,7 +372,7 @@ RegisterCallback("pickle_casinos:blackjack:requestSeat", function(source, cb, ca
             betRange = entity.betRange,
             seats = entity.seats,
             stage = entity.stage,
-            money = GetMoney(source)
+            money = GetCasinoChips(source, casinoId)
         })
     end
     cb(seatId)

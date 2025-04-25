@@ -241,6 +241,12 @@ function CasinoEntityDisplay({casinoId, entity, onExit }: {casinoId: number, ent
                                         vip: e.target.checked,
                                     }
                                 })
+                                fetchNui("updateCasinoEntitySetting", {
+                                    casinoId: casinoId,
+                                    entityId: entityState.id,
+                                    variable: "vip",
+                                    value: e.target.checked,
+                                })
                             }} />
                         </div>
                         <Button variant="secondary" className="w-full" onClick={() => {

@@ -22,14 +22,16 @@ function EnsureMapObjectsRemoved()
     local playerPed = PlayerPedId()
     local playerCoords = GetEntityCoords(playerPed)
     for k, v in pairs(MapObjects) do
-        if #(playerCoords - v.coords) < Config.RenderDistance and not LocalMapObjects[k] then
-            LocalMapObjects[k] = true
-            local object = GetClosestObjectOfType(v.coords, 0.5, v.model, false, false, false)
-            local objectCoords = GetEntityCoords(object)
-            if #(objectCoords - v.coords) < 0.5 and not TransparentObjects[k] and not IsEntityScriptObject(object) then
-                print("DELETE OBJ", object, v.coords)
-                SetEntityAsMissionEntity(object)
-                DeleteEntity(object)
+        if #(playerCoords - v.coords) < Config.RenderDistance then
+            if not LocalMapObjects[k] then
+                LocalMapObjects[k] = true
+                local object = GetClosestObjectOfType(v.coords, 0.5, v.model, false, false, false)
+                local objectCoords = GetEntityCoords(object)
+                if #(objectCoords - v.coords) < 0.5 and not TransparentObjects[k] and not IsEntityScriptObject(object) then
+                    print("DELETE OBJ", object, v.coords)
+                    SetEntityAsMissionEntity(object)
+                    DeleteEntity(object)
+                end
             end
         elseif LocalMapObjects[k] then
             LocalMapObjects[k] = nil

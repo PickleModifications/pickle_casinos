@@ -86,11 +86,11 @@ function ProcessBaccaratWager(casinoId, entityId, seat, handId)
     local entity = GetCasinoEntity(casinoId, entityId)
     if not entity then return end
     local wager = GetBaccaratTotalWager(entity.seats[seat].wagers)
-    if wager > GetMoney(entity.seats[seat].source) then
+    if wager > GetCasinoChips(entity.seats[seat].source, casinoId) then
         ShowNotification(entity.seats[seat].source, "You do not have enough money to place this wager.")
         return false
     end
-    RemoveMoney(entity.seats[seat].source, wager)
+    RemoveCasinoChips(entity.seats[seat].source, casinoId, wager)
     return true
 end
 
@@ -236,9 +236,9 @@ function StartBaccaratGame(casinoId, entityId)
                     end
                 end
                 seatResults[i].won = math.floor(seatResults[i].won)
-                seatResults[i].money = GetMoney(entity.seats[i].source) + seatResults[i].won
+                seatResults[i].money = GetCasinoChips(entity.seats[i].source, casinoId) + seatResults[i].won
                 if seatResults[i].won > 0 then
-                    AddMoney(entity.seats[i].source, seatResults[i].won)
+                    AddCasinoChips(entity.seats[i].source, casinoId, seatResults[i].won)
                 end
             end
         end
@@ -246,37 +246,6 @@ function StartBaccaratGame(casinoId, entityId)
             type = "results", 
             winningWagers = winningWagers,
         }, seatResults)
-        -- local seatResults = {}
-        -- for i=1, 4 do 
-        --     seatResults[i] = {won = 0, money = 0}
-        --     if entity.seats[i].source and entity.seats[i].wagers[1] > 0 then
-        --         for j=1, 2 do
-        --             local wager = entity.seats[i].wagers[j]
-        --             local hand = entity.seats[i].hands[j]
-        --             local value, secondaryValue = GetValueOfCards(hand)
-        --             if secondaryValue > 0 then
-        --                 value = secondaryValue
-        --             end
-        --             print("COMPARING", "seat" .. i, "hand" .. j, value, dealerValue)
-        --             if wager > 0 and value <= 21 then
-        --                 if value == dealerValue then
-        --                     seatResults[i].won = seatResults[i].won + wager
-        --                 elseif (dealerValue > 21 or (value > dealerValue)) then
-        --                     seatResults[i].won = seatResults[i].won + (wager * (value == 21 and 2.5 or 2))
-        --                 end
-        --             end
-        --         end
-        --     end
-        -- end
-        -- for i=1, 4 do
-        --     if entity.seats[i].source  then
-        --         seatResults[i].money = GetMoney(entity.seats[i].source) + seatResults[i].won
-        --         if entity.seats[i].wagers[1] > 0 then
-        --             AddMoney(entity.seats[i].source, seatResults[i].won)
-        --         end
-        --     end
-        -- end
-        -- TriggerClientEvent("pickle_casinos:baccarat:updateResults", -1, casinoId, entityId, seatResults)
         entity.cards = {player = {}, banker = {}}
         entity.stage = {type = "cleanup", seat = 0}
         TriggerClientEvent("pickle_casinos:baccarat:updateStage", -1, casinoId, entityId, entity.stage)
@@ -387,7 +356,7 @@ RegisterCallback("pickle_casinos:baccarat:requestSeat", function(source, cb, cas
             id = entity.id,
             seats = entity.seats,
             stage = entity.stage,
-            money = GetMoney(source),
+            money = GetCasinoChips(source, casinoId),
             betRange = entity.betRange,
         })
     end

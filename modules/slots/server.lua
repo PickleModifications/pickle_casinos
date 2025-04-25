@@ -153,10 +153,10 @@ RegisterNetEvent("pickle_casinos:slots:redeemSpin", function(id, spinIndex)
     if not spin or spin.redeemed then return end
     print("Redeeming spin", id, spinIndex, slotSpin.bet)
     local calculatedWin = GetSpinCalculatedWin(slotSpin.gameId, spin, slotSpin.bet)
-    local playerMoney = GetMoney(source)
+    local playerMoney = GetCasinoChips(source, slotSpin.casinoId)
     if calculatedWin > 0 then
         playerMoney = playerMoney + calculatedWin
-        AddMoney(source, calculatedWin)
+        AddCasinoChips(source, slotSpin.casinoId, calculatedWin)
         ShowNotification(source, _L("spin_won", GetCurrencyString(calculatedWin)))
     end
     TriggerClientEvent("pickle_casinos:slots:updateBalance", source, playerMoney)
@@ -189,7 +189,7 @@ RegisterCallback("pickle_casinos:slots:requestSeat", function(source, cb, casino
     entity.currentPlayer = {
         source = source,
         seatId = 1,
-        money = GetMoney(source),
+        money = GetCasinoChips(source, casinoId),
         game = entity.settings.game,
         bets = entity.bets,
     }
@@ -207,15 +207,16 @@ RegisterCallback("pickle_casinos:slots:spinSlot", function(source, cb, betIndex)
     betIndex = betIndex or 1
     local bet = entity.bets[betIndex]
     if not bet then bet = entity.bets[1] end
-    local playerMoney = GetMoney(source)
+    local playerMoney = GetCasinoChips(source, casinoId)
     if playerMoney < bet then
         ShowNotification(source, _L("not_enough_money_spin"))
         return cb(nil)
     end
     playerMoney = playerMoney - bet
-    RemoveMoney(source, bet)
+    RemoveCasinoChips(source, casinoId, bet)
     local spinId = GenerateSpinId()
     local spin = GenerateSpin(Config.Slots[entity.settings.game])
+    spin.casinoId = casinoId
     spin.gameId = entity.settings.game
     spin.id = spinId
     spin.source = source

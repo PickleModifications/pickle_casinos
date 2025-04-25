@@ -59,13 +59,13 @@ function StartHorseRacingTrackRace(trackId)
             totalWager = totalWager + b
         end
         if totalWager > 0 then
-            local money = GetMoney(source)
+            local money = GetCasinoChips(source, track.players[source].casinoId)
             if money < totalWager then
                 track.players[source].wagers = GetDefaultWager()
                 TriggerClientEvent("pickle_casinos:horseracing:updateWager", source, track.players[source].casinoId, trackId, track.players[source].wagers)
             else
                 LastWagers[source] = track.players[source].wagers
-                RemoveMoney(source, totalWager)
+                RemoveCasinoChips(source, track.players[source].casinoId, totalWager)
             end
         end
     end
@@ -76,8 +76,8 @@ function StartHorseRacingTrackRace(trackId)
     for source,player in pairs(track.players) do
         local winnings = (player.wagers[track.stage.winner] or 0) * multiplier
         if winnings > 0 then
-            AddMoney(source, player.wagers[track.stage.winner] + winnings)
-            TriggerClientEvent("pickle_casinos:displayResults", source, player.wagers[track.stage.winner] + winnings, GetMoney(source))
+            AddCasinoChips(source, player.casinoId, player.wagers[track.stage.winner] + winnings)
+            TriggerClientEvent("pickle_casinos:displayResults", source, player.wagers[track.stage.winner] + winnings, GetCasinoChips(source, player.casinoId))
         end
     end
     Wait(7000)
@@ -170,7 +170,7 @@ RegisterNetEvent("pickle_casinos:horseracing:setWager", function(casinoId, entit
         for i=1, #wagers do
             totalWager = totalWager + wagers[i]
         end
-        local money = GetMoney(source)
+        local money = GetCasinoChips(source, casinoId)
         if money < totalWager or totalWager > casinoEntity.betRange[2] then      
             wagers = track.players[source] and (track.players[source].wagers or GetDefaultWager()) or GetDefaultWager()  
         end
@@ -180,7 +180,7 @@ RegisterNetEvent("pickle_casinos:horseracing:setWager", function(casinoId, entit
         for i=1, #wagers do
             totalWager = totalWager + wagers[i]
         end
-        if totalWager <= 0 or totalWager > GetMoney(source) then
+        if totalWager <= 0 or totalWager > GetCasinoChips(source, casinoId) then
             wagers = GetDefaultWager()
         end
     else
@@ -195,9 +195,9 @@ CreateThread(function()
     InitializeHorseRacingTracks()
 end)
 
-RegisterCallback("pickle_casinos:horseracing:getHorseRacingInfo", function(source, cb)
+RegisterCallback("pickle_casinos:horseracing:getHorseRacingInfo", function(source, cb, casinoId)
     cb({
-        money = GetMoney(source),
+        money = GetCasinoChips(source, casinoId),
         tracks = Tracks,
     })
 end)

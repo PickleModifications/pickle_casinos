@@ -190,11 +190,14 @@ function RenderWheelEntity(casinoId, entityId)
     wheelEntity.standObject = standObject
     wheelEntity.tickObject = tickObject
     wheelEntity.interact = CreateInteraction({
-        label = _L("interact_wheel"),
+        label = _L("interact_wheel") .. (casinoEntity.settings.vip and (" " .. _L("casino_vip_game")) or ""),
         coords = GetOffsetFromEntityInWorldCoords(wheelObject, 0.0, -0.5, 0.0),
         heading = heading,
     }, function(selected)
-        AttemptSeatAtWheelEntity(casinoId, entityId)
+        ServerCallback("pickle_casinos:getVIPStatus", function(isVIP)
+            if casinoEntity.settings.vip and not isVIP then return ShowNotification(_L("casino_vip_required")) end
+            AttemptSeatAtWheelEntity(casinoId, entityId)
+        end, casinoId, entityId)
     end)
 end
 

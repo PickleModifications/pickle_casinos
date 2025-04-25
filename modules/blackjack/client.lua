@@ -251,11 +251,14 @@ function RenderBlackjackEntity(casinoId, entityId)
     for i,playArea in pairs(LocalBlackjackTables[casinoId][entityId].playAreas) do
         if i > 0 then
             LocalBlackjackTables[casinoId][entityId].interacts[#LocalBlackjackTables[casinoId][entityId].interacts + 1] = CreateInteraction({
-                label = _L("interact_blackjack"),
+                label = _L("interact_blackjack") .. (casinoEntity.settings.vip and (" " .. _L("casino_vip_game")) or ""),
                 coords = GetOffsetFromEntityInWorldCoords(playArea.surfaceObject, 0.0, -0.8, 1.0),
                 heading = heading,
             }, function(selected)
-                AttemptSeatAtBlackjackEntity(casinoId, entityId)
+                ServerCallback("pickle_casinos:getVIPStatus", function(isVIP)
+                    if casinoEntity.settings.vip and not isVIP then return ShowNotification(_L("casino_vip_required")) end
+                    AttemptSeatAtBlackjackEntity(casinoId, entityId)
+                end, casinoId, entityId)
             end)
         end
     end

@@ -51,32 +51,20 @@ function EnsureCasinoSettings(settings)
     if not newSettings.blipEnabled then newSettings.blipEnabled = false end
     if tonumber(newSettings.moneyExchangeRate or "a") == nil then newSettings.moneyExchangeRate = 100 end
     if tonumber(newSettings.dirtyExchangeRate or "a") == nil then newSettings.dirtyExchangeRate = 75 end
+    if tonumber(newSettings.vipPrice or "a") == nil then newSettings.vipPrice = 1000 end
     return newSettings
 end
 
 function EnsureCasinoTransactions(transactions)
     local expireTime = os.time() - (86400 * 7)
     local newTransactions = {}
-    -- for i=1, #transactions do
-    --     local transaction = transactions[i]
-    --     if transaction and transaction.datetime then
-    --         if transaction.datetime > expireTime then
-    --             table.insert(newTransactions, transaction)
-    --         end
-    --     end
-    -- end
-    local time = os.time()
-    for i=1, 10 do 
-        newTransactions[i] = {
-            origin = {
-                identifier = "steam:123456789",
-                name = "John Doe " .. i,
-            },
-            type = math.random(1, 2) == 1 and "deposit" or "withdraw",
-            amount = math.random(1, 1000),
-            datetime = time,
-        }
-        time = time - 86400
+    for i=1, #transactions do
+        local transaction = transactions[i]
+        if transaction and transaction.datetime then
+            if transaction.datetime > expireTime then
+                table.insert(newTransactions, transaction)
+            end
+        end
     end
     return newTransactions
 end
@@ -87,6 +75,7 @@ function RegisterCasino(id, data, dontSync)
         balance = data.balance or 0,
         marked_balance = data.marked_balance or 0,
         owner_identifier = data.owner_identifier or nil,
+        vip_players = data.vip_players or {},
         transactions = EnsureCasinoTransactions(data.transactions or {}),
         settings = EnsureCasinoSettings(data.settings),
         entities = InitializeCasinoEntities(id, data.entities or {})
@@ -153,6 +142,7 @@ function EnsureGameSettings(entityType, settings)
             coords = vector3(0, 0, 0),
             rotation = vector3(0, 0, 0)
         },
+        vip = settings.vip and true or false,
     }
     if entityType == "blackjack" or entityType == "roulette" or entityType == "baccarat" or entityType == "slot" or entityType == "wheel" or entityType == "horseracing" then
         defaultSettings["maxWager"] = settings.maxWager or 1000
@@ -186,8 +176,57 @@ function UpdateCasinoEntitiesSQL(casinoId)
     MySQL.Async.execute('UPDATE `pickle_casinos` SET entities = ? WHERE id = ?', {json.encode(entities), casinoId})
 end
 
-RegisterCallback("pickle_casinos:joinEntity", function(source, casinoId, entityId)
-    JoinCasinoEntity(source, casinoId, entityId)
+function IsPlayerCasinoVIP(source, casinoId)
+    local casino = Casinos[casinoId]
+    if not casino then return false end
+    local identifier = GetIdentifier(source)
+    -- if casino.owner_identifier and casino.owner_identifier == identifier then return true end
+    for i=1, #casino.vip_players do
+        if casino.vip_players[i].identifier == identifier then
+            return true
+        end
+    end
+    return false
+end
+
+function AddCasinoTransaction(source, casinoId, transactionType, amount)
+    local casino = Casinos[casinoId]
+    if not casino then return end
+    local transaction = {
+        origin = {
+            identifier = GetIdentifier(source),
+            name = GetPlayerCharacterName(source),
+        },
+        type = transactionType,
+        amount = amount,
+        datetime = os.time(),
+    }
+    table.insert(casino.transactions, 1, transaction)
+    MySQL.Async.execute('UPDATE `pickle_casinos` SET transactions = ? WHERE id = ?', {json.encode(casino.transactions), casinoId})
+    TriggerClientEvent("pickle_casinos:updateCasinoTransactions", -1, casinoId, casino.transactions)
+end
+
+function GetCasinoChips(source, casinoId)
+    local casino = Casinos[casinoId]
+    if not casino then return end
+    local chips = Inventory.GetItemCount(source, casino.settings.chipItem) or 0
+    return chips
+end
+
+function AddCasinoChips(source, casinoId, amount)
+    local casino = Casinos[casinoId]
+    if not casino then return end
+    Inventory.AddItem(source, casino.settings.chipItem, amount)
+end
+
+function RemoveCasinoChips(source, casinoId, amount)
+    local casino = Casinos[casinoId]
+    if not casino then return end
+    Inventory.RemoveItem(source, casino.settings.chipItem, amount)
+end
+
+RegisterCallback("pickle_casinos:getVIPStatus", function(source, cb, casinoId)
+    return cb(IsPlayerCasinoVIP(source, casinoId))
 end)
 
 RegisterNetEvent("pickle_casinos:initializePlayer", function()
@@ -208,8 +247,8 @@ RegisterNetEvent("pickle_casinos:createCasino", function(data)
         chipItem = data.chipItem or "UNKNOWN_CHIP_ITEM",
         blipEnabled = data.blipEnabled or false,
     }
-    MySQL.insert('INSERT INTO `pickle_casinos` (settings, entities, transactions) VALUES (?, ?, ?)', {
-        json.encode(casinoSettings), "[]", "[]"
+    MySQL.insert('INSERT INTO `pickle_casinos` (settings, entities, transactions, vip_players) VALUES (?, ?, ?, ?)', {
+        json.encode(casinoSettings), "[]", "[]", "[]"
     }, function(id)
         RegisterCasino(id, {
             id = id,
@@ -245,6 +284,8 @@ RegisterNetEvent("pickle_casinos:updateCasinoSetting", function(casinoId, variab
         casino.settings.moneyExchangeRate = tonumber(value) or 100
     elseif variable == "dirtyExchangeRate" then
         casino.settings.dirtyExchangeRate = tonumber(value) or 75
+    elseif variable == "vipPrice" then 
+        casino.settings.vipPrice = tonumber(value) or 1000  
     end
     casino.settings = EnsureCasinoSettings(casino.settings)
     MySQL.Async.execute('UPDATE `pickle_casinos` SET settings = ? WHERE id = ?', {json.encode(casino.settings), casinoId})
@@ -298,13 +339,45 @@ RegisterNetEvent("pickle_casinos:startCasinoTransfer", function(casinoId, transf
     if not CanManageCasino(source, casinoId) then return ShowNotification(source, _L("no_permission")) end
     local casino = Casinos[casinoId]
     if not casino then return end
-    local targetCasino = Casinos[transferInfo.targetCasinoId]
-    if not targetCasino then return end
-    casino.balance = casino.balance - transferInfo.amount
-    targetCasino.balance = targetCasino.balance + transferInfo.amount
-    MySQL.Async.execute('UPDATE `pickle_casinos` SET balance = ? WHERE id = ?', {casino.balance, casinoId})
-    MySQL.Async.execute('UPDATE `pickle_casinos` SET balance = ? WHERE id = ?', {targetCasino.balance, transferInfo.targetCasinoId})
-    TriggerClientEvent("pickle_casinos:syncCasinos", -1, Casinos)
+    local transferType = transferInfo.type
+    local balanceType = transferInfo.balanceType
+    local amount = transferInfo.amount
+    local money = GetMoney(source)
+    local marked_money = GetMoney(source, "dirty")
+    if amount <= 0 then return ShowNotification(source, _L("invalid_amount")) end
+    if transferType == "deposit" then
+        if balanceType == "balance" then
+            if money < amount then return ShowNotification(source, _L("insufficient_funds")) end
+            RemoveMoney(source, amount)
+            casino.balance = casino.balance + amount
+        elseif balanceType == "marked_balance" then
+            if marked_money < amount then return ShowNotification(source, _L("insufficient_funds")) end
+            RemoveMoney(source, amount, "dirty")
+            casino.marked_balance = casino.marked_balance + amount
+        end
+        ShowNotification(source, _L("casino_deposited", NumberWithCommas(amount), casino.settings.label))
+        AddCasinoTransaction(source, casinoId, "management_deposit", amount)
+    elseif transferType == "withdraw" then
+        if balanceType == "balance" then
+            if casino.balance < amount then return ShowNotification(source, _L("insufficient_funds")) end
+            casino.balance = casino.balance - amount
+            local totalTax = math.floor(amount * (Config.Casinos.tax / 100))
+            AddMoney(source, amount - totalTax)
+            if totalTax > 0 then
+                for k,v in pairs(Config.Casinos.taxRecipients) do
+                    AddSocietyMoney(k, math.floor(totalTax * (v / 100)))
+                end
+                ShowNotification(source, _L("casino_tax", NumberWithCommas(totalTax)))
+            end
+        elseif balanceType == "marked_balance" then
+            if casino.marked_balance < amount then return ShowNotification(source, _L("insufficient_funds")) end
+            casino.marked_balance = casino.marked_balance - amount
+            AddMoney(source, amount, "dirty")
+        end
+        AddCasinoTransaction(source, casinoId, "management_withdraw", amount)
+        ShowNotification(source, _L("casino_withdrawn", NumberWithCommas(amount), casino.settings.label))
+    end
+    TriggerClientEvent("pickle_casinos:updateCasinoBalance", -1, casinoId, casino.balance, casino.marked_balance)
 end)
 
 RegisterCommand("casinos", function(source, args, raw)
@@ -316,9 +389,10 @@ CreateThread(function()
     MySQL.Async.fetchAll("SELECT * FROM `pickle_casinos`", {}, function(results)
         for i=1, #results do
             local result = results[i]
-            local settings = json.decode(result.settings)
-            local entities = json.decode(result.entities)
-            local transactions = json.decode(result.transactions)
+            local settings = json.decode(result.settings) or {}
+            local entities = json.decode(result.entities) or {}
+            local transactions = json.decode(result.transactions) or {}
+            local vip_players = json.decode(result.vip_players) or {}
             RegisterCasino(result.id, {
                 id = result.id,
                 balance = result.balance,
@@ -327,6 +401,7 @@ CreateThread(function()
                 settings = settings,
                 entities = entities,
                 transactions = transactions,
+                vip_players = vip_players,
             }, true)
         end
     end)

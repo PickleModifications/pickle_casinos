@@ -90,11 +90,11 @@ function ProcessRouletteWager(casinoId, entityId, seat)
     local totalWager = GetRouletteTotalWager(entity.seats[seat].connects)
     if totalWager == 0 then return end
     local wager = totalWager
-    if GetMoney(entity.seats[seat].source) < wager then
+    if GetCasinoChips(entity.seats[seat].source, casinoId) < wager then
         ShowNotification(entity.seats[seat].source, "You do not have enough money to place this bet.")
         return false
     end
-    RemoveMoney(entity.seats[seat].source, wager)
+    RemoveCasinoChips(entity.seats[seat].source, casinoId, wager)
     return true
 end
 
@@ -151,7 +151,7 @@ function StartRouletteGame(casinoId, entityId)
             end
             seats[i] = { totalWin = totalWin }
             if totalWin > 0 then
-                AddMoney(seat.source, totalWin)
+                AddCasinoChips(seat.source, casinoId, totalWin)
             end
             SetTimeout(6000, function()
                 entity.seats[i].connects = GenerateRouletteDefaultWagers()
@@ -300,7 +300,7 @@ RegisterCallback("pickle_casinos:repeatRouletteWager", function(source, cb)
     if not entity.seats[info.seatId].source then return end
     local lastWager = LastWagers[source]
     local totalWager = lastWager and lastWager.wager or 0
-    if totalWager <= 0 or GetMoney(source) < totalWager then return cb({connects = GetDefaultRouletteConnections(), wager = 0}) end
+    if totalWager <= 0 or GetCasinoChips(source, casinoId) < totalWager then return cb({connects = GetDefaultRouletteConnections(), wager = 0}) end
     entity.seats[info.seatId].connects = lastWager.connects
     TriggerClientEvent("pickle_casinos:roulette:updateSeatWager", -1, info.casinoId, info.entityId, info.seatId, lastWager.connects)
     cb({connects = lastWager.connects, wager = totalWager})
@@ -315,7 +315,7 @@ RegisterCallback("pickle_casinos:roulette:requestSeat", function(source, cb, cas
             seats = entity.seats,
             stage = entity.stage,
             betRange = entity.betRange,
-            money = GetMoney(source)
+            money = GetCasinoChips(source, casinoId)
         })
     end
     cb(seatId)

@@ -269,11 +269,14 @@ function RenderBaccaratEntity(casinoId, entityId)
     for i,playArea in pairs(LocalBaccaratTables[casinoId][entityId].playAreas) do
         if i > 0 then
             LocalBaccaratTables[casinoId][entityId].interacts[#LocalBaccaratTables[casinoId][entityId].interacts + 1] = CreateInteraction({
-                label = _L("interact_baccarat"),
+                label = _L("interact_baccarat") .. (casinoEntity.settings.vip and (" " .. _L("casino_vip_game")) or ""),
                 coords = GetOffsetFromEntityInWorldCoords(playArea.surfaceObject, 0.0, -0.8, 1.0),
                 heading = heading,
             }, function(selected)
-                AttemptSeatAtBaccaratEntity(casinoId, entityId)
+                ServerCallback("pickle_casinos:getVIPStatus", function(isVIP)
+                    if casinoEntity.settings.vip and not isVIP then return ShowNotification(_L("casino_vip_required")) end
+                    AttemptSeatAtBaccaratEntity(casinoId, entityId)
+                end, casinoId, entityId)
             end)
         end
     end

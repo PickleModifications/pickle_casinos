@@ -248,6 +248,7 @@ function StartCasinoManagement(casinoId)
             balance = casino.balance,
             marked_balance = casino.marked_balance,
             transactions = casino.transactions,
+            settings = casino.settings,
         }
     })
     SetNuiFocus(true, true)
@@ -491,7 +492,18 @@ RegisterNUICallback("highlightCasinoEntity", function(data, cb)
     end
 end)
 
-RegisterNetEvent("pickle_casino:updateCasinoBalance", function(casinoId, balance, marked_balance)
+RegisterNetEvent("pickle_casinos:updateCasinoTransactions", function(casinoId, transactions)
+    local casino = Casinos[casinoId]
+    if not casino then return end
+    casino.transactions = transactions
+    SendNUIMessage({
+        type = "updateCasinoTransactions",
+        casinoId = casinoId,
+        transactions = transactions,
+    })
+end)
+
+RegisterNetEvent("pickle_casinos:updateCasinoBalance", function(casinoId, balance, marked_balance)
     if not Casinos[casinoId] then return end
     Casinos[casinoId].balance = balance
     Casinos[casinoId].marked_balance = marked_balance

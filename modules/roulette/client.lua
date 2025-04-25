@@ -246,11 +246,14 @@ function RenderRouletteEntity(casinoId, entityId)
     for i,playArea in pairs(LocalRouletteTables[casinoId][entityId].playAreas) do
         if i > 0 then
             LocalRouletteTables[casinoId][entityId].interacts[#LocalRouletteTables[casinoId][entityId].interacts + 1] = CreateInteraction({
-                label = _L("interact_roulette"),
+                label = _L("interact_roulette") .. (casinoEntity.settings.vip and (" " .. _L("casino_vip_game")) or ""),
                 coords = GetOffsetFromEntityInWorldCoords(playArea.surfaceObject, 0.0, -0.8, 1.0),
                 heading = heading,
             }, function(selected)
-                AttemptSeatAtRouletteEntity(casinoId, entityId)
+                ServerCallback("pickle_casinos:getVIPStatus", function(isVIP)
+                    if casinoEntity.settings.vip and not isVIP then return ShowNotification(_L("casino_vip_required")) end
+                    AttemptSeatAtRouletteEntity(casinoId, entityId)
+                end, casinoId, entityId)
             end)
         end
     end

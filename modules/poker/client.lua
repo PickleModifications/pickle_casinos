@@ -264,11 +264,14 @@ function RenderPokerEntity(casinoId, entityId)
             surfaceObject = playSurface,
         }
         defaultInteracts[i] = CreateInteraction({
-            label = _L("interact_poker"),
+            label = _L("interact_poker") .. (casinoEntity.settings.vip and (" " .. _L("casino_vip_game")) or ""),
             coords = GetOffsetFromEntityInWorldCoords(playSurface, 0.0, -0.8, 1.0),
             heading = heading,
         }, function(selected)
-            AttemptSeatAtPokerEntity(casinoId, entityId)
+            ServerCallback("pickle_casinos:getVIPStatus", function(isVIP)
+                if casinoEntity.settings.vip and not isVIP then return ShowNotification(_L("casino_vip_required")) end
+                AttemptSeatAtPokerEntity(casinoId, entityId)
+            end, casinoId, entityId)
         end)
     end
     localPokerTable.tableObject = tableObject

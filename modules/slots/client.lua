@@ -117,12 +117,15 @@ function RenderSlotEntity(casinoId, entityId)
     SetEntityRotation(slotObject, 0.0, 0.0, heading, 2, true)
     localSlotMachine.slotObject = slotObject
     localSlotMachine.interact = CreateInteraction({
-        label = "Play " .. slotCfg.label .. entityId,
+        label = _L("casino_slot_play") .. " " .. slotCfg.label  .. (casinoEntity.settings.vip and (" " .. _L("casino_vip_game")) or ""),
         coords = GetOffsetFromEntityInWorldCoords(slotObject, 0.0, 0.0, 1.0),
         heading = heading,
         radius = 0.5
     }, function(selected)
-        AttemptSeatAtSlotEntity(casinoId, entityId)
+        ServerCallback("pickle_casinos:getVIPStatus", function(isVIP)
+            if casinoEntity.settings.vip and not isVIP then return ShowNotification(_L("casino_vip_required")) end
+            AttemptSeatAtSlotEntity(casinoId, entityId)
+        end, casinoId, entityId)
     end)
 end
 

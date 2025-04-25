@@ -80,7 +80,7 @@ function RenderHorseRacingEntity(casinoId, entityId)
     SetEntityRotation(machineObject, 0.0, 0.0, heading, 2, true)
     localHorseRacingMachine.machineObject = machineObject
     localHorseRacingMachine.interact = CreateInteraction({
-        label = _L("interact_horseracing"),
+        label = _L("interact_horseracing") .. (casinoEntity.settings.vip and (" " .. _L("casino_vip_game")) or ""),
         coords = GetOffsetFromEntityInWorldCoords(machineObject, 0.0, 0.0, 1.0),
         heading = heading,
     }, function(selected)
@@ -153,7 +153,7 @@ RegisterNUICallback("setHorseRacingTrack", function(data, cb)
             track = GenerateHorseRacingTrackArray(result.tracks[trackId]),
         })
         StartHorseRaceCamera()
-    end)
+    end, viewingHorseRacingMenu.casinoId)
     cb("ok")
 end)
 

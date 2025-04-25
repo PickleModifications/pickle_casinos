@@ -137,6 +137,12 @@ function IsPlayerAdmin(source)
     return true
 end
 
+function AddSocietyMoney(name, amount)
+    TriggerEvent('esx_addonaccount:getSharedAccount', "society_"..name, function(account)
+        account.addMoney(amount)
+    end)
+end
+
 RegisterNetEvent('esx:setJob', function(player, job, lastJob)
     ResyncPermissions(player)
 end)

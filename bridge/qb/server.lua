@@ -139,6 +139,14 @@ function IsPlayerAdmin(source)
     return true
 end
 
+function AddSocietyMoney(name, amount)
+    if Config.FrameworkSettings.society == "qb-management" then
+        exports["qb-management"]:AddMoney(name, amount)
+    else
+        exports["qb-banking"]:AddMoney(name, amount)
+    end
+end
+
 RegisterNetEvent("QBCore:Server:OnJobUpdate", function(player)
     ResyncPermissions(player)
 end)

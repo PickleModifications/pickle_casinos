@@ -49,7 +49,7 @@ function DisplayTransactions({transactions} : {transactions: CasinoTransaction[]
                     <div key={index} className="gap-2">
                         <div className="flex flex-row justify-between items-center w-full">
                             <div className="text-sm font-bold">{transaction.origin.name}</div>
-                            <div className="text-sm font-bold"><DisplayCurrency value={transaction.amount * (transaction.type == "withdraw" ? -1 : 1)} /></div>
+                            <div className="text-sm font-bold"><DisplayCurrency value={transaction.amount * (transaction.type.includes("withdraw") ? -1 : 1)} /></div>
                         </div>
                         <div className="flex flex-row justify-between items-center w-full">
                         <div className="text-xs text-muted-foreground">{new Date(transaction.datetime * 1000).toLocaleString()}</div>
@@ -63,10 +63,12 @@ function DisplayTransactions({transactions} : {transactions: CasinoTransaction[]
 }
 
 function DisplaySettings({casinoId, settings} : {casinoId: number, settings: CasinoSettings}) {
+    const {config} = useConfig();
     const [settingsState, setSettingsState] = useState<CasinoSettings>(settings);
     const settingsConfig = [
         {variable: "moneyExchangeRate", type: "range", min: 1, max: 100, default: 100, step: 1},
         {variable: "dirtyExchangeRate", type: "range", min: 1, max: 100, default: 75, step: 1},
+        {variable: "vipPrice", type: "priceRange", min: (config.maxVipPrice || 1000000) / 100, max: (config.maxVipPrice || 1000000), default: (config.maxVipPrice || 1000000) / 100, step: (config.maxVipPrice || 1000000) / 100},
     ]
     useEffect(() => {
         const newSettings: CasinoSettings = {};
@@ -90,11 +92,14 @@ function DisplaySettings({casinoId, settings} : {casinoId: number, settings: Cas
                         <div className="flex flex-col">
                             <div className="flex flex-row w-full justify-between items-center">
                                 <div className="text-sm font-bold"><Translate id={"casino_manage_" + setting.variable}/></div>
-                                <div className="text-sm font-bold">{settingsState[setting.variable]}%</div>
+                                <div className="text-sm font-bold">
+                                    {setting.type == "range" && (settingsState[setting.variable] + "%")}
+                                    {setting.type == "priceRange" && <DisplayCurrency value={settingsState[setting.variable]} />}
+                                </div>
                             </div>
                             <div className="text-xs text-zinc-400"><Translate id={"casino_manage_" + setting.variable + "_desc"}/></div>
                         </div>
-                        {setting.type === "range" && (
+                        {(setting.type === "range" || setting.type === "priceRange") && (
                             <div className="flex flex-row w-full">
                                 <input className="w-full" type="range" min={setting.min} max={setting.max} step={setting.step} value={settingsState[setting.variable]} onMouseUp={() => {
                                     fetchNui("updateCasinoSetting", {
@@ -136,7 +141,7 @@ function GetWeeklyProfit(transactions: CasinoTransaction[]) {
             return transaction.datetime >= startOfDay / 1000 && transaction.datetime <= endOfDay / 1000;
         });
         const dayProfit = dayTransactions.reduce((acc, transaction) => {
-            if (transaction.type === "withdraw") {
+            if (transaction.type.includes("withdraw")) {
                 return acc - transaction.amount;
             }
             else {
@@ -161,7 +166,7 @@ function GetWeeklyDate() {
 }
 
 type ManagementTransfer = {
-    type: "deposit" | "withdraw",
+    type: string,
     balanceType: "balance" | "marked_balance",
     amount: number,
 }
@@ -190,6 +195,11 @@ function Management({info} : {info: any}) {
         negative: "#ff6467",
         neutral: "white",
     }
+    useNuiEvent("updateCasinoBalance", (data: any) => {
+        if (data.casinoId !== info.casinoId) return;
+        setMoney(data.balance);
+        setDirtyMoney(data.marked_balance);
+    })
     useEffect(() => {
         if (managementGraphRef.current) {
             const ctx = document.createElement('canvas');
@@ -357,7 +367,7 @@ export default function ManagementDisplay() {
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
             if (!managementInfo) return;
-            if (event.key === "Escape" || event.key === "Backspace") {
+            if (event.key === "Escape") {
                 fetchNui("exitManagement", {});
             }
         };
