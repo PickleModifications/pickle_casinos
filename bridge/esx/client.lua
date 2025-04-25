@@ -55,7 +55,7 @@ end)
 
 RegisterNetEvent('esx:playerLoaded')
 AddEventHandler('esx:playerLoaded',function(xPlayer, isNew, skin)
-    TriggerServerEvent("pickle_multiplayerjobs:initializePlayer")
+    TriggerServerEvent("pickle_casinos:initializePlayer")
 end)
 
 function ToggleOutfit(onduty)
@@ -88,12 +88,12 @@ CreateThread(function()
     
     Inventory.Ready = false
     
-    RegisterNetEvent("pickle_multiplayerjobs:setupInventory", function(data)
+    RegisterNetEvent("pickle_casinos:setupInventory", function(data)
         Inventory.Items = data.items
         Inventory.Ready = true
     end)
     
-    RegisterNetEvent("pickle_multiplayerjobs:updateInventory", function(inventory) 
+    RegisterNetEvent("pickle_casinos:updateInventory", function(inventory) 
         -- RefreshInventory(inventory)
     end)
 end)

@@ -34,6 +34,8 @@ function CreateCasinoEntity(casinoId, entityId)
         CreateHorseRacingEntity(casinoId, entityId)
     elseif casinoEntity.type == "cashier" then
         CreateCashierEntity(casinoId, entityId)
+    elseif casinoEntity.type == "store" then
+        CreateStoreEntity(casinoId, entityId)
     end
 end
 
@@ -135,6 +137,16 @@ function GenerateGameSettingsUI()
         end
         return options
     end
+    local storesToOptions = function(stores)
+        local options = {}
+        for i=1, #stores do
+            table.insert(options, {
+                label = stores[i].label,
+                value = i,
+            })
+        end
+        return options
+    end
     return {
         ["blackjack"] = {
             {variable = "dealerModel", type = "dropdown", label = _L("dealer_model"), default = 1, options = modelToOptions(Config.CreatorOptions.dealerModels, true)},
@@ -169,6 +181,10 @@ function GenerateGameSettingsUI()
         },
         ["cashier"] = {
             {variable = "dealerModel", type = "dropdown", label = _L("cashier_model"), default = 1, options = modelToOptions(Config.CreatorOptions.dealerModels, true)},
+        },
+        ["store"] = {
+            {variable = "dealerModel", type = "dropdown", label = _L("store_model"), default = 1, options = modelToOptions(Config.CreatorOptions.dealerModels, true)},
+            {variable = "store", type = "dropdown", label = _L("store_type"), default = 1, options = storesToOptions(Config.CreatorOptions.stores)},
         }
     }
 end
@@ -196,7 +212,7 @@ function CreateCurrentCasinoEntity(coords, rotation, data)
             model = `vw_prop_vw_luckywheel_01a`
         elseif entityType == "horseracing" then
             model = Config.HorseRacing.machineModel
-        elseif entityType == "cashier" then
+        elseif entityType == "cashier" or entityType == "store" then
             CurrentCasinoEntity.object = CreateDealerPed(data.info.settings.dealerModel, coords, rotation.z)
             return
         else
@@ -624,6 +640,8 @@ RegisterNetEvent("pickle_casinos:deleteCasino", function(casinoId)
             DeleteHorseRacingEntity(casinoId, entity.id)
         elseif entity.type == "cashier" then
             DeleteCashierEntity(casinoId, entity.id)
+        elseif entity.type == "store" then
+            DeleteStoreEntity(casinoId, entity.id)
         end
         if LocalCasinos[casinoId].interact then
             DeleteInteraction(LocalCasinos[casinoId].interact)

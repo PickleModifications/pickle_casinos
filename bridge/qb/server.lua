@@ -188,7 +188,7 @@ CreateThread(function()
 
     Inventory.UpdateInventory = function(source)
         SetTimeout(1000, function()
-            TriggerClientEvent("pickle_multiplayerjobs:updateInventory", source, Inventory.GetInventory(source))
+            TriggerClientEvent("pickle_casinos:updateInventory", source, Inventory.GetInventory(source))
         end)
     end
 
@@ -222,7 +222,7 @@ CreateThread(function()
         return (Inventory.GetItemCount(source, name) > 0)
     end
 
-    RegisterCallback("pickle_multiplayerjobs:getInventory", function(source, cb)
+    RegisterCallback("pickle_casinos:getInventory", function(source, cb)
         cb(Inventory.GetInventory(source))
     end)
 

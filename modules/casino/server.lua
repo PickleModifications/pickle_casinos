@@ -27,6 +27,8 @@ function InitializeCasinoEntity(casinoId, entity, dataOnly)
         entity = InitializeHorseRacingEntity(casinoId, entity, dataOnly)
     elseif entity.type == "cashier" then
         entity = InitializeCashierEntity(casinoId, entity, dataOnly)
+    elseif entity.type == "store" then
+        entity = InitializeStoreEntity(casinoId, entity, dataOnly)
     end
     return entity
 end
@@ -151,8 +153,11 @@ function EnsureGameSettings(entityType, settings)
         defaultSettings["tableModel"] = settings.tableModel
         defaultSettings["dealerModel"] = settings.dealerModel
     end
-    if entityType == "cashier" then
+    if entityType == "cashier" or entityType == "store" then
         defaultSettings["dealerModel"] = settings.dealerModel
+    end
+    if entityType == "store" then
+        defaultSettings["store"] = settings.store or 1
     end
     if entityType == "slot" then
         defaultSettings["game"] = settings.game
@@ -231,6 +236,9 @@ end)
 
 RegisterNetEvent("pickle_casinos:initializePlayer", function()
     TriggerClientEvent("pickle_casinos:syncCasinos", source, Casinos)
+    TriggerClientEvent("pickle_casinos:setupInventory", source, {
+        items = Inventory.Items,
+    })
     UpdateHorseTracks(source)
     UpdateObjects(source)
 end)

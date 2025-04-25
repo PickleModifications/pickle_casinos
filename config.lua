@@ -2,13 +2,14 @@ Config = {}
 Config.Language = "en"
 Config.Debug = false -- This enables debugging prints.
 Config.RenderDistance = 50.0
-Config.InteractDistance = 2.0
+Config.InteractDistance = 2.5
 Config.UseTarget = true -- This enables the use of the target system when available.
 Config.WaitingTime = 10 -- Time to wait before starting a round for players to place bets.
 Config.SeatTurnTime = 10 -- Time to wait for players to place bets / decide before moving to the next player.
 Config.UseObjectGizmo = false -- This enables the use of object_gizmo for placing objects. If false, it uses the default movement system.
 Config.MaximumChipPurchaseAmount = 1000000 -- Maximum amount of chips a player can purchase at once.
-
+Config.MaximumItemPurchaseAmount = 100 -- Maximum amount of items a player can purchase at once.
+Config.ImageDirectory = "nui://ox_inventory/web/images/" -- (QB: nui://qb-inventory/html/images/) This is the directory where the images are stored. It should be a relative path to the resource folder.
 Config.Chips = {
     {color = "#15803D", value = 1},
     {color = "#C2410C", value = 5},
@@ -78,8 +79,23 @@ Config.CreatorOptions = {
             label = "Burgershot",
             items = {
                 {item = "hamburger", price = 10},
+                {item = "crisps", price = 3},
+                {item = "soda", price = 2},
             }
-        }
+        },
+        {
+            label = "Pickle's Brewery",
+            items = {
+                {item = "cigbox", price = 10},
+                {item = "cigarette", price = 2},
+                {item = "beer", price = 3},
+                {item = "gin_shot", price = 4},
+                {item = "vodka_shot", price = 5},
+                {item = "whiskey_bottle", price = 15},
+                {item = "tequila_bottle", price = 25},
+                {item = "vodka_bottle", price = 50},
+            }
+        },
     },
     dealerModels = {
         {

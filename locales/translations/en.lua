@@ -59,6 +59,7 @@ Language["en"] = {
     casino_manage_transfer_balancetype = "Account",
     casino_manage_management_deposit = "Management Deposit",
     casino_manage_management_withdraw = "Management Withdraw",
+    casino_manage_purchase = "Store Purchase",
     casino_deposited = "You have deposited %s into %s's account.",
     casino_withdrawn = "You have withdrawn %s into %s's account.",
     casino_vip_game = "(VIP)",
@@ -172,6 +173,14 @@ Language["en"] = {
     cashier_buy_currency_dirty = "Marked Bills (Exchange: %s)",
     cashier_bought_chips = "You have bought %s chips for %s using %s!",
     cashier_sold_chips = "You have exchanged %s chips for %s in %s!",
-    casino_vip_required = "You must be a VIP member to access this table, please purchase a VIP membership at the cashier desk.",
+    store_title = "Store",
+    store_model = "Worker Model",
+    store_type = "Store Type",
+    store_quantity_input = "Quantity",
+    store_quantity_input_desc = "The amount of items to purchase.",
+    store_purchase_dialog = "Purchase: %s",
+    store_purchase_success = "You have purchased %sx %s for %s!",
+    casino_vip_required = "You must be a VIP member to access this, please purchase a VIP membership at the cashier desk.",
     casino_controls_exit = "Exit Game",
+
 }

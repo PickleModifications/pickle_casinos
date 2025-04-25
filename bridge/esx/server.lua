@@ -190,7 +190,7 @@ CreateThread(function()
 
     Inventory.UpdateInventory = function(source)
         SetTimeout(1000, function()
-            TriggerClientEvent("pickle_multiplayerjobs:updateInventory", source, Inventory.GetInventory(source))
+            TriggerClientEvent("pickle_casinos:updateInventory", source, Inventory.GetInventory(source))
         end)
     end
 
@@ -229,16 +229,28 @@ CreateThread(function()
         return xPlayer.hasWeapon(name)
     end
 
-    RegisterCallback("pickle_multiplayerjobs:getInventory", function(source, cb)
+    RegisterCallback("pickle_casinos:getInventory", function(source, cb)
         cb(Inventory.GetInventory(source))
     end)
-
-    MySQL.ready(function() 
-        MySQL.Async.fetchAll("SELECT * FROM items;", {}, function(results) 
-            for i=1, #results do 
-                Inventory.Items[results[i].name] = {label = results[i].label}
-            end
-            Inventory.Ready = true
+    
+    if GetResourceState("ox_inventory") == "started" then 
+        for item, data in pairs(exports.ox_inventory:Items()) do
+            Inventory.Items[item] = {label = data.label}
+        end
+        Inventory.Ready = true
+    elseif GetResourceState("qs-inventory") == "started" then 
+        for item, data in pairs(exports['qs-inventory']:GetItemList()) do
+            Inventory.Items[item] = {label = data.label}
+        end
+        Inventory.Ready = true
+    else
+        MySQL.ready(function() 
+            MySQL.Async.fetchAll("SELECT * FROM items;", {}, function(results) 
+                for i=1, #results do 
+                    Inventory.Items[results[i].name] = {label = results[i].label}
+                end
+                Inventory.Ready = true
+            end)
         end)
-    end)
+    end
 end)

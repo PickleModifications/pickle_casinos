@@ -284,11 +284,11 @@ Citizen.CreateThread(function()
                                     SelectInteraction(k, 1)
                                 else 
                                     lib.registerContext({
-                                        id = 'heists_'..k,
+                                        id = 'casinos_'..k,
                                         title = v.title or "Options",
                                         options = v.options
                                     })
-                                    lib.showContext('heists_'..k)
+                                    lib.showContext('casinos_'..k)
                                 end
                             end
                         end
@@ -309,11 +309,11 @@ Citizen.CreateThread(function()
                                 SelectInteraction(k, 1, {entity = entity, coords = coords, dist = dist})
                             else 
                                 lib.registerContext({
-                                    id = 'heists_'..k,
+                                    id = 'casinos_'..k,
                                     title = v.title or "Options",
                                     options = v.options
                                 })
-                                lib.showContext('heists_'..k)
+                                lib.showContext('casinos_'..k)
                             end
                         end
                     end
