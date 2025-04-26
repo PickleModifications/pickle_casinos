@@ -366,6 +366,10 @@ export default function Baccarat({game}: {game: CasinoGame}) {
                                 playAudio("bet");
                                 setChipValue(data.value);
                             }
+                            else if (data.type == "repeatWager") {
+                                playAudio("bet");
+                                fetchNui("repeatBaccaratWager", {});
+                            }
                             else if (data.type == "clearWager") {
                                 playAudio("clear");
                                 fetchNui("setBaccaratWager", {

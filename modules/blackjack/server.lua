@@ -220,8 +220,17 @@ function StartBlackjackGame(casinoId, entityId)
             TriggerClientEvent("pickle_casinos:blackjack:updateSeatCards", -1, casinoId, entityId, 0, 1, entity.seats[0].hands[1])
         end)
         Wait(2000)
+        local inPlay = false
+        for i=1, 4 do
+            if entity.seats[i].source and entity.seats[i].wagers[1] > 0 then
+                local value, secondaryValue = GetValueOfCards(entity.seats[i].hands[1])
+                if value < 21 and secondaryValue < 21 then
+                    inPlay = true
+                end
+            end
+        end
         local dealerValue, dealerSecondaryValue = GetValueOfCards(entity.seats[0].hands[1])
-        if dealerValue < 17 and dealerSecondaryValue < 17 then
+        if inPlay and dealerValue < 17 and dealerSecondaryValue < 17 then
             local done = false
             repeat
                 entity.stage = {type = "dealing", seat = 0, card = GenerateCard()}

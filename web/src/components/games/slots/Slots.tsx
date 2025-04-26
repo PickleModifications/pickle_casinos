@@ -276,6 +276,11 @@ export default function Slots({game} : {game: SlotGame}) {
                 audio.current.pause();
             }
         }
+        return () => {
+            if (audio.current) {
+                audio.current.pause();
+            }
+        }
     }, [spinning]);
     useEffect(() => {
         if (bonusAudio.current) {
@@ -284,6 +289,11 @@ export default function Slots({game} : {game: SlotGame}) {
                 bonusAudio.current.play();
             }
             else {
+                bonusAudio.current.pause();
+            }
+        }
+        return () => {
+            if (bonusAudio.current) {
                 bonusAudio.current.pause();
             }
         }

@@ -26,11 +26,13 @@ RegisterNetEvent("pickle_casinos:storePurchase", function(casinoId, entityId, it
     Inventory.AddItem(source, itemName, amount)
     ShowNotification(source, _L("store_purchase_success", NumberWithCommas(amount, true), GetItemLabel(item.item), NumberWithCommas(price)))
     local profit = math.floor(price * (Config.Casinos.profitPercent / 100))
-    casino.balance = (casino.balance or 0) + profit
     AddCasinoTransaction(source, casinoId, "purchase", profit)
-    MySQL.Async.execute('UPDATE `pickle_casinos` SET balance = ? WHERE id = ?', {
-        casino.balance,
-        casinoId
-    })
-    TriggerClientEvent("pickle_casinos:updateCasinoBalance", -1, casinoId, casino.balance, casino.marked_balance)
+    if IsCasinoOwned(casinoId) then 
+        casino.balance = (casino.balance or 0) + profit
+        MySQL.Async.execute('UPDATE `pickle_casinos` SET balance = ? WHERE id = ?', {
+            casino.balance,
+            casinoId
+        })
+        TriggerClientEvent("pickle_casinos:updateCasinoBalance", -1, casinoId, casino.balance, casino.marked_balance)
+    end
 end)

@@ -33,6 +33,15 @@ function CreateProp(modelHash, ...)
     return obj
 end
 
+function CreateTennisBall(...)
+    local ball = CreateObject(`prop_tennis_ball`, ...)
+    SetEntityAlpha(ball, 0, false)
+    FreezeEntityPosition(ball, true)
+    SetEntityCollision(ball, false, false)
+    SetEntityVisible(ball, false, false)
+    return ball
+end
+
 function PlayAnim(ped, dict, ...)
     RequestAnimDict(dict)
     while not HasAnimDictLoaded(dict) do Wait(0) end

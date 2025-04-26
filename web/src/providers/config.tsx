@@ -15,6 +15,7 @@ export type Config = {
     currency?: string;
     chips?: Chip[];
     gameSettings?: GameSettingsType;
+    templates: {label: string, value: string}[];
 }
 
 interface ConfigContextProps {
@@ -43,7 +44,8 @@ export const ConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             {color: "#0369A1", value: 1000000},
         ],
         bonusWheelMultipliers: [],
-        gameSettings: {}
+        gameSettings: {},
+        templates: [],
     });
     useNuiEvent('setConfig', (data) => {
         setConfig({ ...config, ...data.config });

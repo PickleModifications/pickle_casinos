@@ -238,7 +238,7 @@ function RenderHorseRacingTrack(trackId)
     UnrenderHorseRacingTrack(trackId)
     local coords = track.coords
     local heading = track.heading
-    localTrack.raceCenterObject = CreateProp(`prop_tennis_ball`, coords.x, coords.y, coords.z, false, false, false)
+    localTrack.raceCenterObject = CreateTennisBall(coords.x, coords.y, coords.z, false, false, false)
     SetEntityAlpha(localTrack.raceCenterObject, 0, false)
     SetEntityHeading(localTrack.raceCenterObject, heading)
     local finishCoords = GetOffsetFromEntityInWorldCoords(localTrack.raceCenterObject, 0.0, track.distance, 0.3)
@@ -252,7 +252,7 @@ function RenderHorseRacingTrack(trackId)
         local horse = {}
         horse.ped = CreateNPC(`RaceHorse`, startCoords.x, startCoords.y, startCoords.z, false, false)
         SetPedComponentVariation(horse.ped, 11, 0, i - 1, 0)
-        horse.surfaceObject = CreateProp(`prop_tennis_ball`, startCoords.x, startCoords.y, startCoords.z, false, false, false)
+        horse.surfaceObject = CreateTennisBall(startCoords.x, startCoords.y, startCoords.z, false, false, false)
         SetEntityAlpha(horse.surfaceObject, 0, false)
         SetEntityHeading(horse.surfaceObject, heading)
         AttachEntityToEntity(horse.ped, horse.surfaceObject, 0, 0, 0, 0.95, 0, 0, 0, false, false, false, false, 2, true)

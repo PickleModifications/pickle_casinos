@@ -634,7 +634,7 @@ export default function Roulette({game} : {game: CasinoGame}) {
     const [sections, setSections] = useState(GetDefaultRouletteSections());
     const [connects, setConnects] = useState(GetDefaultRouletteConnections());
     const winningNumber = stage.winningNumber != undefined ? stage.winningNumber : -1;
-    const [lastNumbers, setLastNumbers] = useState<number[]>([24, 1, 0, 11, 8, 24, 1, 0, 11, 8]);
+    const [lastNumbers, setLastNumbers] = useState<number[]>(game.data.history || []);
     useNuiEvent("updateRouletteWagers", (data) => {
         setConnects(data.data.connects);
     });
@@ -650,6 +650,9 @@ export default function Roulette({game} : {game: CasinoGame}) {
     });
     useNuiEvent("updateRouletteSeat", (data) => {
         setCurrentSeat(data.seatId);
+    });
+    useNuiEvent("updateRouletteHistory", (data) => {
+        setLastNumbers(data.history);
     });
     return (
         <div className='flex flex-col bg-background/95 absolute w-full px-8 py-8' style={{ 

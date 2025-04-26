@@ -91,6 +91,7 @@ function AttemptSeatAtRouletteEntity(casinoId, entityId)
             connects = entityInfo.connects,
             money = entityInfo.money,
             betRange = entityInfo.betRange,
+            history = entityInfo.history,
         }
         local casinoId = CurrentRouletteTable.casinoId
         local entityId = CurrentRouletteTable.entityId
@@ -106,6 +107,7 @@ function AttemptSeatAtRouletteEntity(casinoId, entityId)
                     money = CurrentRouletteTable.money,
                     wagerLimit = CurrentRouletteTable.betRange,
                     stage = CurrentRouletteTable.stage,
+                    history = CurrentRouletteTable.history,
                 }
             }
         })
@@ -220,7 +222,7 @@ function RenderRouletteEntity(casinoId, entityId)
     local coords = casinoEntity.settings.location.coords
     local heading = casinoEntity.settings.location.rotation.z
     local tableObject = CreateProp(casinoEntity.settings.tableModel, coords, false, false, false)
-    local surfaceObject = CreateProp(`prop_tennis_ball`, coords - vector3(0.0, 0.0, 0.11), false, false, false)
+    local surfaceObject = CreateTennisBall(coords - vector3(0.0, 0.0, 0.11), false, false, false)
     FreezeEntityPosition(tableObject, true)
     SetEntityHeading(tableObject, heading)
     FreezeEntityPosition(surfaceObject, true)
@@ -239,7 +241,7 @@ function RenderRouletteEntity(casinoId, entityId)
     for i,v in pairs(LocalRouletteTables[casinoId][entityId].playAreas) do
         local playArea = LocalRouletteTables[casinoId][entityId].playAreas[i]
         local seatOffset = PLAY_AREA_OFFSETS[i].seatOffset
-        playArea.surfaceObject = CreateProp(`prop_tennis_ball`, GetOffsetFromEntityInWorldCoords(surfaceObject, seatOffset.coords - vector3(0.0, 0.0, 0.05)), false, false, false)
+        playArea.surfaceObject = CreateTennisBall(GetOffsetFromEntityInWorldCoords(surfaceObject, seatOffset.coords - vector3(0.0, 0.0, 0.05)), false, false, false)
         FreezeEntityPosition(playArea.surfaceObject, true)
         SetEntityHeading(playArea.surfaceObject, heading + seatOffset.rotation.z)
     end
@@ -397,6 +399,16 @@ AddEventHandler("pickle_casinos:exitGame", function()
     CurrentCamera = nil
     Wait(4000)
     ClearPedTasks(playerPed)
+end)
+
+RegisterNetEvent("pickle_casinos:roulette:updateHistory", function(casinoId, entityId, history)
+    if not DoesRouletteEntityExist(casinoId, entityId) then return end
+    if not CurrentRouletteTable then return end
+    CurrentRouletteTable.history = history
+    SendNUIMessage({
+        type = "updateRouletteHistory",
+        history = history,
+    })
 end)
 
 RegisterNetEvent("pickle_casinos:roulette:updateMoney", function(money)

@@ -237,7 +237,10 @@ function CreateCasinoInteract(casinoId)
         coords = Casinos[casinoId].settings.location.coords,
         heading = Casinos[casinoId].settings.location.rotation.z,
     }, function(selected)
-        StartCasinoManagement(casinoId)
+        ServerCallback("pickle_casinos:getManagementStatus", function(allowed)
+            if not allowed then return ShowNotification(_L("no_permission")) end
+            StartCasinoManagement(casinoId)
+        end, casinoId)
     end)
 end
 
@@ -297,6 +300,71 @@ function CreateDealerPed(dealerIndex, coords, heading)
     return ped
 end
 
+function GenerateTemplates()
+    local templates = {
+        {label = _L("none"), value = "none"},
+    }
+    for k,v in pairs(Templates) do 
+        table.insert(templates, {
+            label = v.label,
+            value = k,
+        })
+    end
+    return templates
+end
+
+RegisterNUICallback("editPlayer", function(data, cb)
+    cb("ok")
+    SendNUIMessage({
+        type = "setEditorHidden",
+        hidden = true,
+    })
+    SetEditorFocus(false)
+    ServerCallback("pickle_casinos:getPlayers", function(players)
+        local options = {}
+        local playerOptions = {
+            {label = _L("none"), value = "none"},
+        }
+        for i=1, #players do
+            playerOptions[#playerOptions + 1] = {
+                label = players[i].name .. " (ID: " .. players[i].source .. ")",
+                value = players[i].identifier,
+            }
+        end
+        options[#options + 1] = {required = true, type = 'select', label = _L("casino_owner_select"), default = (data.player and data.player.identifier or "none"), options = playerOptions}
+        local input = lib.inputDialog(_L("casino_owner"), options)
+        if input and input[1] then 
+            local player
+            for i=1, #players do
+                if players[i].identifier == input[1] then
+                    player = players[i]
+                    break
+                end
+            end
+            if not player or input[1] == "none" then 
+                player = {
+                    name = _L("none"),
+                    identifier = "none",
+                }
+            end
+            SendNUIMessage({
+                type = "setPlayer",
+                player = player,
+            })
+        end
+        SendNUIMessage({
+            type = "setEditorHidden",
+            hidden = false,
+        })
+        SetEditorFocus(true)
+    end)
+end)
+
+RegisterNUICallback("updateCasinoOwner", function(data, cb)
+    TriggerServerEvent("pickle_casinos:updateCasinoOwner", data.casinoId, data.value)
+    cb("ok")
+end)
+
 RegisterNUICallback("openCasinoEditor", function(data, cb)
     ExitCasinoManagement()
     StartCasinoEditor(data.casinoId)
@@ -337,6 +405,7 @@ RegisterNUICallback("pageLoaded", function(data, cb)
             bonusWheelMultipliers = GenerateWheelBonusConfig(),
             gameSettings = GenerateGameSettingsUI(),
             locale = Language[Config.Language],
+            templates = GenerateTemplates(),
         }
     })
     TriggerServerEvent("pickle_casinos:initializePlayer")
@@ -506,6 +575,17 @@ RegisterNUICallback("highlightCasinoEntity", function(data, cb)
     elseif CurrentHighlight then
         CurrentHighlight = nil
     end
+end)
+
+RegisterNetEvent("pickle_casinos:updateCasinoOwner", function(casinoId, owner_info)
+    local casino = Casinos[casinoId]
+    if not casino then return end
+    casino.owner_info = owner_info
+    SendNUIMessage({
+        type = "updateCasinoOwner",
+        casinoId = casinoId,
+        owner_info = owner_info,
+    })
 end)
 
 RegisterNetEvent("pickle_casinos:updateCasinoTransactions", function(casinoId, transactions)

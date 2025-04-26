@@ -211,7 +211,7 @@ function RenderPokerEntity(casinoId, entityId)
     local coords = casinoEntity.settings.location.coords - vector3(0.0, 0.0, 0.38)
     local heading = casinoEntity.settings.location.rotation.z
     local tableObject = CreateProp(casinoEntity.settings.tableModel, coords, false, false, false)
-    local surfaceObject = CreateProp(`prop_tennis_ball`, coords + vector3(0.0, 0.0, 1.05), false, false, false)
+    local surfaceObject = CreateTennisBall(coords + vector3(0.0, 0.0, 1.05), false, false, false)
     FreezeEntityPosition(tableObject, true)
     SetEntityHeading(tableObject, heading)
     FreezeEntityPosition(surfaceObject, true)
@@ -231,7 +231,7 @@ function RenderPokerEntity(casinoId, entityId)
     -- end
     for i=1, #POKER_SEATS do
         local seatOffset = POKER_SEATS[i]
-        local playSurface = CreateProp(`prop_tennis_ball`, GetOffsetFromEntityInWorldCoords(surfaceObject, seatOffset.coords - vector3(0.0, 0.0, 1.0)), false, false, false)
+        local playSurface = CreateTennisBall(GetOffsetFromEntityInWorldCoords(surfaceObject, seatOffset.coords - vector3(0.0, 0.0, 1.0)), false, false, false)
         FreezeEntityPosition(playSurface, true)
         SetEntityHeading(playSurface, heading + seatOffset.rotation.z)
         local cards = {}

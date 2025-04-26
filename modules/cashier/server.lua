@@ -12,8 +12,13 @@ RegisterCallback("pickle_casinos:getBalances", function(source, cb, casinoId, en
     local casino = Casinos[casinoId]
     if casino then
         balance = Inventory.GetItemCount(source, casino.settings.chipItem) or 0
-        casinoBalance = casino.balance or 0
-        casinoMarkedBalance = casino.marked_balance or 0
+        if IsCasinoOwned(casinoId) then 
+            casinoBalance = casino.balance or 0
+            casinoMarkedBalance = casino.marked_balance or 0
+        else
+            casinoBalance = Config.MaximumChipPurchaseAmount
+            casinoMarkedBalance = Config.MaximumChipPurchaseAmount
+        end
     end
     return cb({
         money = money,
@@ -45,19 +50,21 @@ RegisterNetEvent("pickle_casinos:casinoExchange", function(casinoId, entityId, e
         if chips <= 0 then return end
         RemoveMoney(source, amount, currency)
         ShowNotification(source, _L("cashier_bought_chips", NumberWithCommas(chips, true), NumberWithCommas(amount), currency == "money" and _L("cashier_buy_currency_type_cash") or _L("cashier_buy_currency_type_dirty")))
-        if currency == "money" then
-            casino.balance = (casino.balance or 0) + amount
-        elseif currency == "dirty" then
-            casino.marked_balance = (casino.marked_balance or 0) + amount
+        if IsCasinoOwned(casinoId) then 
+            if currency == "money" then
+                casino.balance = (casino.balance or 0) + amount
+            elseif currency == "dirty" then
+                casino.marked_balance = (casino.marked_balance or 0) + amount
+            end
+            MySQL.Async.execute('UPDATE `pickle_casinos` SET balance = ?, marked_balance = ? WHERE id = ?', {
+                casino.balance,
+                casino.marked_balance,
+                casinoId
+            })
+            TriggerClientEvent("pickle_casinos:updateCasinoBalance", -1, casinoId, casino.balance, casino.marked_balance)
         end
         AddCasinoTransaction(source, casinoId, "deposit", amount)
-        MySQL.Async.execute('UPDATE `pickle_casinos` SET balance = ?, marked_balance = ? WHERE id = ?', {
-            casino.balance,
-            casino.marked_balance,
-            casinoId
-        })
         Inventory.AddItem(source, casino.settings.chipItem, chips)
-        TriggerClientEvent("pickle_casinos:updateCasinoBalance", -1, casinoId, casino.balance, casino.marked_balance)
     elseif exchangeType == "sell" then
         local amount = tonumber(param2)
         if not amount or amount <= 0 then return end
@@ -66,18 +73,20 @@ RegisterNetEvent("pickle_casinos:casinoExchange", function(casinoId, entityId, e
         local chips = Inventory.GetItemCount(source, casino.settings.chipItem) or 0
         if chips < amount then return end
         local casinoBalance = casino.balance or 0
-        if amount > casinoBalance then return end
+        if IsCasinoOwned(casinoId) then 
+            if amount > casinoBalance then return end
+            casino.balance = casinoBalance - amount
+            MySQL.Async.execute('UPDATE `pickle_casinos` SET balance = ?, marked_balance = ? WHERE id = ?', {
+                casino.balance,
+                casino.marked_balance,
+                casinoId
+            })
+            TriggerClientEvent("pickle_casinos:updateCasinoBalance", -1, casinoId, casino.balance, casino.marked_balance)
+        end
         Inventory.RemoveItem(source, casino.settings.chipItem, amount)
         AddMoney(source, amount, "money")
         ShowNotification(source, _L("cashier_sold_chips", NumberWithCommas(amount, true), NumberWithCommas(amount), _L("cashier_buy_currency_type_cash")))
-        casino.balance = casinoBalance - amount
         AddCasinoTransaction(source, casinoId, "withdraw", amount)
-        MySQL.Async.execute('UPDATE `pickle_casinos` SET balance = ?, marked_balance = ? WHERE id = ?', {
-            casino.balance,
-            casino.marked_balance,
-            casinoId
-        })
-        TriggerClientEvent("pickle_casinos:updateCasinoBalance", -1, casinoId, casino.balance, casino.marked_balance)
     else
         return 
     end
@@ -108,5 +117,14 @@ RegisterNetEvent("pickle_casinos:purchaseVIP", function(casinoId, entityId)
         json.encode(casino.vip_players),
         casinoId
     })
+    if IsCasinoOwned(casinoId) then 
+        casino.balance = (casino.balance or 0) + vipPrice
+        MySQL.Async.execute('UPDATE `pickle_casinos` SET balance = ? WHERE id = ?', {
+            casino.balance,
+            casinoId
+        })
+        TriggerClientEvent("pickle_casinos:updateCasinoBalance", -1, casinoId, casino.balance, casino.marked_balance)
+    end
+    AddCasinoTransaction(source, casinoId, "vip", vipPrice)
     TriggerClientEvent("pickle_casinos:updateCasinoVIP", -1, casinoId, casino.vip_players)
 end)
