@@ -54,6 +54,7 @@ function LeaveRouletteEntity(source, casinoId, entityId, seatId)
         entity.seats[seatId] = GenerateDefaultRouletteSeat()
         SendCasinoEntityUpdate(casinoId, entityId)
         SetTimeout(100 * 1, function()
+            TriggerClientEvent("pickle_casinos:roulette:updateSeatWager", -1, casinoId, entityId, seatId, entity.seats[seatId].connects)
             TriggerClientEvent("pickle_casinos:roulette:updateSeat", -1, casinoId, entityId, seatId, entity.seats[seatId])
         end)
         CurrentPlayers[source] = nil
@@ -153,14 +154,23 @@ function StartRouletteGame(casinoId, entityId)
             if totalWin > 0 then
                 AddCasinoChips(seat.source, casinoId, totalWin)
             end
-            SetTimeout(6000, function()
-                entity.seats[i].connects = GenerateRouletteDefaultWagers()
-                TriggerClientEvent("pickle_casinos:roulette:updateSeatWager", -1, casinoId, entityId, i, entity.seats[i].connects)
-            end)
         end
         entity.stage = {type = "winningNumber", winningNumber = winningNumber, seats = seats}
         TriggerClientEvent("pickle_casinos:roulette:updateStage", -1, casinoId, entityId, entity.stage)
-        Wait(6000)
+        table.insert(entity.history, 1, winningNumber)
+        if #entity.history > 30 then
+            table.remove(entity.history, #entity.history)
+        end
+        TriggerClientEvent("pickle_casinos:roulette:updateHistory", -1, casinoId, entityId, entity.history)
+        Wait(5000)
+        for i=1, #entity.seats do
+            entity.seats[i].connects = GenerateRouletteDefaultWagers()
+            SetTimeout(1000, function()
+                TriggerClientEvent("pickle_casinos:roulette:updateSeatWager", -1, casinoId, entityId, i, entity.seats[i].connects)
+            end)
+        end
+        Wait(1000)
+        SendCasinoEntityUpdate(casinoId, entityId)
         StartRouletteLobby(casinoId, entityId)
     end)
 end
@@ -260,6 +270,7 @@ end
 function InitializeRouletteEntity(casinoId, entity, dataOnly)
     local entity = entity or { id = "ERR_ROULETTE_ENTITY" }
     entity.seats = {}
+    entity.history = {}
     for i=0, 4 do 
         entity.seats[i] = GenerateDefaultRouletteSeat()
     end
@@ -300,8 +311,10 @@ RegisterCallback("pickle_casinos:repeatRouletteWager", function(source, cb)
     if not entity.seats[info.seatId].source then return end
     local lastWager = LastWagers[source]
     local totalWager = lastWager and lastWager.wager or 0
-    if totalWager <= 0 or GetCasinoChips(source, casinoId) < totalWager then return cb({connects = GetDefaultRouletteConnections(), wager = 0}) end
+    print("REPEAT WAGER", lastWager, totalWager)
+    if totalWager <= 0 or GetCasinoChips(source, info.casinoId) < totalWager then return cb({connects = GetDefaultRouletteConnections(), wager = 0}) end
     entity.seats[info.seatId].connects = lastWager.connects
+    SendCasinoEntityUpdate(info.casinoId, info.entityId)
     TriggerClientEvent("pickle_casinos:roulette:updateSeatWager", -1, info.casinoId, info.entityId, info.seatId, lastWager.connects)
     cb({connects = lastWager.connects, wager = totalWager})
 end)
@@ -315,6 +328,7 @@ RegisterCallback("pickle_casinos:roulette:requestSeat", function(source, cb, cas
             seats = entity.seats,
             stage = entity.stage,
             betRange = entity.betRange,
+            history = entity.history,
             money = GetCasinoChips(source, casinoId)
         })
     end

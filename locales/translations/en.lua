@@ -60,10 +60,12 @@ Language["en"] = {
     casino_manage_management_deposit = "Management Deposit",
     casino_manage_management_withdraw = "Management Withdraw",
     casino_manage_purchase = "Store Purchase",
+    casino_manage_vip = "VIP Membership",
     casino_deposited = "You have deposited %s into %s's account.",
     casino_withdrawn = "You have withdrawn %s into %s's account.",
     casino_vip_game = "(VIP)",
     casino_tax = "Your withdrawal was taxed %s to fund the city.",
+    casino_owner = "Casino Owner",
     blackjack_title = "Blackjack",
     blackjack_nextround = "Next Round: %s",
     blackjack_dealing = "Dealer is now dealing cards...",
@@ -182,5 +184,7 @@ Language["en"] = {
     store_purchase_success = "You have purchased %sx %s for %s!",
     casino_vip_required = "You must be a VIP member to access this, please purchase a VIP membership at the cashier desk.",
     casino_controls_exit = "Exit Game",
-
+    casino_template = "Casino Template",
+    none = "None",
+    casino_owner_select = "Select Owner",
 }

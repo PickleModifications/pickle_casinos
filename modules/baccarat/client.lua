@@ -223,7 +223,7 @@ function RenderBaccaratEntity(casinoId, entityId)
     local coords = casinoEntity.settings.location.coords
     local heading = casinoEntity.settings.location.rotation.z
     local tableObject = CreateProp(casinoEntity.settings.tableModel, coords, false, false, false)
-    local surfaceObject = CreateProp(`prop_tennis_ball`, coords - vector3(0.0, 0.0, 0.11), false, false, false)
+    local surfaceObject = CreateTennisBall(coords - vector3(0.0, 0.0, 0.11), false, false, false)
     FreezeEntityPosition(tableObject, true)
     SetEntityHeading(tableObject, heading)
     FreezeEntityPosition(surfaceObject, true)
@@ -262,7 +262,7 @@ function RenderBaccaratEntity(casinoId, entityId)
     for i,v in pairs(LocalBaccaratTables[casinoId][entityId].playAreas) do
         local playArea = LocalBaccaratTables[casinoId][entityId].playAreas[i]
         local cardOffset = PLAY_AREA_OFFSETS[i].cards
-        playArea.surfaceObject = CreateProp(`prop_tennis_ball`, GetOffsetFromEntityInWorldCoords(surfaceObject, cardOffset.coords - vector3(0.0, 0.0, 0.05)), false, false, false)
+        playArea.surfaceObject = CreateTennisBall(GetOffsetFromEntityInWorldCoords(surfaceObject, cardOffset.coords - vector3(0.0, 0.0, 0.05)), false, false, false)
         FreezeEntityPosition(playArea.surfaceObject, true)
         SetEntityHeading(playArea.surfaceObject, heading + cardOffset.rotation.z)
     end
@@ -400,6 +400,11 @@ end)
 
 RegisterNUICallback("setBaccaratWager", function(data, cb)
     TriggerServerEvent("pickle_casinos:baccarat:setWager", data.wager)
+    cb("ok")
+end)
+
+RegisterNUICallback("repeatBaccaratWager", function(data, cb)
+    TriggerServerEvent("pickle_casinos:baccarat:repeatWager")
     cb("ok")
 end)
 

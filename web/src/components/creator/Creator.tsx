@@ -41,6 +41,11 @@ type Location = {
     rotation?: vector3,
 }
 
+type Player = {
+    identifier: string,
+    name: string,
+}
+
 type CasinoEntity = {
     id: string,
     type: string,
@@ -55,10 +60,7 @@ type Casino = {
     settings: CasinoSettings,
     transactions: any[],
     entities: CasinoEntity[],
-    owner_info?: {
-        identifier: string,
-        name: string,
-    },
+    owner_info?: Player | null,
 }
 
 function Location({ info, defaultLocation, className, onUpdate }: { info?: any, defaultLocation: Location, className?: string, onUpdate?: (location: Location) => void }) {
@@ -78,6 +80,28 @@ function Location({ info, defaultLocation, className, onUpdate }: { info?: any, 
                         info: info,
                         coords: coordinates, 
                         rotation: rotation,
+                    })
+                    // Do cool stuff here
+                }}/>
+            )}
+        </div>
+    )
+}
+
+function Player({ info, defaultPlayer, className, onUpdate }: { info?: any, defaultPlayer?: Player, className?: string, onUpdate?: (player: Player) => void }) {
+    useNuiEvent("setPlayer", (data: any) => {
+        if (onUpdate) {
+            onUpdate(data.player)
+        }
+    })
+    return (
+        <div className="flex flex-row items-center gap-2">
+            <div className={className}>{defaultPlayer?.name || <Translate id="none"/>}</div>
+            {onUpdate && (
+                <Edit size={16} className="cursor-pointer hover:scale-95 transition-all duration-200" onClick={() => {
+                    fetchNui("editPlayer", {
+                        info: info,
+                        player: defaultPlayer, 
                     })
                     // Do cool stuff here
                 }}/>
@@ -354,9 +378,11 @@ type CasinoSettings = {
     chipItem: string,
     location: Location,
     blipEnabled: boolean,
+    template: string,
 }
 
 function CasinoDisplay({ isManager, casino, onExit }: { isManager?: boolean, casino?: Casino, onExit: () => void }) {
+    const {config} = useConfig()
     const [casinoState, setCasinoState] = useState<Casino | null>(casino || null)
     const [currentEditingSetting, setCurrentEditingSetting] = useState<string | null>(null)
     const [label, setLabel] = useState<string>(casino?.settings.label || "")
@@ -366,6 +392,7 @@ function CasinoDisplay({ isManager, casino, onExit }: { isManager?: boolean, cas
         chipItem: casino?.settings.chipItem || "",
         location: casino?.settings.location || DEFAULT_LOCATION,
         blipEnabled: casino?.settings.blipEnabled || false,
+        template: casino?.settings.template || "default",
     })
     const [currentEntityId, setCurrentEntityId] = useState<string | null>(null)
     const [creatingEntity, setCreatingEntity] = useState(false)
@@ -406,6 +433,18 @@ function CasinoDisplay({ isManager, casino, onExit }: { isManager?: boolean, cas
                 return {
                     ...prev,
                     entities: data.entities,
+                }
+            }
+            return null
+        });
+    });
+    useNuiEvent("updateCasinoOwner", (data: any) => {
+        if (!casinoState || data.casinoId !== casinoState.id) return;
+        setCasinoState((prev) => {
+            if (prev) {
+                return {
+                    ...prev,
+                    owner_info: data.owner_info,
                 }
             }
             return null
@@ -529,6 +568,24 @@ function CasinoDisplay({ isManager, casino, onExit }: { isManager?: boolean, cas
                                         })
                                     }} />
                                 </div>
+                                {!isManager && (<div className="flex flex-row w-full items-center justify-between">
+                                    <div className="text-md font-bold"><Translate id="casino_owner"/></div>
+                                    <Player info={{casinoId: casinoState.id}} className="text-sm text-zinc-400" defaultPlayer={casinoState.owner_info || undefined} onUpdate={(player: Player) => {
+                                        setCasinoState((prev) => {
+                                            if (prev) {
+                                                return {
+                                                    ...prev,
+                                                    owner_info: player,
+                                                }
+                                            }
+                                            return null
+                                        })
+                                        fetchNui("updateCasinoOwner", {
+                                            casinoId: casinoState.id,
+                                            value: player,
+                                        })
+                                    }}/>
+                                </div>)}
                                 <div className="flex flex-col w-full justify-between">
                                     <div className="text-md font-bold"><Translate id="casino_entities"/></div>
                                     <div className="flex flex-col w-full max-h-[300px] overflow-auto gap-2 justify-between bg-background/50 p-2 mt-2">
@@ -632,6 +689,21 @@ function CasinoDisplay({ isManager, casino, onExit }: { isManager?: boolean, cas
                                     }
                                 })
                             }} />
+                        </div>
+                        <div className="flex flex-row w-full items-center justify-between">
+                            <div className="text-md font-bold"><Translate id="casino_template"/></div>
+                            <select className="bg-secondary/50 text-sm text-right rounded-md px-2 py-1" value={settings.template} onChange={(e) => {
+                                setSettings((prev) => {
+                                    return {
+                                        ...prev,
+                                        template: e.target.value,
+                                    }
+                                });
+                            }}>
+                                {config.templates.map((template, index) => (
+                                    <option key={index} value={template.value}>{template.label}</option>
+                                ))}
+                            </select>
                         </div>
                         <Button variant="default" className="w-full"  onClick={() => {
                             fetchNui("createCasino", settings)

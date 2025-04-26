@@ -299,7 +299,7 @@ Config.Slots = {
         slotSymbols = {
             ["Bonus Symbol"] = {
                 image = "bonus.png",
-                reels = {8, 8, 1, 1, 1},
+                reels = {98, 98, 91, 1, 1},
                 pay = {0, 0, 0, 0, 0},
             },
             ["Monkey"] = {
@@ -443,7 +443,7 @@ Config.Slots = {
         slotSymbols = {
             ["Bonus Symbol"] = {
                 image = "bonus.png",
-                reels = {8, 8, 1, 1, 1},
+                reels = {98, 98, 91, 1, 1},
                 pay = {0, 0, 0, 0, 0},
             },
             ["Peppermint"] = {

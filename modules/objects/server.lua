@@ -26,6 +26,21 @@ function GetMapObjectFromData(model, coords, rotation)
 end
 
 function UpdateObjects(source)
+    TriggerClientEvent("pickle_casinos:objects:updateMapObjects", source, MapObjects)
+end
+
+function AddTemplateMapObjects(templateId, objects)
+    for k,v in pairs(objects) do 
+        local id = templateId .. "_" .. k
+        if not MapObjects[id] then
+            MapObjects[id] = {
+                model = v.model,
+                coords = vector3(v.coords.x, v.coords.y, v.coords.z),
+                rotation = vector3(v.rotation.x, v.rotation.y, v.rotation.z),
+            }
+        end
+    end
+    UpdateMapObjects()
     TriggerClientEvent("pickle_casinos:objects:updateMapObjects", -1, MapObjects)
 end
 

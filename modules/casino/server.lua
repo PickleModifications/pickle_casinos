@@ -1,11 +1,18 @@
 CurrentPlayers = {}
 
+function IsCasinoOwned(casinoId)
+    local casino = Casinos[casinoId]
+    if not casino then return false end
+    if casino.owner_info and casino.owner_info.identifier ~= "none" then return true end
+    return false
+end
+
 function CanManageCasino(source, casinoId)
     if IsPlayerAdmin(source) then return true end
     if not casinoId then return false end
     local casino = Casinos[casinoId]
     if not casino then return false end
-    if casino.owner_identifier and casino.owner_identifier == GetIdentifier(source) then return true end
+    if casino.owner_info and casino.owner_info.identifier == GetIdentifier(source) then return true end
     return false
 end
 
@@ -76,7 +83,7 @@ function RegisterCasino(id, data, dontSync)
         id = id,
         balance = data.balance or 0,
         marked_balance = data.marked_balance or 0,
-        owner_identifier = data.owner_identifier or nil,
+        owner_info = data.owner_info or nil,
         vip_players = data.vip_players or {},
         transactions = EnsureCasinoTransactions(data.transactions or {}),
         settings = EnsureCasinoSettings(data.settings),
@@ -185,7 +192,7 @@ function IsPlayerCasinoVIP(source, casinoId)
     local casino = Casinos[casinoId]
     if not casino then return false end
     local identifier = GetIdentifier(source)
-    -- if casino.owner_identifier and casino.owner_identifier == identifier then return true end
+    -- if casino.owner_info and casino.owner_info.identifier == identifier then return true end
     for i=1, #casino.vip_players do
         if casino.vip_players[i].identifier == identifier then
             return true
@@ -230,11 +237,28 @@ function RemoveCasinoChips(source, casinoId, amount)
     Inventory.RemoveItem(source, casino.settings.chipItem, amount)
 end
 
+RegisterCallback("pickle_casinos:getManagementStatus", function(source, cb, casinoId)
+    return cb(CanManageCasino(source, casinoId))
+end)
+
+RegisterCallback("pickle_casinos:getPlayers", function(source, cb)
+    local players = {}
+    for _, playerId in ipairs(GetPlayers()) do
+        players[#players + 1] = {
+            source = playerId,
+            identifier = GetIdentifier(playerId),
+            name = GetPlayerCharacterName(playerId),
+        }
+    end
+    return cb(players)
+end)
+
 RegisterCallback("pickle_casinos:getVIPStatus", function(source, cb, casinoId)
     return cb(IsPlayerCasinoVIP(source, casinoId))
 end)
 
 RegisterNetEvent("pickle_casinos:initializePlayer", function()
+    local source = source
     TriggerClientEvent("pickle_casinos:syncCasinos", source, Casinos)
     TriggerClientEvent("pickle_casinos:setupInventory", source, {
         items = Inventory.Items,
@@ -255,11 +279,20 @@ RegisterNetEvent("pickle_casinos:createCasino", function(data)
         chipItem = data.chipItem or "UNKNOWN_CHIP_ITEM",
         blipEnabled = data.blipEnabled or false,
     }
+    local entities = {}
+    if data.template and data.template ~= "none" then
+        local template = Templates[data.template]
+        if template then
+            entities = json.decode(template.entitiesJSON) or {}
+            AddTemplateMapObjects(data.template, json.decode(template.objectsJSON) or {})
+        end
+    end 
     MySQL.insert('INSERT INTO `pickle_casinos` (settings, entities, transactions, vip_players) VALUES (?, ?, ?, ?)', {
-        json.encode(casinoSettings), "[]", "[]", "[]"
+        json.encode(casinoSettings), json.encode(entities), "[]", "[]"
     }, function(id)
         RegisterCasino(id, {
             id = id,
+            entities = entities,
             settings = casinoSettings,
         })
     end)
@@ -298,6 +331,23 @@ RegisterNetEvent("pickle_casinos:updateCasinoSetting", function(casinoId, variab
     casino.settings = EnsureCasinoSettings(casino.settings)
     MySQL.Async.execute('UPDATE `pickle_casinos` SET settings = ? WHERE id = ?', {json.encode(casino.settings), casinoId})
     TriggerClientEvent("pickle_casinos:updateCasinoSetting", -1, casinoId, variable, casino.settings[variable])
+end)
+
+RegisterNetEvent("pickle_casinos:updateCasinoOwner", function(casinoId, newOwner)
+    local source = source
+    if not IsPlayerAdmin(source) then return ShowNotification(source, _L("no_permission")) end
+    local casino = Casinos[casinoId]
+    if not casino then return end
+    if newOwner.identifier == "none" then
+        casino.owner_info = nil
+    else
+        casino.owner_info = {
+            identifier = newOwner.identifier,
+            name = newOwner.name
+        }
+    end
+    MySQL.Async.execute('UPDATE `pickle_casinos` SET owner_info = ? WHERE id = ?', {json.encode(casino.owner_info), casinoId})
+    TriggerClientEvent("pickle_casinos:updateCasinoOwner", -1, casinoId, casino.owner_info)
 end)
 
 RegisterNetEvent("pickle_casinos:createCasinoEntity", function(casinoId, entityType, settings)
@@ -385,6 +435,11 @@ RegisterNetEvent("pickle_casinos:startCasinoTransfer", function(casinoId, transf
         AddCasinoTransaction(source, casinoId, "management_withdraw", amount)
         ShowNotification(source, _L("casino_withdrawn", NumberWithCommas(amount), casino.settings.label))
     end
+    MySQL.Async.execute('UPDATE `pickle_casinos` SET balance = ?, marked_balance = ? WHERE id = ?', {
+        casino.balance,
+        casino.marked_balance,
+        casinoId
+    })
     TriggerClientEvent("pickle_casinos:updateCasinoBalance", -1, casinoId, casino.balance, casino.marked_balance)
 end)
 
@@ -401,11 +456,12 @@ CreateThread(function()
             local entities = json.decode(result.entities) or {}
             local transactions = json.decode(result.transactions) or {}
             local vip_players = json.decode(result.vip_players) or {}
+            local owner_info = json.decode(result.owner_info) or nil
             RegisterCasino(result.id, {
                 id = result.id,
                 balance = result.balance,
                 marked_balance = result.marked_balance,
-                owner_identifier = result.owner_identifier,
+                owner_info = owner_info,
                 settings = settings,
                 entities = entities,
                 transactions = transactions,

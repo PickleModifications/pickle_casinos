@@ -20,11 +20,11 @@ files {
 shared_scripts {
 	"@ox_lib/init.lua",
 	"config.lua",
-	"templates.lua",
+    "core/shared.lua",
+	"templates/*.lua",
 	"locales/locale.lua",
     "locales/translations/*.lua",
 	"modules/**/shared.lua",
-    "core/shared.lua"
 }
 
 client_scripts {
