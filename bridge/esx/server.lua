@@ -133,8 +133,15 @@ function SetPlayerJob(source, job, grade)
 end
 
 function IsPlayerAdmin(source)
-    -- TODO: ADMIN
-    return true
+    local xPlayer = ESX.GetPlayerFromId(source)
+    if not xPlayer then return false end
+    local group = xPlayer.getGroup()
+    for i=1, #Config.AdminGroups do 
+        if group == Config.AdminGroups[i] then
+            return true 
+        end
+    end
+    return false
 end
 
 function AddSocietyMoney(name, amount)

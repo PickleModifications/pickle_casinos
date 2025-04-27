@@ -1,7 +1,7 @@
 local classes = {"spd", "club", "dia", "hrt"}
 local values = {"ace", "02", "03", "04", "05", "06", "07", "08", "09", "10", "jack", "queen", "king"}
 
-local function EvaluatePokerHand(hand, community)
+function EvaluatePokerHand(hand, community)
     local allCards = {}
     for _, card in ipairs(hand) do
         table.insert(allCards, card)
@@ -20,12 +20,87 @@ local function EvaluatePokerHand(hand, community)
         return 0
     end
 
+    -- Helper function to get card suit
+    local function getCardSuit(card)
+        return card.class
+    end
+
     -- Sort cards by rank
     table.sort(allCards, function(a, b)
         return getCardRank(a) > getCardRank(b)
     end)
 
-    -- Evaluate hand (simplified for demonstration)
+    -- Check for flush
+    local function isFlush(cards)
+        if #cards < 5 then return false end
+        local suit = getCardSuit(cards[1])
+        for i = 2, #cards do
+            if getCardSuit(cards[i]) ~= suit then
+                return false
+            end
+        end
+        return true
+    end
+
+    -- Check for straight
+    local function isStraight(cards)
+        if #cards < 5 then return false end
+        local uniqueRanks = {}
+        for _, card in ipairs(cards) do
+            local rank = getCardRank(card)
+            if not uniqueRanks[rank] then
+                uniqueRanks[rank] = true
+            end
+        end
+        local sortedRanks = {}
+        for rank in pairs(uniqueRanks) do
+            table.insert(sortedRanks, rank)
+        end
+        table.sort(sortedRanks)
+
+        if #sortedRanks < 5 then return false end
+
+        for i = 1, #sortedRanks - 4 do
+            if sortedRanks[i + 4] - sortedRanks[i] == 4 then
+                return { sortedRanks[i + 4] } -- Return high card of the straight
+            end
+        end
+
+        -- Check for the special case of A-2-3-4-5 straight
+        if uniqueRanks[1] and uniqueRanks[2] and uniqueRanks[3] and uniqueRanks[4] and uniqueRanks[#values] then
+            return { 5 } -- Rank of 5 is the high card in this case
+        end
+
+        return false
+    end
+
+    -- Evaluate for straight flush and royal flush first
+    if #allCards >= 5 then
+        local sameSuitCards = {}
+        local suits = {}
+        for _, card in ipairs(allCards) do
+            if not suits[card.class] then
+                suits[card.class] = {}
+            end
+            table.insert(suits[card.class], card)
+        end
+
+        for _, cardsOfSuit in pairs(suits) do
+            if #cardsOfSuit >= 5 then
+                table.sort(cardsOfSuit, function(a, b) return getCardRank(a) > getCardRank(b) end)
+                local straightResult = isStraight(cardsOfSuit)
+                if straightResult then
+                    if straightResult[1] == #values then
+                        return "royal_flush", straightResult
+                    else
+                        return "straight_flush", straightResult
+                    end
+                end
+            end
+        end
+    end
+
+    -- Evaluate hand (rest of the logic)
     local rankCounts = {}
     for _, card in ipairs(allCards) do
         local rank = card.value
@@ -41,6 +116,15 @@ local function EvaluatePokerHand(hand, community)
         elseif count == 4 then
             table.insert(fourOfKind, rank)
         end
+    end
+
+    -- Check for flush (now that straight flush is checked)
+    if isFlush(allCards) then
+        local highCards = {}
+        for _, card in ipairs(allCards) do
+            table.insert(highCards, getCardRank(card))
+        end
+        return "flush", highCards
     end
 
     if #fourOfKind > 0 then
@@ -63,7 +147,7 @@ local function EvaluatePokerHand(hand, community)
     end
 end
 
-local function GetPokerWinners(players, community)
+function GetPokerWinners(players, community)
     local results = {}
     for playerId, hand in pairs(players) do
         local rank, tiebreaker = EvaluatePokerHand(hand, community)
@@ -80,8 +164,12 @@ local function GetPokerWinners(players, community)
         ["one_pair"] = 2,
         ["two_pair"] = 3,
         ["three_of_a_kind"] = 4,
-        ["full_house"] = 5,
-        ["four_of_a_kind"] = 6,
+        ["straight"] = 5,
+        ["flush"] = 6,
+        ["full_house"] = 7,
+        ["four_of_a_kind"] = 8,
+        ["straight_flush"] = 9,
+        ["royal_flush"] = 10,
     }
 
     for playerId, result in pairs(results) do
@@ -92,15 +180,27 @@ local function GetPokerWinners(players, community)
             bestTiebreaker = result.tiebreaker
         elseif rankValue == bestRank then
             local isTie = true
-            for i = 1, #result.tiebreaker do
-                if not bestTiebreaker[i] or result.tiebreaker[i] > bestTiebreaker[i] then
-                    winners = { playerId }
-                    bestTiebreaker = result.tiebreaker
-                    isTie = false
-                    break
-                elseif result.tiebreaker[i] < bestTiebreaker[i] then
-                    isTie = false
-                    break
+            -- Handle nil tiebreakers
+            if not bestTiebreaker and result.tiebreaker then
+                winners = { playerId }
+                bestTiebreaker = result.tiebreaker
+                isTie = false
+            elseif bestTiebreaker and not result.tiebreaker then
+                isTie = false -- Current best remains
+            elseif bestTiebreaker and result.tiebreaker then
+                local maxLen = math.max(#bestTiebreaker, #result.tiebreaker)
+                for i = 1, maxLen do
+                    local val1 = bestTiebreaker[i] or 0
+                    local val2 = result.tiebreaker[i] or 0
+                    if val2 > val1 then
+                        winners = { playerId }
+                        bestTiebreaker = result.tiebreaker
+                        isTie = false
+                        break
+                    elseif val2 < val1 then
+                        isTie = false
+                        break
+                    end
                 end
             end
             if isTie then
@@ -108,12 +208,13 @@ local function GetPokerWinners(players, community)
             end
         end
     end
-    
+
     return winners, results
 end
 
 -- local winners, results = GetPokerWinners(players, communityCards)
--- print("Winner:", table.concat(winners, ", "))
+-- debugPrint("Winner:", table.concat(winners, ", "))
 -- for playerId, result in pairs(results) do
---     print(playerId, "has", result.rank, "with tiebreaker", table.concat(result.tiebreaker, ", "))
+--     debugPrint(playerId, "has", result.rank, "with tiebreaker", table.concat(result.tiebreaker, ", "))
 -- end
+

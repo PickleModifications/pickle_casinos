@@ -179,11 +179,11 @@ RegisterNetEvent("pickle_casinos:slots:updateBalance", function(balance)
 end)
 
 RegisterNetEvent("pickle_casinos:deleteCasinoEntity", function(casinoId, entityId)
-    print("deleteCasinoEntity slot", casinoId, entityId)
+    debugPrint("deleteCasinoEntity slot", casinoId, entityId)
     if not LocalSlotMachines[casinoId] then return end
-    print("CASINO EXISTS")
+    debugPrint("CASINO EXISTS")
     if not LocalSlotMachines[casinoId][entityId] then return end
-    print("CASINO ENTITY EXISTS")
+    debugPrint("CASINO ENTITY EXISTS")
     DeleteSlotEntity(casinoId, entityId)
 end)
 
@@ -233,7 +233,7 @@ RegisterNUICallback("spinSlot", function(data, cb)
     end, data.betIndex)
 end)
 
-AddEventHandler("pickle_casinos:exitGame", function()
+RegisterNetEvent("pickle_casinos:exitGame", function()
     if not CurrentSlotMachine then return end
     local playerPed = PlayerPedId()
     PlaySlotAnimation(playerPed, {dict = "anim_casino_b@amb@casino@games@shared@player@", name = "sit_exit_left"}, {time = 4000})

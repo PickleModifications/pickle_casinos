@@ -135,8 +135,12 @@ function SetPlayerJob(source, job, grade)
 end
 
 function IsPlayerAdmin(source)
-    -- TODO: ADMIN
-    return true
+    for i=1, #Config.AdminGroups do 
+        if QBCore.Functions.HasPermission(source, Config.AdminGroups[i]) then 
+            return true 
+        end
+    end
+    return false
 end
 
 function AddSocietyMoney(name, amount)

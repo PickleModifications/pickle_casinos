@@ -201,11 +201,11 @@ CreateThread(function()
 end)
 
 RegisterNetEvent("pickle_casinos:deleteCasinoEntity", function(casinoId, entityId)
-    print("deleteCasinoEntity slot", casinoId, entityId)
+    debugPrint("deleteCasinoEntity slot", casinoId, entityId)
     if not LocalCashiers[casinoId] then return end
-    print("CASINO EXISTS")
+    debugPrint("CASINO EXISTS")
     if not LocalCashiers[casinoId][entityId] then return end
-    print("CASINO ENTITY EXISTS")
+    debugPrint("CASINO ENTITY EXISTS")
     DeleteCashierEntity(casinoId, entityId)
 end)
 

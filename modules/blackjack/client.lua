@@ -379,7 +379,7 @@ RegisterNUICallback("setBlackjackWager", function(data, cb)
     cb("ok")
 end)
 
-AddEventHandler("pickle_casinos:exitGame", function()
+RegisterNetEvent("pickle_casinos:exitGame", function()
     if not CurrentBlackjackTable then return end
     local casinoId = CurrentBlackjackTable.casinoId
     local entityId = CurrentBlackjackTable.entityId

@@ -77,9 +77,11 @@ function GetPokerSeatsForUI()
         end
         if #seat.cards > 0 and (seat.cards[1].class ~= "hidden" and seat.cards[1].class ~= "hidden") then
             seat.rank = EvaluatePokerHand(seat.cards, CurrentPokerTable.dealerCards)
+            debugPrint(i, seat.rank)
         end
+        seats[i] = seat
     end
-    return CurrentPokerTable.seats
+    return seats
 end
 
 function AttemptSeatAtPokerEntity(casinoId, entityId)
@@ -97,7 +99,7 @@ function AttemptSeatAtPokerEntity(casinoId, entityId)
     if closestDistance > 1.5 then return ShowNotification(_L("interact_far")) end
     ServerCallback("pickle_casinos:poker:requestSeat", function(seatId, entityInfo)
         local playerPed = PlayerPedId()
-        print("POKER SIT", seatId, entityInfo)
+        debugPrint("POKER SIT", seatId, entityInfo)
         if not seatId then return end
         local casinoEntity = GetCasinoEntity(casinoId, entityId)
         CurrentPokerTable = {
@@ -215,7 +217,6 @@ function CreatePokerEntity(casinoId, entityId)
         heading = heading,
     }
     RenderPokerEntity(casinoId, entityId)
-    AttemptSeatAtPokerEntity(casinoId, entityId)
 end
 
 function RenderPokerEntity(casinoId, entityId)
@@ -427,6 +428,10 @@ RegisterNetEvent("pickle_casinos:poker:updateDealerCards", function(casinoId, en
             type = "updatePokerDealerCards",
             cards = cards,
         })
+        SendNUIMessage({
+            type = "updatePokerSeats",
+            seats = GetPokerSeatsForUI(),
+        })
     end
     local localPokerTable = LocalPokerTables[casinoId][entityId]
     if not localPokerTable or not localPokerTable.visible then return end
@@ -486,15 +491,19 @@ RegisterNetEvent("pickle_casinos:poker:updateSeats", function(casinoId, entityId
     for i=1, #seats do
         TriggerEvent("pickle_casinos:poker:updateSeat", casinoId, entityId, i, seats[i], true)
     end
-    SendNUIMessage({
-        type = "updatePokerSeats",
-        seats = GetPokerSeatsForUI(),
-    })
+    if CurrentPokerTable and CurrentPokerTable.casinoId == casinoId and CurrentPokerTable.entityId == entityId then
+        CurrentPokerTable.seats = seats
+        SendNUIMessage({
+            type = "updatePokerSeats",
+            seats = GetPokerSeatsForUI(),
+        })
+    end
 end)
 
 RegisterNetEvent("pickle_casinos:poker:updateSeatAction", function(casinoId, entityId, seatId, action, balance)
     if CurrentPokerTable and CurrentPokerTable.casinoId == casinoId and CurrentPokerTable.entityId == entityId then
         CurrentPokerTable.seats[seatId].action = action
+        CurrentPokerTable.seats[seatId].balance = balance
         SendNUIMessage({
             type = "updatePokerSeatAction",
             seatId = seatId,
@@ -576,7 +585,7 @@ RegisterNetEvent("pickle_casinos:poker:updateStage", function(casinoId, entityId
         DeleteScriptObject(tempCard)
         ClearPedTasks(localPokerTable.dealerPed)
     elseif stage.type == "seatTurn" then
-        print("Seat turn", stage.seat)
+        debugPrint("Seat turn", stage.seat)
         ClearPedTasks(localPokerTable.dealerPed)
         PlayAnim(localPokerTable.dealerPed, "anim_casino_b@amb@casino@games@blackjack@dealer", "dealer_focus_player_03_idle_intro", 3.0, 1.0, -1, 2, 0, 0, 0, 0 )
         TurnDealerToSeat(casinoId, entityId, stage.seat, 15)
@@ -586,6 +595,24 @@ RegisterNetEvent("pickle_casinos:poker:updateStage", function(casinoId, entityId
                 stage = stage,
             })
         end
+    elseif stage.type == "results" then
+        SetEntityHeading(localPokerTable.dealerPed, localPokerTable.heading)
+        ClearPedTasks(localPokerTable.dealerPed)
+        if isCurrentTable then
+            CurrentPokerTable.seats = stage.seats
+            SendNUIMessage({
+                type = "updatePokerStage",
+                stage = stage,
+            })
+            SendNUIMessage({
+                type = "updatePokerSeats",
+                seats = GetPokerSeatsForUI(),
+            })
+        end
+        Wait(4000)
+        PlayAnim(localPokerTable.dealerPed, "anim_casino_b@amb@casino@games@blackjack@dealer", "retrieve_own_cards_and_remove", 3.0, 1.0, -1, 2, 0, 0, 0, 0)
+        Wait(1000)
+        ClearPedTasks(localPokerTable.dealerPed)
     end
 end)
 
@@ -598,8 +625,15 @@ RegisterNetEvent("pickle_casinos:poker:updateBalance", function(balance)
     })
 end)
 
-AddEventHandler("pickle_casinos:exitGame", function()
+RegisterNetEvent("pickle_casinos:exitGame", function(isServer)
     if not CurrentPokerTable then return end
+    if isServer then
+        SetNuiFocus(false, false)
+        SendNUIMessage({
+            type = "setCurrentGame",
+            game = nil
+        })
+    end
     local casinoId = CurrentPokerTable.casinoId
     local entityId = CurrentPokerTable.entityId
     local seatId = CurrentPokerTable.seatId

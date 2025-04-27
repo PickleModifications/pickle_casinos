@@ -17,7 +17,7 @@ function JoinRouletteEntity(source, casinoId, entityId, seatId)
         for i=1, #entity.seats do
             if entity.seats[i].source == source then
                 entity.seats[seatId].inSeat = true
-                print("PLAYER IS ALREADY IN SEAT", i)
+                debugPrint("PLAYER IS ALREADY IN SEAT", i)
                 return i
             end
         end
@@ -329,7 +329,7 @@ RegisterCallback("pickle_casinos:repeatRouletteWager", function(source, cb)
     if not entity.seats[info.seatId].source then return end
     local lastWager = LastWagers[source]
     local totalWager = lastWager and lastWager.wager or 0
-    print("REPEAT WAGER", lastWager, totalWager)
+    debugPrint("REPEAT WAGER", lastWager, totalWager)
     if totalWager <= 0 or GetCasinoChips(source, info.casinoId) < totalWager then return cb({connects = GetDefaultRouletteConnections(), wager = 0}) end
     entity.seats[info.seatId].connects = lastWager.connects
     SendCasinoEntityUpdate(info.casinoId, info.entityId)

@@ -268,11 +268,12 @@ function DeleteInteraction(index)
     Interactions[index] = nil
 end
 
-Citizen.CreateThread(function()
+CreateThread(function()
     while true do 
         local ped = PlayerPedId()
         local pcoords = GetEntityCoords(ped)
         local wait = 1500
+        local closestInteraction = {id = nil, dist = nil}
         for k,v in pairs(Interactions) do 
             local coords = v.coords
             if coords then
@@ -286,20 +287,9 @@ Citizen.CreateThread(function()
                             Config.Marker.scale, Config.Marker.scale, Config.Marker.scale, Config.Marker.color[1], 
                             Config.Marker.color[2], Config.Marker.color[3], Config.Marker.color[4], false, true)
                         end
-                        if dist < Config.InteractDistance then
-                            wait = 0 
-                            if not ShowInteractText("[E] - " .. v.label) and IsControlJustPressed(1, 51) then
-                                if not v.options or #v.options < 2 then 
-                                    SelectInteraction(k, 1)
-                                else 
-                                    lib.registerContext({
-                                        id = 'casinos_'..k,
-                                        title = v.title or "Options",
-                                        options = v.options
-                                    })
-                                    lib.showContext('casinos_'..k)
-                                end
-                            end
+                        if dist < Config.InteractDistance and (not closestInteraction.id or closestInteraction.dist > dist) then
+                            closestInteraction.id = k
+                            closestInteraction.dist = dist
                         end
                     end
                 elseif v.entity then
@@ -311,20 +301,42 @@ Citizen.CreateThread(function()
                     local offset = v.offset or vector3(0.0, 0.0, 0.0)
                     local coords = GetOffsetFromEntityInWorldCoords(entity, offset.x, offset.y, offset.z)
                     local dist = #(pcoords-coords)
-                    if dist < v.radius then
-                        wait = 0 
-                        if not ShowInteractText("[E] - " .. v.label) and IsControlJustPressed(1, 51) then
-                            if not v.options or #v.options < 2 then 
-                                SelectInteraction(k, 1, {entity = entity, coords = coords, dist = dist})
-                            else 
-                                lib.registerContext({
-                                    id = 'casinos_'..k,
-                                    title = v.title or "Options",
-                                    options = v.options
-                                })
-                                lib.showContext('casinos_'..k)
-                            end
-                        end
+                    if dist < v.radius and (not closestInteraction.id or closestInteraction.dist > dist) then
+                        closestInteraction.id = k
+                        closestInteraction.dist = dist
+                    end
+                end
+            end
+        end
+        if closestInteraction.id then
+            print(closestInteraction.id)
+            local k = closestInteraction.id
+            local v = Interactions[closestInteraction.id]
+            wait = 0 
+            if v.target then
+                if not ShowInteractText("[E] - " .. v.label) and IsControlJustPressed(1, 51) then
+                    if not v.options or #v.options < 2 then 
+                        SelectInteraction(k, 1, {entity = entity, coords = coords, dist = dist})
+                    else 
+                        lib.registerContext({
+                            id = 'casinos_'..k,
+                            title = v.title or "Options",
+                            options = v.options
+                        })
+                        lib.showContext('casinos_'..k)
+                    end
+                end
+            else
+                if not ShowInteractText("[E] - " .. v.label) and IsControlJustPressed(1, 51) then
+                    if not v.options or #v.options < 2 then 
+                        SelectInteraction(k, 1)
+                    else 
+                        lib.registerContext({
+                            id = 'casinos_'..k,
+                            title = v.title or "Options",
+                            options = v.options
+                        })
+                        lib.showContext('casinos_'..k)
                     end
                 end
             end

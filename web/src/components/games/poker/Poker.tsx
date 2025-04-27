@@ -4,6 +4,7 @@ import { Translate } from "@/providers/locale/Locale"
 import { fetchNui } from "@/providers/nui/fetchNui"
 import { useNuiEvent } from "@/providers/nui/useNui"
 import { useEffect, useState } from "react"
+import ReactSparkle from "react-sparkle"
 
 const SEAT_OFFSETS = [
     { x: 400, y: 100 },
@@ -70,7 +71,6 @@ export default function Poker({game} : {game: CasinoGame}) {
         setSeats(data.seats)
     })
     useNuiEvent("updatePokerStage", (data) => {
-        console.log(JSON.stringify(data))
         setStage(data.stage)
         if (data.stage.type == "seatTurn") {
             setTimer(data.stage.time)
@@ -123,6 +123,7 @@ export default function Poker({game} : {game: CasinoGame}) {
                     left: `${offset.x}px`,
                     top: `${offset.y}px`,
                 }} key={index}>
+                    {(stage.type == "results" && stage.winnings[index]) && (<div className="absolute top-0 left-0 w-full scale-90 h-full" style={{ transformOrigin: "center" }}><ReactSparkle/></div>)}
                     <div className="flex flex-row gap-2">
                         <div className="flex flex-col gap-2 p-2 bg-background/95 rounded-md">
                             <div className="flex flex-row items-center gap-4 justify-between">
@@ -143,7 +144,7 @@ export default function Poker({game} : {game: CasinoGame}) {
                                 </div>
                                 <div className="flex flex-col gap-0 items-start">
                                     {(seats[index].rank != undefined) && (<div className="flex flex-row gap-2 items-center">
-                                        <div className="text-zinc-400 text-xs font-semibold">{seats[index].rank}</div>
+                                        <div className="text-zinc-400 text-xs font-semibold whitespace-nowrap"><Translate id={"poker_"+seats[index].rank}/></div>
                                     </div>)}
                                     <div className="flex flex-row items-center gap-4 justify-between">
                                         {seats[index].bet && <DisplayPokerBet bet={seats[index].bet} />}
@@ -153,6 +154,12 @@ export default function Poker({game} : {game: CasinoGame}) {
                             )}
                         </div>
                         <div className="flex flex-col gap-2 p-2">
+                            {(stage.type == "results" && stage.winnings[index]) && (
+                                
+                                <div className="font-bold text-zinc-400 text-md">
+                                    +<DisplayCurrency value={stage.winnings[index]}/>
+                                </div>
+                            )}
                             {(stage.type == "seatTurn" && stage.seat == index + 1) && (
                                 <div className="font-bold text-zinc-400 text-md">
                                     {timer}

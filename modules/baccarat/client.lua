@@ -117,7 +117,7 @@ function AttemptSeatAtBaccaratEntity(casinoId, entityId)
         end
     end
     ServerCallback("pickle_casinos:baccarat:requestSeat", function(seatId, entityInfo)
-        print(json.encode(entityInfo.seats, {indent = true}))
+        debugPrint(json.encode(entityInfo.seats, {indent = true}))
         if not seatId then 
             return 
         end
@@ -408,7 +408,7 @@ RegisterNUICallback("repeatBaccaratWager", function(data, cb)
     cb("ok")
 end)
 
-AddEventHandler("pickle_casinos:exitGame", function()
+RegisterNetEvent("pickle_casinos:exitGame", function()
     if not CurrentBaccaratTable then return end
     local casinoId = CurrentBaccaratTable.casinoId
     local entityId = CurrentBaccaratTable.entityId

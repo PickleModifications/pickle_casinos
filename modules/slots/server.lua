@@ -151,7 +151,7 @@ RegisterNetEvent("pickle_casinos:slots:redeemSpin", function(id, spinIndex)
     if not slotSpin or slotSpin.source ~= source then return end
     local spin = slotSpin.spins[spinIndex]
     if not spin or spin.redeemed then return end
-    print("Redeeming spin", id, spinIndex, slotSpin.bet)
+    debugPrint("Redeeming spin", id, spinIndex, slotSpin.bet)
     local calculatedWin = GetSpinCalculatedWin(slotSpin.gameId, spin, slotSpin.bet)
     local playerMoney = GetCasinoChips(source, slotSpin.casinoId)
     if calculatedWin > 0 then
@@ -193,7 +193,7 @@ RegisterCallback("pickle_casinos:slots:requestSeat", function(source, cb, casino
         game = entity.settings.game,
         bets = entity.bets,
     }
-    print("Player", source, "has taken a seat at slot machine", entityId)
+    debugPrint("Player", source, "has taken a seat at slot machine", entityId)
     cb(1, entity.currentPlayer)
 end)
 
@@ -225,37 +225,37 @@ RegisterCallback("pickle_casinos:slots:spinSlot", function(source, cb, betIndex)
     cb(spin, playerMoney)
 end)
 
-RegisterCommand("slotrtp", function(source, args, rawCommand)
-    if source and source > 0 then return end
-    local slotId = args[1]
-    if not slotId or not Config.Slots[slotId] then
-        print("Please provide a slot ID.")
-        return
-    end
-    CreateThread(function()
-        local v = Config.Slots[slotId]
-        local gameId = k
-        local game = v
-        local totalWin = 0
-        local betSize = 1
-        local betAmount = 50000
-        local bonuses = 0
-        for i=1, betAmount do
-            local spin = GenerateSpin(game, false)
-            local win = 0
-            for j=1, #spin.spins do
-                local spinResult = spin.spins[j]
-                local calculatedWin = GetSpinCalculatedWin(gameId, spinResult, betSize)
-                if calculatedWin > 0 then
-                    win = win + calculatedWin
-                end
-            end
-            if #spin.spins > 1 then
-                bonuses = bonuses + 1
-            end
-            totalWin = totalWin + win
-        end
-        local rtp = (totalWin / (betAmount * betSize)) * 100
-        print(string.format("Game: %s, RTP: %.2f%%, Bonus: %.2f%%", gameId, rtp, (bonuses / betAmount) * 100))
-    end)
-end, false)
+-- RegisterCommand("slotrtp", function(source, args, rawCommand)
+--     if source and source > 0 then return end
+--     local slotId = args[1]
+--     if not slotId or not Config.Slots[slotId] then
+--         debugPrint("Please provide a slot ID.")
+--         return
+--     end
+--     CreateThread(function()
+--         local v = Config.Slots[slotId]
+--         local gameId = k
+--         local game = v
+--         local totalWin = 0
+--         local betSize = 1
+--         local betAmount = 50000
+--         local bonuses = 0
+--         for i=1, betAmount do
+--             local spin = GenerateSpin(game, false)
+--             local win = 0
+--             for j=1, #spin.spins do
+--                 local spinResult = spin.spins[j]
+--                 local calculatedWin = GetSpinCalculatedWin(gameId, spinResult, betSize)
+--                 if calculatedWin > 0 then
+--                     win = win + calculatedWin
+--                 end
+--             end
+--             if #spin.spins > 1 then
+--                 bonuses = bonuses + 1
+--             end
+--             totalWin = totalWin + win
+--         end
+--         local rtp = (totalWin / (betAmount * betSize)) * 100
+--         debugPrint(string.format("Game: %s, RTP: %.2f%%, Bonus: %.2f%%", gameId, rtp, (bonuses / betAmount) * 100))
+--     end)
+-- end, false)

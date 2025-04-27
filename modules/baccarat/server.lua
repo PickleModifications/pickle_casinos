@@ -17,7 +17,6 @@ function JoinBaccaratEntity(source, casinoId, entityId, seatId)
         for i=1, #entity.seats do
             if entity.seats[i].source == source then
                 entity.seats[seatId].inSeat = true
-                print("PLAYER IS ALREADY IN SEAT", i)
                 return i
             end
         end

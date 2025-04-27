@@ -115,7 +115,7 @@ function GenerateHorseRacingTrackArray(newTrack)
         track.horses[i].progress = 0.0
         track.horses[i].odds = Config.HorseRacing.odds[track.horses[i].oddsIndex].label
     end
-    print(json.encode(track, {indent = true}))
+    debugPrint(json.encode(track, {indent = true}))
     return track
 end
 
@@ -358,7 +358,7 @@ function StartHorseRace(trackId, targetWinner)
                 local targetHorse = localTrack.horses[targetWinner]
                 winnerSpeed = targetHorse.speed + (defaultSpeed / math.random(20, 40))
                 targetHorse.speed = winnerSpeed
-                print("MAX OVERDRIVE", targetWinner, i, winnerSpeed)
+                debugPrint("MAX OVERDRIVE", targetWinner, i, winnerSpeed)
             end
             if i ~= targetWinner and winnerSpeed > 0 and not horse.startedLosing then
                 local horseRemainingIterations
@@ -606,7 +606,7 @@ RegisterNUICallback("changeHorseRacingTrack", function(data, cb)
     cb("ok")
 end)
 
-AddEventHandler("pickle_casinos:exitGame", function()
+RegisterNetEvent("pickle_casinos:exitGame", function()
     ExitHorseTrackView()
     viewingHorseRacingMenu = nil
 end)

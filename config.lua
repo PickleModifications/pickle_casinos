@@ -3,13 +3,20 @@ Config.Language = "en"
 Config.Debug = false -- This enables debugging prints.
 Config.RenderDistance = 50.0
 Config.InteractDistance = 2.5
-Config.UseTarget = true -- This enables the use of the target system when available.
+Config.UseTarget = false -- This enables the use of the target system when available.
 Config.WaitingTime = 10 -- Time to wait before starting a round for players to place bets.
 Config.SeatTurnTime = 10 -- Time to wait for players to place bets / decide before moving to the next player.
 Config.UseObjectGizmo = false -- This enables the use of object_gizmo for placing objects. If false, it uses the default movement system.
 Config.MaximumChipPurchaseAmount = 1000000 -- Maximum amount of chips a player can purchase at once.
 Config.MaximumItemPurchaseAmount = 100 -- Maximum amount of items a player can purchase at once.
 Config.ImageDirectory = "nui://ox_inventory/web/images/" -- (QB: nui://qb-inventory/html/images/) This is the directory where the images are stored. It should be a relative path to the resource folder.
+
+Config.AdminGroups = { -- These are the groups that are allowed to use the /casino command.
+    "admin",
+    "superadmin",
+    "god",
+}
+
 Config.Chips = {
     {color = "#15803D", value = 1},
     {color = "#C2410C", value = 5},
@@ -299,7 +306,7 @@ Config.Slots = {
         slotSymbols = {
             ["Bonus Symbol"] = {
                 image = "bonus.png",
-                reels = {98, 98, 91, 1, 1},
+                reels = {8, 8, 1, 1, 1},
                 pay = {0, 0, 0, 0, 0},
             },
             ["Monkey"] = {
@@ -443,7 +450,7 @@ Config.Slots = {
         slotSymbols = {
             ["Bonus Symbol"] = {
                 image = "bonus.png",
-                reels = {98, 98, 91, 1, 1},
+                reels = {8, 8, 1, 1, 1},
                 pay = {0, 0, 0, 0, 0},
             },
             ["Peppermint"] = {

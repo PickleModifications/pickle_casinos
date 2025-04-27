@@ -28,7 +28,7 @@ function EnsureMapObjectsRemoved()
                 local object = GetClosestObjectOfType(v.coords, 0.5, v.model, false, false, false)
                 local objectCoords = GetEntityCoords(object)
                 if #(objectCoords - v.coords) < 0.5 and not TransparentObjects[k] and not IsEntityScriptObject(object) then
-                    print("DELETE OBJ", object, v.coords)
+                    debugPrint("DELETE OBJ", object, v.coords)
                     SetEntityAsMissionEntity(object)
                     DeleteEntity(object)
                 end
@@ -85,7 +85,7 @@ end
 RegisterNetEvent("pickle_casinos:objects:toggleMapMode", function(mapObjects, toggle)
     if toggle then
         if IN_MAP_MODE then return end
-        print("START MAP MODE")
+        debugPrint("START MAP MODE")
         MapObjects = mapObjects
         IN_MAP_MODE = true
         EnsureMapObjectsRemoved()
@@ -167,7 +167,7 @@ RegisterNetEvent("pickle_casinos:objects:toggleMapMode", function(mapObjects, to
 end)
 
 RegisterNetEvent("pickle_casinos:objects:removeMapObject", function(objectId)
-    print("REMOVING", objectId)
+    debugPrint("REMOVING", objectId)
     if MapObjects[objectId] then
         if TransparentObjects[k] then
             SetEntityAsMissionEntity(TransparentObjects[objectId])
@@ -188,7 +188,7 @@ RegisterNetEvent("pickle_casinos:objects:removeMapObject", function(objectId)
 end)
 
 RegisterNetEvent("pickle_casinos:objects:addMapObject", function(objectId, objectData)
-    print("ADDING", objectId, objectData)
+    debugPrint("ADDING", objectId, objectData)
     MapObjects[objectId] = objectData
     if IN_MAP_MODE then
         EnsureMapObjectsTransparent()
@@ -205,7 +205,7 @@ RegisterNetEvent("pickle_casinos:objects:addMapObject", function(objectId, objec
             if #(objectCoords - v.coords) < 0.5 and TransparentObjects[k] ~= object and not IsEntityScriptObject(object) then
                 SetEntityAsMissionEntity(object)
                 DeleteEntity(object)
-                print("DELETE OBJ2", object, v.coords)
+                debugPrint("DELETE OBJ2", object, v.coords)
             end
         end
     end

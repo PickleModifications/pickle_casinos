@@ -16,7 +16,6 @@ function JoinBlackjackEntity(source, casinoId, entityId, seatId)
         for i=1, #entity.seats do
             if entity.seats[i].source == source then
                 entity.seats[seatId].inSeat = true
-                print("PLAYER IS ALREADY IN SEAT", i)
                 return i
             end
         end
@@ -93,7 +92,6 @@ function StartBlackjackTurn(casinoId, entityId, seat, handId, splitAllowed)
         local timeLeft = 11
         repeat
             local entity2 = GetCasinoEntity(casinoId, entityId)
-            print("WAITING", timeLeft, entity.stage.action, entity.stage.seat, entity2.stage.action)
             timeLeft = timeLeft - 1
             Wait(1000)
         until timeLeft == 0 or entity.stage.action ~= nil
@@ -190,7 +188,6 @@ function StartBlackjackGame(casinoId, entityId)
             end
         end
     end
-    print("STARTING BLACKJACK GAME")
     CreateThread(function()
         local round = 0
         repeat
@@ -272,7 +269,6 @@ function StartBlackjackGame(casinoId, entityId)
                     if secondaryValue > 0 then
                         value = secondaryValue
                     end
-                    print("COMPARING", "seat" .. i, "hand" .. j, value, dealerValue)
                     if wager > 0 and value <= 21 then
                         if value == dealerValue then
                             seatResults[i].won = seatResults[i].won + wager

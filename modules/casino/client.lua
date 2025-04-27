@@ -408,7 +408,6 @@ RegisterNUICallback("pageLoaded", function(data, cb)
             templates = GenerateTemplates(),
         }
     })
-    TriggerServerEvent("pickle_casinos:initializePlayer")
     cb("ok")
 end)
 
@@ -794,5 +793,12 @@ AddEventHandler("onResourceStop", function(resourceName)
             DeleteScriptObject(CurrentCasinoEntity.object)
             CurrentCasinoEntity = nil
         end
+    end
+end)
+
+AddEventHandler("onResourceStart", function(resourceName)
+    if resourceName == GetCurrentResourceName() then
+        Wait(1000)
+        TriggerServerEvent("pickle_casinos:initializePlayer")
     end
 end)

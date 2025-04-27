@@ -107,11 +107,35 @@ function JoinCasinoEntity(source, casinoId, entityId)
     end
 end
 
-function GenerateCard() 
+function GenerateDeck()
+    local deck = {}
+    local classes = {"spd", "club", "dia", "hrt"}
+    local values = {"ace", "02", "03", "04", "05", "06", "07", "08", "09", "10", "jack", "queen", "king"}
+    for i=1, #classes do
+        for j=1, #values do
+            table.insert(deck, { class = classes[i], value = values[j] })
+        end
+    end
+    -- Randomize the deck
+    for i = #deck, 2, -1 do
+        local j = math.random(1, i)
+        deck[i], deck[j] = deck[j], deck[i]
+    end
+    return deck
+end
+
+function GenerateCard(deck) 
     local classes = {"spd", "club", "dia", "hrt"}
     local values = {"ace", "02", "03", "04", "05", "06", "07", "08", "09", "10", "jack", "queen", "king"}
     -- return { class = classes[1], value = values[1] }
-    return { class = classes[math.random(1, #classes)], value = values[math.random(1, #values)] }
+    if deck then
+        local index = math.random(1, #deck)
+        local card = deck[index]
+        table.remove(deck, index)
+        return card, deck
+    else
+        return { class = classes[math.random(1, #classes)], value = values[math.random(1, #values)] }
+    end
 end
 
 function GetCasinoEntity(casinoId, entityId)
@@ -449,24 +473,38 @@ RegisterCommand("casinos", function(source, args, raw)
 end)
 
 CreateThread(function() 
-    MySQL.Async.fetchAll("SELECT * FROM `pickle_casinos`", {}, function(results)
-        for i=1, #results do
-            local result = results[i]
-            local settings = json.decode(result.settings) or {}
-            local entities = json.decode(result.entities) or {}
-            local transactions = json.decode(result.transactions) or {}
-            local vip_players = json.decode(result.vip_players) or {}
-            local owner_info = json.decode(result.owner_info) or nil
-            RegisterCasino(result.id, {
-                id = result.id,
-                balance = result.balance,
-                marked_balance = result.marked_balance,
-                owner_info = owner_info,
-                settings = settings,
-                entities = entities,
-                transactions = transactions,
-                vip_players = vip_players,
-            }, true)
-        end
+    MySQL.Async.execute([[
+        CREATE TABLE IF NOT EXISTS `pickle_casinos` (
+            `id` int(11) NOT NULL AUTO_INCREMENT,
+            `owner_info` longtext DEFAULT NULL,
+            `balance` int(11) NOT NULL DEFAULT 0,
+            `marked_balance` int(11) NOT NULL DEFAULT 0,
+            `settings` longtext NOT NULL,
+            `vip_players` longtext NOT NULL,
+            `transactions` longtext NOT NULL,
+            `entities` longtext NOT NULL,
+            PRIMARY KEY (`id`)
+        )
+    ]], {}, function()
+        MySQL.Async.fetchAll("SELECT * FROM `pickle_casinos`", {}, function(results)
+            for i=1, #results do
+                local result = results[i]
+                local settings = json.decode(result.settings) or {}
+                local entities = json.decode(result.entities) or {}
+                local transactions = json.decode(result.transactions) or {}
+                local vip_players = json.decode(result.vip_players) or {}
+                local owner_info = json.decode(result.owner_info) or nil
+                RegisterCasino(result.id, {
+                    id = result.id,
+                    balance = result.balance,
+                    marked_balance = result.marked_balance,
+                    owner_info = owner_info,
+                    settings = settings,
+                    entities = entities,
+                    transactions = transactions,
+                    vip_players = vip_players,
+                }, true)
+            end
+        end)
     end)
 end)

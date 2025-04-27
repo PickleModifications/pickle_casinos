@@ -64,7 +64,7 @@ function AttemptSeatAtWheelEntity(casinoId, entityId)
             while CurrentWheel do
                 if CurrentWheel.waitingTime and CurrentWheel.waitingTime > 1 and CurrentWheel.stage.type == "waiting" then
                     CurrentWheel.waitingTime = CurrentWheel.waitingTime - 1
-                    print("Waiting Time: ", CurrentWheel.waitingTime)
+                    debugPrint("Waiting Time: ", CurrentWheel.waitingTime)
                     SendNUIMessage({
                         type = "updateWheelStage",
                         stage = {
@@ -140,10 +140,10 @@ function SpinWheelEntity(casinoId, entityId, targetDegrees)
             SetEntityRotation(localWheel.wheelObject, 0.0, rotation, localWheel.heading + 0.0, 2, true)
             local gameSpeed = math.floor((8 * (CLIENT_FPS / 60)) - 8)
             if gameSpeed < 0 then gameSpeed = 0 end
-            print("Game Speed: ", gameSpeed)
+            debugPrint("Game Speed: ", gameSpeed)
             Wait(gameSpeed)
         end
-        print("SPIN COMPLETE")
+        debugPrint("SPIN COMPLETE")
     end)
 end
 
@@ -387,7 +387,7 @@ RegisterNetEvent("pickle_casinos:wheel:updateHistory", function(casinoId, entity
     })
 end)
 
-AddEventHandler("pickle_casinos:exitGame", function()
+RegisterNetEvent("pickle_casinos:exitGame", function()
     if not CurrentWheel then return end
     TriggerServerEvent("pickle_casinos:wheel:leaveTable")
     DestroyCam(CurrentCamera)

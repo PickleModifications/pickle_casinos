@@ -385,7 +385,7 @@ RegisterNUICallback("repeatWager", function(data, cb)
     cb("ok")
 end)
 
-AddEventHandler("pickle_casinos:exitGame", function()
+RegisterNetEvent("pickle_casinos:exitGame", function()
     if not CurrentRouletteTable then return end
     local casinoId = CurrentRouletteTable.casinoId
     local entityId = CurrentRouletteTable.entityId
