@@ -48,6 +48,7 @@ escrow_ignore {
 	"config.lua",
 	"config_sv.lua",
 	"templates.lua",
+	"templates/*.lua",
 	"__INSTALL/**/*.*",
 	"core/*.*",
 	"bridge/**/**/*.*",
