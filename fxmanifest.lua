@@ -42,6 +42,17 @@ server_scripts {
 	"config_sv.lua",
 }
 
+files {
+    'peds.meta'
+}
+
+data_file 'PED_METADATA_FILE' 'peds.meta'
+data_file 'DLC_ITYP_REQUEST' 'fury_p_wheeloff.ytyp'
+data_file 'DLC_ITYP_REQUEST' 'fury_p_poker_table.ytyp'
+data_file 'DLC_ITYP_REQUEST' 'fury_picklegamblingprops.ytyp'
+data_file 'DLC_ITYP_REQUEST' 'npds_bettingmachine_01.ytyp'
+data_file 'DLC_ITYP_REQUEST' 'fury_p_slots.ytyp'
+
 lua54 'yes'
 
 escrow_ignore {
