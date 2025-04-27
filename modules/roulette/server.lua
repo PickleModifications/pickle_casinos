@@ -1,4 +1,11 @@
 local LastWagers = {}
+local RouletteLobbies = {}
+
+function DoesRouletteLobbyExist(casinoId, entityId)
+    if not RouletteLobbies[casinoId] then return false end
+    if not RouletteLobbies[casinoId][entityId] then return false end
+    return RouletteLobbies[casinoId][entityId]
+end
 
 function JoinRouletteEntity(source, casinoId, entityId, seatId)
     local seatId = seatId or 1
@@ -37,6 +44,9 @@ function JoinRouletteEntity(source, casinoId, entityId, seatId)
         inSeat = true,
     }
     CurrentPlayers[source] = {casinoId = casinoId, entityId = entityId, seatId = seatId}
+    if not DoesRouletteLobbyExist(casinoId, entityId) then
+        StartRouletteLobby(casinoId, entityId)
+    end
     SendCasinoEntityUpdate(casinoId, entityId)
     SetTimeout(100 * 1, function()
         TriggerClientEvent("pickle_casinos:roulette:updateSeat", -1, casinoId, entityId, seatId, entity.seats[seatId])
@@ -176,10 +186,23 @@ function StartRouletteGame(casinoId, entityId)
 end
 
 function StartRouletteLobby(casinoId, entityId)
+    RouletteLobbies[casinoId] = RouletteLobbies[casinoId] or {}
     local casino = Casinos[casinoId]
     if not casino then return end
     local entity = GetCasinoEntity(casinoId, entityId)
     if not entity then return end
+    local totalPlayers = 0
+    for i=1, #entity.seats do
+        if entity.seats[i].source and entity.seats[i].inSeat then
+            totalPlayers = totalPlayers + 1
+        end
+    end
+    if totalPlayers == 0 then
+        RouletteLobbies[casinoId][entityId] = false
+        return
+    else
+        RouletteLobbies[casinoId][entityId] = true
+    end
     entity.stage = {type = "waiting", time = 11}
     TriggerClientEvent("pickle_casinos:roulette:updateStage", -1, casinoId, entityId, entity.stage)
     CreateThread(function()
@@ -278,11 +301,6 @@ function InitializeRouletteEntity(casinoId, entity, dataOnly)
         math.floor(entity.settings.maxWager / 100),
         entity.settings.maxWager
     }
-    if not dataOnly then
-        SetTimeout(1000, function()
-            StartRouletteLobby(casinoId, entity.id)
-        end)
-    end
     return entity
 end
 

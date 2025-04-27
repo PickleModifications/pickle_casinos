@@ -137,6 +137,7 @@ Language["en"] = {
     poker_blind_big = "BB",
     poker_smallblind = "Small Blind",
     poker_bigblind = "Big Blind",
+    poker_min_bet = "Minimum Bet: %s",
     horseracing_title = "Horse Racing",
     horseracing_desc = "Place your bets and watch the race unfold!",
     horseracing_changetrack = "Change Track",

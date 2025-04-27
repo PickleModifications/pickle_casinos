@@ -1,4 +1,11 @@
 local LastWagers = {}
+local BaccaratLobbies = {}
+
+function DoesBaccaratLobbyExist(casinoId, entityId)
+    if not BaccaratLobbies[casinoId] then return false end
+    if not BaccaratLobbies[casinoId][entityId] then return false end
+    return BaccaratLobbies[casinoId][entityId]
+end
 
 function JoinBaccaratEntity(source, casinoId, entityId, seatId)
     local seatId = seatId or 1
@@ -32,6 +39,9 @@ function JoinBaccaratEntity(source, casinoId, entityId, seatId)
     end
     CurrentPlayers[source] = {casinoId = casinoId, entityId = entityId, seatId = seatId}
     entity.seats[seatId] = {source = source, wagers = GenerateBaccaratDefaultWagers(), hands = {{}, {}}, inSeat = true}
+    if not DoesBaccaratLobbyExist(casinoId, entityId) then
+        StartBaccaratLobby(casinoId, entityId)
+    end
     SetTimeout(100 * 1, function()
         TriggerClientEvent("pickle_casinos:baccarat:updateSeat", -1, casinoId, entityId, seatId, entity.seats[seatId])
     end)
@@ -268,10 +278,23 @@ function StartBaccaratGame(casinoId, entityId)
 end
 
 function StartBaccaratLobby(casinoId, entityId)
+    BaccaratLobbies[casinoId] = BaccaratLobbies[casinoId] or {}
     local casino = Casinos[casinoId]
     if not casino then return end
     local entity = GetCasinoEntity(casinoId, entityId)
     if not entity then return end
+    local totalPlayers = 0
+    for i=1, #entity.seats do
+        if entity.seats[i].source and entity.seats[i].inSeat then
+            totalPlayers = totalPlayers + 1
+        end
+    end
+    if totalPlayers <= 0 then
+        BaccaratLobbies[casinoId][entityId] = false
+        return
+    else
+        BaccaratLobbies[casinoId][entityId] = true
+    end
     entity.stage = {type = "waiting", time = 11}
     TriggerClientEvent("pickle_casinos:baccarat:updateStage", -1, casinoId, entityId, entity.stage)
     CreateThread(function()
@@ -331,11 +354,6 @@ function InitializeBaccaratEntity(casinoId, entity, dataOnly)
         math.floor(entity.settings.maxWager / 100),
         entity.settings.maxWager
     }
-    if not dataOnly then
-        SetTimeout(1000, function()
-            StartBaccaratLobby(casinoId, entity.id)
-        end)
-    end
     return entity
 end
 

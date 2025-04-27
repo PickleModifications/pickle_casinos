@@ -1,5 +1,12 @@
 local PendingSpins = {}
 local LastWagers = {}
+local WheelLobbies = {}
+
+function DoesWheelLobbyExist(casinoId, entityId)
+    if not WheelLobbies[casinoId] then return false end
+    if not WheelLobbies[casinoId][entityId] then return false end
+    return WheelLobbies[casinoId][entityId]
+end
 
 function InitializeWheelEntity(casinoId, data, dataOnly)
     local entity = data or { id = "ERR_NO_ID_POKER" }
@@ -9,11 +16,6 @@ function InitializeWheelEntity(casinoId, data, dataOnly)
         math.floor(entity.settings.maxWager / 100),
         entity.settings.maxWager
     }
-    if not dataOnly then
-        SetTimeout(1000, function()
-            StartWheelLobby(casinoId, entity.id)
-        end)
-    end
     return entity
 end
 
@@ -110,10 +112,23 @@ function StartWheelGame(casinoId, entityId)
 end
 
 function StartWheelLobby(casinoId, entityId)
+    WheelLobbies[casinoId] = WheelLobbies[casinoId] or {}
     local casino = Casinos[casinoId]
     if not casino then return end
     local entity = GetCasinoEntity(casinoId, entityId)
     if not entity then return end
+    local totalPlayers = 0
+    for k,v in pairs(entity.players) do
+        if not v.left then
+            totalPlayers = totalPlayers + 1
+        end
+    end
+    if totalPlayers <= 0 then 
+        WheelLobbies[casinoId][entityId] = false
+        return
+    else 
+        WheelLobbies[casinoId][entityId] = true
+    end
     entity.stage = {type = "waiting", time = 11}
     TriggerClientEvent("pickle_casinos:wheel:updateStage", -1, casinoId, entityId, entity.stage)
     CreateThread(function()
@@ -177,6 +192,9 @@ RegisterCallback("pickle_casinos:wheel:requestSeat", function(source, cb, casino
     entity.players[source] = {
         wagers = GenerateDefaultWheelWagers(),
     }
+    if not DoesWheelLobbyExist(casinoId, entityId) then
+        StartWheelLobby(casinoId, entityId)
+    end
     cb(1, {
         stage = entity.stage,
         history = entity.history,
@@ -265,20 +283,20 @@ RegisterNetEvent("pickle_casinos:wheel:repeatWager", function()
 end)
 
 
-RegisterCommand("wheelrtp", function(source, args, rawCommand)
-    if source and source > 0 then return end
-    local spinsLeft = 10000
-    local maxSpins = 10000
-    local results = {}
-    while spinsLeft > 0 do
-        spinsLeft = spinsLeft - 1
-        local index, multiplier = GetRandomMultiplier()
-        results[multiplier] = (results[multiplier] or 0) + 1
-        if spinsLeft % 1000 == 0 then
-            Wait(0)
-        end
-    end
-    for k,v in pairs(results) do
-        print(k, "Chance:", (v / maxSpins) * 100)
-    end
-end, false)
+-- RegisterCommand("wheelrtp", function(source, args, rawCommand)
+--     if source and source > 0 then return end
+--     local spinsLeft = 10000
+--     local maxSpins = 10000
+--     local results = {}
+--     while spinsLeft > 0 do
+--         spinsLeft = spinsLeft - 1
+--         local index, multiplier = GetRandomMultiplier()
+--         results[multiplier] = (results[multiplier] or 0) + 1
+--         if spinsLeft % 1000 == 0 then
+--             Wait(0)
+--         end
+--     end
+--     for k,v in pairs(results) do
+--         print(k, "Chance:", (v / maxSpins) * 100)
+--     end
+-- end, false)

@@ -1,3 +1,11 @@
+local BlackjackLobbies = {}
+
+function DoesBlackjackLobbyExist(casinoId, entityId)
+    if not BlackjackLobbies[casinoId] then return false end
+    if not BlackjackLobbies[casinoId][entityId] then return false end
+    return BlackjackLobbies[casinoId][entityId]
+end
+
 function JoinBlackjackEntity(source, casinoId, entityId, seatId)
     local seatId = seatId or 1
     local casino = Casinos[casinoId]
@@ -29,6 +37,9 @@ function JoinBlackjackEntity(source, casinoId, entityId, seatId)
     end
     CurrentPlayers[source] = {casinoId = casinoId, entityId = entityId, seatId = seatId}
     entity.seats[seatId] = {source = source, wagers = {0, 0}, hands = {{}, {}}, inSeat = true}
+    if not DoesBlackjackLobbyExist(casinoId, entityId) then
+        StartBlackjackLobby(casinoId, entityId)
+    end
     SetTimeout(100 * 1, function()
         TriggerClientEvent("pickle_casinos:blackjack:updateSeat", -1, casinoId, entityId, seatId, entity.seats[seatId])
     end)
@@ -303,10 +314,23 @@ function StartBlackjackGame(casinoId, entityId)
 end
 
 function StartBlackjackLobby(casinoId, entityId)
+    BlackjackLobbies[casinoId] = BlackjackLobbies[casinoId] or {}
     local casino = Casinos[casinoId]
     if not casino then return end
     local entity = GetCasinoEntity(casinoId, entityId)
     if not entity then return end
+    local totalPlayers = 0
+    for i=1, #entity.seats do
+        if entity.seats[i].source and entity.seats[i].inSeat then
+            totalPlayers = totalPlayers + 1
+        end
+    end
+    if totalPlayers < 1 then
+        BlackjackLobbies[casinoId][entityId] = false
+        return
+    else
+        BlackjackLobbies[casinoId][entityId] = true
+    end
     entity.stage = {type = "waiting", time = 11}
     TriggerClientEvent("pickle_casinos:blackjack:updateStage", -1, casinoId, entityId, entity.stage)
     CreateThread(function()
@@ -347,12 +371,6 @@ function InitializeBlackjackEntity(casinoId, entity, dataOnly)
         math.floor(entity.settings.maxWager / 100),
         entity.settings.maxWager
     }
-    if not dataOnly then
-        SetTimeout(1000, function()
-            print("STARTING BLACKJACK LOBBY", entity.id, os.time())
-            StartBlackjackLobby(casinoId, entity.id)
-        end)
-    end
     return entity
 end
 
