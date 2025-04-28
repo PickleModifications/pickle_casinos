@@ -35,7 +35,7 @@ function JoinBlackjackEntity(source, casinoId, entityId, seatId)
         end
     end
     CurrentPlayers[source] = {casinoId = casinoId, entityId = entityId, seatId = seatId}
-    entity.seats[seatId] = {source = source, wagers = {0, 0}, hands = {{}, {}}, inSeat = true}
+    entity.seats[seatId] = {source = source, name = GetPlayerCharacterName(source), wagers = {0, 0}, hands = {{}, {}}, inSeat = true}
     if not DoesBlackjackLobbyExist(casinoId, entityId) then
         StartBlackjackLobby(casinoId, entityId)
     end
@@ -317,7 +317,9 @@ function StartBlackjackLobby(casinoId, entityId)
     if not entity then return end
     local totalPlayers = 0
     for i=1, #entity.seats do
-        if entity.seats[i].source and entity.seats[i].inSeat then
+        if entity.seats[i].source and not entity.seats[i].inSeat then
+            LeaveBlackjackEntity(entity.seats[i].source, casinoId, entityId, i)
+        elseif entity.seats[i].source then
             totalPlayers = totalPlayers + 1
         end
     end

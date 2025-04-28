@@ -48,17 +48,17 @@ function JoinPokerEntity(source, casinoId, entityId, seatId)
             return 
         end
     end
-    entity.seats[seatId] = GenerateDefaultPokerSeat(source, casinoId, entityId)
-    if entity.seats[seatId].balance < entity.settings.bigBlind then
+    local newSeat = GenerateDefaultPokerSeat(source, casinoId, entityId)
+    if newSeat.balance < entity.settings.bigBlind then
         ShowNotification(source, "You do not have enough chips to join this table.")
         return
     end
+    entity.seats[seatId] = newSeat
     RemoveCasinoChips(source, casinoId, entity.seats[seatId].balance)
     CurrentPlayers[source] = {casinoId = casinoId, entityId = entityId, seatId = seatId}
     if not DoesPokerLobbyExist(casinoId, entityId) then
         StartPokerLobby(casinoId, entityId)
     end
-    SendCasinoEntityUpdate(casinoId, entityId)
     SetTimeout(100 * 1, function()
         TriggerClientEvent("pickle_casinos:poker:updateSeat", -1, casinoId, entityId, seatId, entity.seats[seatId])
     end)
@@ -225,130 +225,151 @@ function StartPokerGame(casinoId, entityId)
             actionSeat = seatOrder[1],
         }
         repeat
-            local dealCardSections = {
-                ["flop"] = 3,
-                ["turn"] = 1,
-                ["river"] = 1,
-            }
-            if dealCardSections[currentRound.section] then
-                local cardCount = dealCardSections[currentRound.section]
-                for i=1, cardCount do
-                    local index = #entity.dealerCards + 1
-                    local card, updatedDeck = GenerateCard(deck)
-                    deck = updatedDeck
-                    entity.dealerCards[index] = card
-                    entity.stage = {type = "dealerDealing", index = index, card = entity.dealerCards[index]}
-                    TriggerClientEvent("pickle_casinos:poker:updateStage", -1, casinoId, entityId, entity.stage)
-                    SetTimeout(1400, function()
-                        TriggerClientEvent("pickle_casinos:poker:updateDealerCards", -1, casinoId, entityId, entity.dealerCards)
-                    end)
-                    Wait(1500)
-                end
-            end
+            local totalSeats = 0
+            local totalPlayers = 0
             currentRound.active = true
-            local allSeatsPlayed = false
-            local roundRepeat = false
             for i=1, #seatOrder do
                 local seatId = seatOrder[i]
+                local seat = entity.seats[seatId]
+                if not (entity.seats[currentSeat].all or entity.seats[currentSeat].fold) then
+                    totalSeats = totalSeats + 1
+                end
+                if not (seat.fold) then
+                    totalPlayers = totalPlayers + 1
+                end
             end
-            while currentRound.active do
-                for i=1, #seatOrder do
-                    local currentSeat = seatOrder[i]
-                    debugPrint("TOTAL WAGER: " .. (entity.seats[currentSeat].totalWager or 0),"SEAT ID: " .. currentSeat)
-                    local skipTurn = false
-                    if allSeatsPlayed and currentRound.actionSeat == currentSeat then
-                        currentRound.active = false
-                        break
-                    end
-                    if entity.seats[currentSeat].all or entity.seats[currentSeat].fold then
-                        skipTurn = true
-                    end
-                    if not skipTurn then
-                        local minimumBet = 0
-                        if entity.seats[currentSeat].blind == "small" then
-                            minimumBet = currentRound.highestBet
-                        elseif entity.seats[currentSeat].blind == "big" then
-                            minimumBet = currentRound.highestBet
-                        else
-                            minimumBet = currentRound.highestBet
-                        end
-                        minimumBet = minimumBet - (currentRound.seatBets[currentSeat] or 0)
-                        if minimumBet < 0 then minimumBet = 0 end
-                        debugPrint("Minimum Bet: " .. minimumBet, "Highest Bet: " .. currentRound.highestBet, "SEAT INFO:", currentSeat, currentRound.seatBets[currentSeat])
-                        entity.seats[currentSeat].action = nil
-                        TriggerClientEvent("pickle_casinos:poker:updateSeatAction", -1, casinoId, entityId, currentSeat, entity.seats[currentSeat].action)
-                        entity.stage = {type = "seatTurn", time = Config.SeatTurnTime, seat = currentSeat, minimumBet = minimumBet}
+            print("Total Seats: " .. totalSeats, "Total Players: " .. totalPlayers)
+            if totalSeats <= 1 then
+                currentRound.active = false
+            end
+            if totalPlayers <= 1 then
+                currentRound.active = false
+                break
+            else
+                local dealCardSections = {
+                    ["flop"] = 3,
+                    ["turn"] = 1,
+                    ["river"] = 1,
+                }
+                if dealCardSections[currentRound.section] then
+                    local cardCount = dealCardSections[currentRound.section]
+                    for i=1, cardCount do
+                        local index = #entity.dealerCards + 1
+                        local card, updatedDeck = GenerateCard(deck)
+                        deck = updatedDeck
+                        entity.dealerCards[index] = card
+                        entity.stage = {type = "dealerDealing", index = index, card = entity.dealerCards[index]}
                         TriggerClientEvent("pickle_casinos:poker:updateStage", -1, casinoId, entityId, entity.stage)
-                        for i=1, Config.SeatTurnTime + 1 do 
-                            if entity.seats[currentSeat].action then break end
-                            Wait(1000)
-                        end
-                        
-                        if not entity.seats[currentSeat].action then
-                            entity.seats[currentSeat].action = {type = "fold", amount = 0, wagered = 0}
-                        end
-                        if entity.seats[currentSeat].action.type == "fold" and minimumBet <= 0 then
-                            entity.seats[currentSeat].action = {type = "check", amount = 0, wagered = 0}
-                        end
-                        if entity.seats[currentSeat].action.type == "check" and minimumBet > 0 and (currentRound.seatBets[currentSeat] == nil or currentRound.seatBets[currentSeat] < minimumBet) then
-                            entity.seats[currentSeat].action = {type = "call", amount = 0, wagered = 0}
-                        end
-                        if entity.seats[currentSeat].action.type == "call" then
-                            local deductedAmount = minimumBet
-                            if entity.seats[currentSeat].balance - deductedAmount < 0 then
-                                entity.seats[currentSeat].action = {type = "all"}
-                            else
-                                entity.seats[currentSeat].totalWager = (entity.seats[currentSeat].totalWager or 0) + deductedAmount
-                                entity.seats[currentSeat].balance = entity.seats[currentSeat].balance - deductedAmount
-                                entity.seats[currentSeat].action = {type = "call", amount = minimumBet, wagered = 0}
-                                entity.pot = entity.pot + deductedAmount
-                            end
-                        end
-                        if entity.seats[currentSeat].action.type == "raise" then
-                            local amount = entity.seats[currentSeat].action.amount or 0
-                            if amount < (minimumBet + 1) then
-                                amount = minimumBet + 1
-                            end
-                            local deductedAmount = amount
-                            if entity.seats[currentSeat].balance - amount <= 0 then
-                                entity.seats[currentSeat].action = {type = "all"}
-                            else
-                                currentRound.actionSeat = currentSeat
-                                currentRound.highestBet = amount
-                                entity.seats[currentSeat].totalWager = (entity.seats[currentSeat].totalWager or 0) + deductedAmount
-                                entity.seats[currentSeat].action = {type = "raise", amount = amount, wagered = 0}
-                                entity.seats[currentSeat].balance = entity.seats[currentSeat].balance - deductedAmount
-                                currentRound.seatBets[currentSeat] = amount
-                                entity.pot = entity.pot + deductedAmount
-                            end
-                        end
-                        if entity.seats[currentSeat].action.type == "all" then
-                            currentRound.actionSeat = currentSeat
-                            entity.pot = entity.pot + entity.seats[currentSeat].balance
-                            entity.seats[currentSeat].all = true
-                            entity.seats[currentSeat].action.amount = (entity.seats[currentSeat].totalWager or 0) + entity.seats[currentSeat].balance
-                            entity.seats[currentSeat].balance = 0
-                            if entity.seats[currentSeat].action.amount > currentRound.highestBet then
-                                currentRound.highestBet = entity.seats[currentSeat].action.amount
-                            end
-                        end
-                        if entity.seats[currentSeat].action.type == "fold" then
-                            entity.seats[currentSeat].fold = true
-                        elseif entity.seats[currentSeat].action.type == "raise" or entity.seats[currentSeat].action.type == "all" then
-                            roundRepeat = true
-                        end
-                        -- TriggerClientEvent("pickle_casinos:poker:updateSeat", -1, casinoId, entityId, currentSeat, GetObfuscuatedSeat(entity.seats[currentSeat]))
-                        debugPrint(currentSeat, json.encode(entity.seats[currentSeat].action))
-                        TriggerClientEvent("pickle_casinos:poker:updateSeatAction", -1, casinoId, entityId, currentSeat, entity.seats[currentSeat].action, entity.seats[currentSeat].balance)
-                        TriggerClientEvent("pickle_casinos:poker:updatePot", -1, casinoId, entityId, entity.pot)
-                    
+                        SetTimeout(1400, function()
+                            TriggerClientEvent("pickle_casinos:poker:updateDealerCards", -1, casinoId, entityId, entity.dealerCards)
+                        end)
+                        Wait(1500)
                     end
                 end
-                allSeatsPlayed = true
+            end
+            if currentRound.active then
+                local allSeatsPlayed = false
+                local roundRepeat = false
+                while currentRound.active do
+                    for i=1, #seatOrder do
+                        local currentSeat = seatOrder[i]
+                        debugPrint("TOTAL WAGER: " .. (entity.seats[currentSeat].totalWager or 0),"SEAT ID: " .. currentSeat)
+                        local skipTurn = false
+                        if allSeatsPlayed and currentRound.actionSeat == currentSeat then
+                            currentRound.active = false
+                            skipTurn = true
+                            break
+                        end
+                        if entity.seats[currentSeat].all or entity.seats[currentSeat].fold then
+                            skipTurn = true
+                        end
+                        if not skipTurn then
+                            local minimumBet = 0
+                            if entity.seats[currentSeat].blind == "small" then
+                                minimumBet = currentRound.highestBet
+                            elseif entity.seats[currentSeat].blind == "big" then
+                                minimumBet = currentRound.highestBet
+                            else
+                                minimumBet = currentRound.highestBet
+                            end
+                            minimumBet = minimumBet - (currentRound.seatBets[currentSeat] or 0)
+                            if minimumBet < 0 then minimumBet = 0 end
+                            debugPrint("Minimum Bet: " .. minimumBet, "Highest Bet: " .. currentRound.highestBet, "SEAT INFO:", currentSeat, currentRound.seatBets[currentSeat])
+                            entity.seats[currentSeat].action = nil
+                            TriggerClientEvent("pickle_casinos:poker:updateSeatAction", -1, casinoId, entityId, currentSeat, entity.seats[currentSeat].action)
+                            entity.stage = {type = "seatTurn", time = Config.SeatTurnTime, seat = currentSeat, minimumBet = minimumBet}
+                            TriggerClientEvent("pickle_casinos:poker:updateStage", -1, casinoId, entityId, entity.stage)
+                            for i=1, Config.SeatTurnTime + 1 do 
+                                if entity.seats[currentSeat].action then break end
+                                Wait(1000)
+                            end
+                            
+                            if not entity.seats[currentSeat].action then
+                                entity.seats[currentSeat].action = {type = "fold", amount = 0, wagered = 0}
+                            end
+                            if entity.seats[currentSeat].action.type == "fold" and minimumBet <= 0 then
+                                entity.seats[currentSeat].action = {type = "check", amount = 0, wagered = 0}
+                            end
+                            if entity.seats[currentSeat].action.type == "check" and minimumBet > 0 and (currentRound.seatBets[currentSeat] == nil or currentRound.seatBets[currentSeat] < minimumBet) then
+                                entity.seats[currentSeat].action = {type = "call", amount = 0, wagered = 0}
+                            end
+                            if entity.seats[currentSeat].action.type == "call" then
+                                local deductedAmount = minimumBet
+                                if entity.seats[currentSeat].balance - deductedAmount < 0 then
+                                    entity.seats[currentSeat].action = {type = "all"}
+                                else
+                                    entity.seats[currentSeat].totalWager = (entity.seats[currentSeat].totalWager or 0) + deductedAmount
+                                    entity.seats[currentSeat].balance = entity.seats[currentSeat].balance - deductedAmount
+                                    entity.seats[currentSeat].action = {type = "call", amount = minimumBet, wagered = 0}
+                                    entity.pot = entity.pot + deductedAmount
+                                end
+                            end
+                            if entity.seats[currentSeat].action.type == "raise" then
+                                local amount = entity.seats[currentSeat].action.amount or 0
+                                if amount < (minimumBet + smallBlind) then
+                                    amount = minimumBet + smallBlind
+                                end
+                                local deductedAmount = amount
+                                if entity.seats[currentSeat].balance - amount <= smallBlind then
+                                    entity.seats[currentSeat].action = {type = "all"}
+                                else
+                                    currentRound.actionSeat = currentSeat
+                                    currentRound.highestBet = amount
+                                    entity.seats[currentSeat].totalWager = (entity.seats[currentSeat].totalWager or 0) + deductedAmount
+                                    entity.seats[currentSeat].action = {type = "raise", amount = amount, wagered = 0}
+                                    entity.seats[currentSeat].balance = entity.seats[currentSeat].balance - deductedAmount
+                                    currentRound.seatBets[currentSeat] = amount
+                                    entity.pot = entity.pot + deductedAmount
+                                end
+                            end
+                            if entity.seats[currentSeat].action.type == "all" then
+                                currentRound.actionSeat = currentSeat
+                                entity.pot = entity.pot + entity.seats[currentSeat].balance
+                                entity.seats[currentSeat].all = true
+                                entity.seats[currentSeat].action.amount = (entity.seats[currentSeat].totalWager or 0) + entity.seats[currentSeat].balance
+                                entity.seats[currentSeat].balance = 0
+                                if entity.seats[currentSeat].action.amount > currentRound.highestBet then
+                                    currentRound.highestBet = entity.seats[currentSeat].action.amount
+                                end
+                            end
+                            if entity.seats[currentSeat].action.type == "fold" then
+                                entity.seats[currentSeat].fold = true
+                            elseif entity.seats[currentSeat].action.type == "raise" or entity.seats[currentSeat].action.type == "all" then
+                                roundRepeat = true
+                            end
+                            -- TriggerClientEvent("pickle_casinos:poker:updateSeat", -1, casinoId, entityId, currentSeat, GetObfuscuatedSeat(entity.seats[currentSeat]))
+                            debugPrint(currentSeat, json.encode(entity.seats[currentSeat].action))
+                            TriggerClientEvent("pickle_casinos:poker:updateSeatAction", -1, casinoId, entityId, currentSeat, entity.seats[currentSeat].action, entity.seats[currentSeat].balance)
+                            TriggerClientEvent("pickle_casinos:poker:updatePot", -1, casinoId, entityId, entity.pot)
+                        
+                        end
+                    end
+                    allSeatsPlayed = true
+                end
             end
             currentRound.highestBet = 0
             currentRound.seatBets = {}
-            actionSeat = seatOrder[1]
+            currentRound.actionSeat = seatOrder[1]
             if currentRound.section == "preflop" then
                 currentRound.section = "flop"
             elseif currentRound.section == "flop" then
@@ -391,6 +412,12 @@ function StartPokerGame(casinoId, entityId)
         end
         for i=1, #entity.seats do
             if entity.seats[i].source then
+                local visibleSeats = { i }
+                for j=1, #winners do
+                    if winners[j] ~= i then
+                        visibleSeats[#visibleSeats + 1] = winners[j]
+                    end 
+                end
                 local seats = GetObfuscuatedSeats(entity.seats, winners)
                 seats[i].cards = entity.seats[i].cards
                 entity.stage = {type = "results", winnings = winnings, seats = seats}
@@ -402,9 +429,26 @@ function StartPokerGame(casinoId, entityId)
         entity.pot = 0
         -- Reset seat data
         for i=1, #entity.seats do
+            entity.seats[i].action = nil
+            entity.seats[i].fold = nil
+            entity.seats[i].all = nil
+            entity.seats[i].playing = nil
             entity.seats[i].blind = "none"
             entity.seats[i].totalWager = 0
             entity.seats[i].cards = {}
+            if entity.seats[i].source and entity.seats[i].balance < (entity.settings.bigBlind * 100) then
+                local replenishAmount = (entity.settings.bigBlind * 100) - entity.seats[i].balance
+                local casinoBalance = GetCasinoChips(entity.seats[i].source, casinoId)
+                if casinoBalance >= 0 then
+                    if casinoBalance >= replenishAmount then
+                        RemoveCasinoChips(entity.seats[i].source, casinoId, replenishAmount)
+                        entity.seats[i].balance = entity.seats[i].balance + replenishAmount
+                    else
+                        RemoveCasinoChips(entity.seats[i].source, casinoId, casinoBalance)
+                        entity.seats[i].balance = entity.seats[i].balance + casinoBalance
+                    end
+                end
+            end
         end
         entity.dealerCards = {}
         Wait(5000)
@@ -511,6 +555,18 @@ RegisterNetEvent("pickle_casinos:poker:leaveTable", function()
     else
         entity.seats[seatId].inSeat = false
     end
+end)
+
+AddEventHandler('playerDropped', function()
+    local source = source
+    local playerInfo = GetPlayerPokerInfo(source)
+    if not playerInfo then return end
+    local casinoId = playerInfo.casinoId
+    local entityId = playerInfo.entityId
+    local seatId = playerInfo.seatId
+    local entity = GetCasinoEntity(casinoId, entityId)
+    if not entity then return end
+    LeavePokerEntity(source, casinoId, entityId, seatId)
 end)
 
 RegisterCallback("pickle_casinos:poker:requestSeat", function(source, cb, casinoId, entityId, seatId)

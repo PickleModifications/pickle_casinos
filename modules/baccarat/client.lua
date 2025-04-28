@@ -81,7 +81,9 @@ function GetBaccaratSeatsForUI(currentHand)
     for i=1, 4 do
         local seat = CurrentBaccaratTable.seats[i]
         local wager = 0
-        -- TODO SHOW WAGER
+        for k,v in pairs(seat.wagers) do
+            wager = wager + v
+        end
         table.insert(seats, {
             source = seat.source,
             name = seat.name or "Unknown",

@@ -37,13 +37,11 @@ export default function BonusWheel({isSpinning, prizeWon, onSpinComplete} : {isS
     for (let i=decoyPrizes - 1; i>=0; i--) {
         const decoyPrize = prizeList[i];
         const distance = Math.abs(decoyPrizes - i);
-        console.log(decoyPrize.prizeId, prizeWon)
         if (decoyPrize.prizeId == prizeWon && distance > 5) {
             prizeIndex = i;
             break;
         }
     }
-    console.log(prizeIndex)
     return (
         <RoulettePro
             start={isSpinning}

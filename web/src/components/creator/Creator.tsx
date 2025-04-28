@@ -819,8 +819,6 @@ export default function CreatorDisplay() {
     useNuiEvent("openCasinoEditor", (data: any) => {
         setCasinos(data.casinos)
         setCasinoId(data.casinoId || null)
-        console.log("Casino ID: ", data.casinoId)
-        console.log(data.casinos)
         setHidden(true)
         setVisible(true)
         setTimeout(() => {

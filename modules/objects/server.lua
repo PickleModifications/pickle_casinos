@@ -1,5 +1,4 @@
 local MapObjects = {}
-local PlayersEditing = {}
 
 function InitializeMapObjects()
     local text = LoadResourceFile("pickle_casinos", "mapobjects.json") or "{}"
@@ -88,8 +87,7 @@ RegisterNetEvent("pickle_casinos:objects:addMapObjects", function(objects)
 end)
 
 RegisterCommand("mapobjects", function(source, args, rawCommand)
-    PlayersEditing[source] = not PlayersEditing[source]
-    TriggerClientEvent("pickle_casinos:objects:toggleMapMode", source, MapObjects, PlayersEditing[source])
+    TriggerClientEvent("pickle_casinos:objects:toggleMapMode", source, MapObjects)
 end, false)
 
 CreateThread(function()

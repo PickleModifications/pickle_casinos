@@ -225,7 +225,6 @@ function GetPaylineResults(slotSpin: SlotSpin, game: SlotGame): {symbol: string 
             }
             if (count >= game.data.paylineWinThreshold) {
                 hasWin = true;
-                console.log("PAYLINE WIN:", i, firstSymbol, spin, payline);
                 paylineResults.push({
                     symbol: firstSymbol,
                     count: count,
@@ -256,7 +255,7 @@ export default function Slots({game} : {game: SlotGame}) {
     const [paylineResults, setPaylineResults] = useState<{symbol: string | null, count: number}[]>([]);
     const [totalWin, setTotalWin] = useState<number>(0);
     const [balance, setBalance] = useState<number>(game.data.money || 0);
-    const [bets, setBets] = useState<number[]>(game.data.bets || []);
+    const bets = game.data.bets || [];
     const [betIndex, setBetIndex] = useState<number>(0);
     const [inBonus, setInBonus] = useState<boolean>(false);
     const [showInfo, setShowInfo] = useState<boolean>(false);
@@ -560,7 +559,6 @@ export default function Slots({game} : {game: SlotGame}) {
                             <RotateCw size={64} className={`text-primary ${spinning ? "animate-spin" : ""}`} />
                         </div>
                         <div className="rounded-full border p-2 bg-background/50 hover:scale-105 cursor-pointer transition-transform" onClick={() => {
-                            console.log("BALLS 2", betIndex, bets.length, bets)
                             if (betIndex < bets.length - 1 && allowSpin) {
                                 setBetIndex(betIndex + 1);
                             }

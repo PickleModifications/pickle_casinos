@@ -133,7 +133,7 @@ export default function Poker({game} : {game: CasinoGame}) {
                                         <div className="text-zinc-400 text-sm font-bold"><Translate id={"poker_blind_" + seats[index].blind}/></div>
                                     )}
                                 </div>
-                                <div className="text-zinc-400 text-sm font-semibold"><DisplayCurrency value={seats[index].balance} /></div>
+                                <div className="text-zinc-400 text-sm font-semibold"><DisplayCurrency value={seats[index].balance || 0} /></div>
                             </div>
                             {seats[index].cards.length > 0 && (
                                 <div className="flex flex-row items-center gap-2 justify-between">
@@ -198,6 +198,7 @@ export default function Poker({game} : {game: CasinoGame}) {
                                     <div className="flex flex-row items-center gap-2">
                                         <input 
                                             type="range" 
+                                            step={smallBlind}
                                             min={stage.minimumBet <= 0 ? smallBlind : stage.minimumBet + smallBlind} 
                                             max={seats[currentSeat].balance} 
                                             value={bet.value}
@@ -213,7 +214,7 @@ export default function Poker({game} : {game: CasinoGame}) {
                                             })
                                             setBet(null)
                                         }} ><Translate id={"poker_" + bet.type}/> </Button>
-                                        <Button variant="secondary" className="w-full" onClick={() => {
+                                        <Button variant="destructive" className="w-full" onClick={() => {
                                             setBet(null)
                                         }}><Translate id="poker_back"/></Button>
                                     </div>
@@ -241,7 +242,13 @@ export default function Poker({game} : {game: CasinoGame}) {
                                             type: "check",
                                         })
                                     }}><Translate id="poker_check"/> </Button>
-                                    <Button variant="secondary"><Translate id="poker_fold"/> </Button>
+                                    <Button variant="secondary" disabled={
+                                        stage.minimumBet <= 0
+                                    } onClick={() => {
+                                        fetchNui("sendPokerAction", {
+                                            type: "fold",
+                                        })
+                                    }}><Translate id="poker_fold"/> </Button>
                                 </>
                             )}
                         </div>

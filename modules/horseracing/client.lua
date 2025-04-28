@@ -418,7 +418,7 @@ function StartHorseRace(trackId, targetWinner)
             SetEntityCoords(horse.surfaceObject, coords.x, coords.y, coords.z, false, false, false, false)
         end
         local camCoords = GetOffsetFromEntityInWorldCoords(localTrack.raceCenterObject, 11.0, raceDistance - closestDistance, 6.0)
-        DrawMarker(0, targetCoords.x, targetCoords.y, targetCoords.z + 1.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.5, 1.5, 1.5, 255, 0, 0, 255, false, true, false, false, false, false, false, false)
+        -- DrawMarker(0, targetCoords.x, targetCoords.y, targetCoords.z + 1.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.5, 1.5, 1.5, 255, 0, 0, 255, false, true, false, false, false, false, false, false)
         if viewingHorseRacingMenu and CurrentTrack and CurrentTrack.id == trackId then
             SetFocusArea(camCoords)
             EnsureHorseRacingCamera()

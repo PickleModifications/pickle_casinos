@@ -24,10 +24,10 @@ function EnsureMapObjectsRemoved()
     for k, v in pairs(MapObjects) do
         if #(playerCoords - v.coords) < Config.RenderDistance then
             if not LocalMapObjects[k] then
-                LocalMapObjects[k] = true
                 local object = GetClosestObjectOfType(v.coords, 0.5, v.model, false, false, false)
                 local objectCoords = GetEntityCoords(object)
-                if #(objectCoords - v.coords) < 0.5 and not TransparentObjects[k] and not IsEntityScriptObject(object) then
+                if DoesEntityExist(object) and #(objectCoords - v.coords) < 0.5 and not TransparentObjects[k] and not IsEntityScriptObject(object) then
+                    LocalMapObjects[k] = true
                     debugPrint("DELETE OBJ", object, v.coords)
                     SetEntityAsMissionEntity(object)
                     DeleteEntity(object)
@@ -82,88 +82,93 @@ function EnsureMapObjectsTransparent()
     end
 end
 
-RegisterNetEvent("pickle_casinos:objects:toggleMapMode", function(mapObjects, toggle)
-    if toggle then
-        if IN_MAP_MODE then return end
-        debugPrint("START MAP MODE")
-        MapObjects = mapObjects
-        IN_MAP_MODE = true
-        EnsureMapObjectsRemoved()
-        EnsureMapObjectsTransparent()
-        local spriteDict, sprite = "darts", "dart_reticules"
-        local currentEntity = nil
-        while IN_MAP_MODE do 
-            ShowInteractText(
-                '[G]     - Add Detected Models  \n' ..
-                '[E]     - Toggle Entity'
-            )
-            if IsControlJustPressed(1, 47) then
-                local newMapObjects = {}
-                local objects = GetGamePool('CObject')
-                for i=1, #objects do 
-                    local object = objects[i]
-                    local model = GetEntityModel(object)
-                    local isTargetModel = false
-                    for j=1, #Config.TargetedModels do
-                        if model == Config.TargetedModels[j] then
-                            isTargetModel = true
-                            break
-                        end
-                    end
-                    if isTargetModel and not IsEntityScriptObject(object) and not IsObjectMapObject(object) then
-                        local objectCoords = GetEntityCoords(object)
-                        local objectRotation = GetEntityRotation(object, 2)
-                        newMapObjects[#newMapObjects + 1] = {
-                            model = model,
-                            coords = objectCoords,
-                            rotation = objectRotation
-                        }
+RegisterNetEvent("pickle_casinos:objects:toggleMapMode", function(mapObjects)
+    if IN_MAP_MODE then 
+        IN_MAP_MODE = false
+        return
+    end
+    debugPrint("START MAP MODE")
+    MapObjects = mapObjects
+    IN_MAP_MODE = true
+    EnsureMapObjectsRemoved()
+    EnsureMapObjectsTransparent()
+    local spriteDict, sprite = "darts", "dart_reticules"
+    local currentEntity = nil
+    while IN_MAP_MODE do 
+        ShowInteractText(
+            '[G]     - Add Detected Models  \n' ..
+            '[E]     - Toggle Entity  \n' ..
+            '[Backspace]   - Exit Map Mode'
+        )
+        if IsControlJustPressed(1, 177) then
+            IN_MAP_MODE = false
+            break
+        end
+        if IsControlJustPressed(1, 47) then
+            local newMapObjects = {}
+            local objects = GetGamePool('CObject')
+            for i=1, #objects do 
+                local object = objects[i]
+                local model = GetEntityModel(object)
+                local isTargetModel = false
+                for j=1, #Config.TargetedModels do
+                    if model == Config.TargetedModels[j] then
+                        isTargetModel = true
+                        break
                     end
                 end
-                TriggerServerEvent("pickle_casinos:objects:addMapObjects", newMapObjects)
+                if isTargetModel and not IsEntityScriptObject(object) and not IsObjectMapObject(object) then
+                    local objectCoords = GetEntityCoords(object)
+                    local objectRotation = GetEntityRotation(object, 2)
+                    newMapObjects[#newMapObjects + 1] = {
+                        model = model,
+                        coords = objectCoords,
+                        rotation = objectRotation
+                    }
+                end
             end
-            local playerPed = PlayerPedId()
-            local playerCoords = GetEntityCoords(playerPed)
-            local hit, coords, entity = GetDirectionCoords()
-            RequestStreamedTextureDict(spriteDict, false)
-            
-            if hit and coords and #(playerCoords - coords) < 5.0 and entity and GetEntityType(entity) == 3 and not IsEntityScriptObject(entity) then
-                if not currentEntity or currentEntity ~= entity then
-                    if currentEntity then
-                        SetEntityDrawOutline(currentEntity, false)
-                    end
-                    SetEntityDrawOutline(entity, true)
-                    SetEntityDrawOutlineColor(255, 0, 0, 255)
-                    currentEntity = entity
-                end 
-                if IsControlJustPressed(1, 51) then
-                    TriggerServerEvent("pickle_casinos:objects:toggleMapObject", GetEntityModel(entity), GetEntityCoords(entity), GetEntityRotation(entity))
-                end
-                DrawSprite(spriteDict, sprite, 0.5, 0.5, 0.015, 0.025, 180.0, 0, 255, 0, 255)
-            else
-                DrawSprite(spriteDict, sprite, 0.5, 0.5, 0.015, 0.025, 180.0, 255, 255, 255, 255)
+            TriggerServerEvent("pickle_casinos:objects:addMapObjects", newMapObjects)
+        end
+        local playerPed = PlayerPedId()
+        local playerCoords = GetEntityCoords(playerPed)
+        local hit, coords, entity = GetDirectionCoords()
+        RequestStreamedTextureDict(spriteDict, false)
+        
+        if hit and coords and #(playerCoords - coords) < 5.0 and entity and GetEntityType(entity) == 3 and not IsEntityScriptObject(entity) then
+            if not currentEntity or currentEntity ~= entity then
                 if currentEntity then
                     SetEntityDrawOutline(currentEntity, false)
-                    currentEntity = nil
                 end
+                SetEntityDrawOutline(entity, true)
+                SetEntityDrawOutlineColor(255, 0, 0, 255)
+                currentEntity = entity
+            end 
+            if IsControlJustPressed(1, 51) then
+                TriggerServerEvent("pickle_casinos:objects:toggleMapObject", GetEntityModel(entity), GetEntityCoords(entity), GetEntityRotation(entity))
             end
-            Wait(0)
-        end
-        for k,v in pairs(TransparentObjects) do
-            if DoesEntityExist(v) then
-                SetEntityAsMissionEntity(v)
-                DeleteEntity(v)
-                TransparentObjects[k] = nil
+            DrawSprite(spriteDict, sprite, 0.5, 0.5, 0.015, 0.025, 180.0, 0, 255, 0, 255)
+        else
+            DrawSprite(spriteDict, sprite, 0.5, 0.5, 0.015, 0.025, 180.0, 255, 255, 255, 255)
+            if currentEntity then
+                SetEntityDrawOutline(currentEntity, false)
+                currentEntity = nil
             end
         end
-        if currentEntity then
-            SetEntityDrawOutline(currentEntity, false)
-            currentEntity = nil
-        end
-        EnsureMapObjectsRemoved()
-    else
-        IN_MAP_MODE = false
+        Wait(0)
     end
+    for k,v in pairs(TransparentObjects) do
+        if DoesEntityExist(v) then
+            SetEntityAsMissionEntity(v)
+            DeleteEntity(v)
+            TransparentObjects[k] = nil
+        end
+    end
+    if currentEntity then
+        SetEntityDrawOutline(currentEntity, false)
+        currentEntity = nil
+    end
+    EnsureMapObjectsRemoved()
+
 end)
 
 RegisterNetEvent("pickle_casinos:objects:removeMapObject", function(objectId)

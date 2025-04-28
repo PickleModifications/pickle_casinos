@@ -297,7 +297,6 @@ export default function Baccarat({game}: {game: CasinoGame}) {
         setBaccaratCards(data.cards);
     });
     useNuiEvent("updateBaccaratSeats", (data) => {
-        console.log(data.seats)
         setSeats(data.seats);
         setBaccaratWagers(data.seats[currentSeat - 1].wagers || {
             player: 0,

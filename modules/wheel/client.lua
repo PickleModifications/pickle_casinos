@@ -96,12 +96,14 @@ function SpinWheelEntity(casinoId, entityId, targetDegrees)
         local lastSection = targetSection
         while not spinComplete do
             local currentSection  = GetSectionForDegrees(rotation)
-            if currentSection ~= lastSection then
-                lastSection = currentSection
-                SendNUIMessage({
-                    type = "playAudio",
-                    file = "audio/wheel/wheel_tick.mp3",
-                })
+            if CurrentWheel and CurrentWheel.casinoId == casinoId and CurrentWheel.entityId == entityId then
+                if currentSection ~= lastSection then
+                    lastSection = currentSection
+                    SendNUIMessage({
+                        type = "playAudio",
+                        file = "audio/wheel/wheel_tick.mp3",
+                    })
+                end
             end
             if stage.type == "start" then
                 stage.progress = stage.progress + 0.01

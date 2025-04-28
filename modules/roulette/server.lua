@@ -193,7 +193,9 @@ function StartRouletteLobby(casinoId, entityId)
     if not entity then return end
     local totalPlayers = 0
     for i=1, #entity.seats do
-        if entity.seats[i].source and entity.seats[i].inSeat then
+        if entity.seats[i].source and not entity.seats[i].inSeat then
+            LeaveRouletteEntity(entity.seats[i].source, casinoId, entityId, i)
+        elseif entity.seats[i].source then
             totalPlayers = totalPlayers + 1
         end
     end
@@ -206,11 +208,6 @@ function StartRouletteLobby(casinoId, entityId)
     entity.stage = {type = "waiting", time = 11}
     TriggerClientEvent("pickle_casinos:roulette:updateStage", -1, casinoId, entityId, entity.stage)
     CreateThread(function()
-        for i=1, #entity.seats do
-            if entity.seats[i].source and not entity.seats[i].inSeat then
-                LeaveRouletteEntity(entity.seats[i].source, casinoId, entityId, i)
-            end
-        end
         while entity.stage.type == "waiting" and entity.stage.time > 1 do
             entity.stage.time = entity.stage.time - 1
             Wait(1000)

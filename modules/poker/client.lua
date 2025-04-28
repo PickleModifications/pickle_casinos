@@ -155,6 +155,23 @@ function AttemptSeatAtPokerEntity(casinoId, entityId)
                 Wait(1000)
             end
         end)
+        local playArea = LocalPokerTables[CurrentPokerTable.casinoId][CurrentPokerTable.entityId].playAreas[CurrentPokerTable.seatId]
+        local coords = GetOffsetFromEntityInWorldCoords(playArea.surfaceObject, 0.0, -0.5, 0.0275)
+        local rotation = GetEntityRotation(playArea.surfaceObject) + vector3(0.0, 0.0, 90.0)
+        Wait(6000)
+        CreateThread(function()
+            while CurrentPokerTable do
+                if not playingPokerAnimation and not IsEntityPlayingAnim(playerPed, "anim_casino_b@amb@casino@games@shared@player@", "idle_cardgames", 3) then
+                    local netScene = NetworkCreateSynchronisedScene(coords, rotation, 2, 0, 1, 1065353216, 0, 1065353216)
+                    NetworkAddPedToSynchronisedScene(playerPed, netScene, "anim_casino_b@amb@casino@games@shared@player@", "idle_cardgames", 2.0, -2.0, 13, 16, 2.0, 0)
+                    NetworkStartSynchronisedScene(netScene)
+                    Wait(100)
+                end
+                -- SetFollowPedCamViewMode(3)
+                DisableIdleCamera(true)
+                Wait(0)
+            end
+        end)
         -- CreateThread(function()
         --     local seatId = 2
         --     local playArea = LocalPokerTables[casinoId][entityId].playAreas[seatId]
@@ -451,11 +468,13 @@ end)
 RegisterNetEvent("pickle_casinos:poker:updateSeat", function(casinoId, entityId, seatId, seat, hugeUpdate)
     if not hugeUpdate and CurrentPokerTable and CurrentPokerTable.casinoId == casinoId and CurrentPokerTable.entityId == entityId then
         CurrentPokerTable.seats[seatId] = seat
+        print("UPDATE SEAT", seatId, json.encode(seat, {indent = true}))
         SendNUIMessage({
             type = "updatePokerSeats",
             seats = GetPokerSeatsForUI(),
         })
     end
+    if not DoesPokerEntityExist(casinoId, entityId) then return end
     local localPokerTable = LocalPokerTables[casinoId][entityId]
     if not localPokerTable or not localPokerTable.visible then return end
     local playArea = localPokerTable.playAreas[seatId]
