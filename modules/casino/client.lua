@@ -317,8 +317,9 @@ end
 function ExitCasinoCamera(CurrentCamera, durationValue)
     local duration = durationValue
     if duration == nil then duration = 2000 end
-    RenderScriptCams(false, true, duration, false, false) 
-    DestroyCam(CurrentCamera)
+    ClearFocus()
+	DestroyAllCams()
+    RenderScriptCams(false, true, duration, true, false) 
 end
 
 RegisterNUICallback("editPlayer", function(data, cb)
