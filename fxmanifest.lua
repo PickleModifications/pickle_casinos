@@ -2,7 +2,7 @@ fx_version "cerulean"
 game "gta5"
 author "Pickle Mods"
 description "The best system for player-owned casinos."
-version "v1.0.0"
+version "v1.1.0b"
 
 ui_page "nui/index.html"
 

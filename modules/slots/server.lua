@@ -159,7 +159,7 @@ RegisterNetEvent("pickle_casinos:slots:redeemSpin", function(id, spinIndex)
         AddCasinoChips(source, slotSpin.casinoId, calculatedWin)
         ShowNotification(source, _L("spin_won", GetCurrencyString(calculatedWin)))
     end
-    TriggerClientEvent("pickle_casinos:slots:updateBalance", source, playerMoney)
+    TriggerClientEvent("pickle_casinos:updateBalance", source, playerMoney)
     spin.redeemed = true
     if spinIndex >= #slotSpin.spins then
         PendingSpins[id] = nil

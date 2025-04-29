@@ -21,7 +21,7 @@ function JoinRouletteEntity(source, casinoId, entityId, seatId)
                 return i
             end
         end
-        ShowNotification(source, "You are already playing another casino game.")
+        ShowNotification(source, _L("playing_other_game"))
         return
     end
     if entity.seats[seatId].source then
@@ -33,7 +33,7 @@ function JoinRouletteEntity(source, casinoId, entityId, seatId)
             end
         end
         if not seatId then
-            ShowNotification(source, "There are no available seats at this table.")
+            ShowNotification(source, _L("no_seats_available"))
             return 
         end
     end
@@ -51,7 +51,7 @@ function JoinRouletteEntity(source, casinoId, entityId, seatId)
     SetTimeout(100 * 1, function()
         TriggerClientEvent("pickle_casinos:roulette:updateSeat", -1, casinoId, entityId, seatId, entity.seats[seatId])
     end)
-    ShowNotification(source, "You have joined the table at seat " .. seatId .. ".")
+    ShowNotification(source, _L("joined_seat", seatId))
     return seatId
 end
 
@@ -68,7 +68,7 @@ function LeaveRouletteEntity(source, casinoId, entityId, seatId)
             TriggerClientEvent("pickle_casinos:roulette:updateSeat", -1, casinoId, entityId, seatId, entity.seats[seatId])
         end)
         CurrentPlayers[source] = nil
-        ShowNotification(source, "You have left the roulette table.")
+        ShowNotification(source, _L("left_roulette"))
     end
 end
 
@@ -102,7 +102,7 @@ function ProcessRouletteWager(casinoId, entityId, seat)
     if totalWager == 0 then return end
     local wager = totalWager
     if GetCasinoChips(entity.seats[seat].source, casinoId) < wager then
-        ShowNotification(entity.seats[seat].source, "You do not have enough money to place this bet.")
+        ShowNotification(entity.seats[seat].source, _L("insufficient_chips_bet"))
         return false
     end
     RemoveCasinoChips(entity.seats[seat].source, casinoId, wager)
@@ -175,6 +175,9 @@ function StartRouletteGame(casinoId, entityId)
         Wait(5000)
         for i=1, #entity.seats do
             entity.seats[i].connects = GenerateRouletteDefaultWagers()
+            if entity.seats[i].source then
+                UpdatePlayerBalance(entity.seats[i].source, casinoId)
+            end
             SetTimeout(1000, function()
                 TriggerClientEvent("pickle_casinos:roulette:updateSeatWager", -1, casinoId, entityId, i, entity.seats[i].connects)
             end)

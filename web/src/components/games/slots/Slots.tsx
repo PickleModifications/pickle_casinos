@@ -7,6 +7,7 @@ import { useEffect } from "react"
 import  "./Slots.modules.css"
 import { fetchNui } from "@/providers/nui/fetchNui";
 import { useNuiEvent } from "@/providers/nui/useNui";
+import { Translate } from "@/providers/locale/Locale";
 
 type SlotReel = string[]
 
@@ -395,7 +396,7 @@ export default function Slots({game} : {game: SlotGame}) {
                     </div>
                     <div className="flex flex-row items-start justify-between p-8">
                         <div className="flex flex-col gap-2 items-center">
-                            <div className="font-bold text-4xl">Paylines</div>
+                            <div className="font-bold text-4xl"><Translate id="slot_paylines"/></div>
                             <div className="grid grid-cols-4 gap-4">
                                 {game.data.paylines.map((payline, index) => {
                                     return (
@@ -428,13 +429,13 @@ export default function Slots({game} : {game: SlotGame}) {
                             </div>
                         </div>    
                         <div className="flex font-semibold flex-col gap-2 items-center">
-                            <div className="font-bold text-4xl">Game Rules</div>
+                            <div className="font-bold text-4xl"><Translate id="slot_gamerules"/></div>
                             <div className="flex flex-col gap-2 items-center">
-                                <div>Symbols pay left to right.</div>
+                                <div><Translate id="slot_gamerules_1"/></div>
                                 <div className="flex flex-row items-center gap-2">
-                                    <div>You must get {game.data.bonusTriggerCount}</div>
+                                    <div><Translate id="slot_gamerules_2_1" args={[game.data.bonusTriggerCount]}/></div>
                                     <img src={`/nui/images/${game.data.foldername}/${game.data.slotSymbols[game.data.bonusSymbol].image}`} className="h-12" />
-                                    <div>symbol(s) to trigger {game.data.bonusSymbol} free spin(s).</div>
+                                    <div><Translate id="slot_gamerules_2_2" args={[game.data.bonusSymbol]}/></div>
                                 </div>    
                             </div>
                             <div className="grid grid-cols-3 gap-0 max-w-[600px]">
@@ -525,8 +526,8 @@ export default function Slots({game} : {game: SlotGame}) {
                 <div className="flex flex-row items-center justify-between w-full p-2">
                     <div className="flex flex-row items-end gap-2">
                         <div className="flex flex-col items-end gap-2">
-                            <div className="font-bold text-3xl text-yellow-600">Bet</div>
-                            <div className="font-bold text-3xl text-yellow-600">Balance</div>
+                            <div className="font-bold text-3xl text-yellow-600"><Translate id="slot_bet"/></div>
+                            <div className="font-bold text-3xl text-yellow-600"><Translate id="slot_balance"/></div>
                         </div>
                         <div className="flex flex-col items-start gap-2">
                             <div className="font-bold text-3xl"><AnimatedValue value={bet} /></div>
@@ -536,12 +537,12 @@ export default function Slots({game} : {game: SlotGame}) {
                     <div className="font-bold text-4xl flex flex-col items-center gap-2">
                         {(!spinning && totalWin > 0) && (
                             <div className="flex flex-row items-center gap-2">
-                                <div className="text-yellow-600">WIN:</div>
+                                <div className="text-yellow-600"><Translate id="slot_win"/>:</div>
                                 <div><AnimatedValue value={totalWin}/></div>
                             </div>
                         )}
                         {(currentSpin?.spins && inBonus && currentSpin?.spins.length > 0) && <div className="flex flex-row items-center gap-2">
-                            <div className="text-yellow-600">FREE SPINS:</div>
+                            <div className="text-yellow-600"><Translate id="slot_freespins"/>:</div>
                             <div>{(currentSpin?.spins.length - 1) - currentSpin.spinIndex}</div>
                         </div>}
                     </div>

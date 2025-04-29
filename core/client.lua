@@ -212,6 +212,7 @@ function CreateInteraction(data, selected)
     Interactions[index] = {
         selected = selected,
         options = options,
+        icon = data.icon,
         label = data.label,
         model = data.model,
         coords = data.coords,
@@ -226,30 +227,10 @@ function CreateInteraction(data, selected)
         if data.target then
             AddTargetModel(data.target, Interactions[index].radius, Interactions[index].options)
         else
-            Interactions[index].zone = AddTargetZone(Interactions[index].coords - vector3(0.0, 0.0, Interactions[index].zOffset), Interactions[index].radius, Interactions[index].options)
+            Interactions[index].zone = AddTargetZone(Interactions[index].coords - vector3(0.0, 0.0, Interactions[index].zOffset), Interactions[index].radius, Interactions[index].options, Interactions[index].icon)
         end
     end
     return index
-end
-
-function UpdateInteraction(index, data, selected)
-    if not Interactions[index] then return end 
-    Interactions[index].selected = selected
-    for k,v in pairs(data) do 
-        Interactions[index][k] = v
-    end
-    if data.options then 
-        Interactions[index].options = FormatOptions(index, data)
-    end
-    if Config.UseTarget then
-        if Interactions[index].target then 
-            RemoveTargetZone(Interactions[index].zone)
-            Interactions[index].zone = AddTargetZone(Interactions[index].coords, Interactions[index].radius, Interactions[index].options)
-        else
-            RemoveTargetModel(Interactions[index].target, Interactions[index].options)
-            AddTargetModel(Interactions[index].target, Interactions[index].radius, Interactions[index].options)
-        end
-    end
 end
 
 function DeleteInteraction(index)

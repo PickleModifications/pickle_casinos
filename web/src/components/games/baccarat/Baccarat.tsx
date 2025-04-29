@@ -283,8 +283,8 @@ export default function Baccarat({game}: {game: CasinoGame}) {
             }
         }
     }, [turnTimeLeft]);
-    useNuiEvent("updateMoney", (data) => {
-        setMoney(data.money);
+    useNuiEvent("updateBalance", (data) => {
+        setMoney(data.balance);
     });
     useNuiEvent("updateBaccaratStage", (data) => {
         setStage(data.stage);
@@ -424,7 +424,7 @@ export default function Baccarat({game}: {game: CasinoGame}) {
                             </div>) : (
                                 <div className="flex flex-row gap-2 justify-center items-center w-full border p-2 rounded-md" key={index}>
                                     <div className="font-bold text-lg truncate text-zinc-600" style={{
-                                    }}>Empty Seat</div>
+                                    }}><Translate id="empty_seat"/></div>
                                 </div>
                             )
                         })}

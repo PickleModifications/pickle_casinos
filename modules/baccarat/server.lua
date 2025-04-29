@@ -20,7 +20,7 @@ function JoinBaccaratEntity(source, casinoId, entityId, seatId)
                 return i
             end
         end
-        ShowNotification(source, "You are already playing another casino game.")
+        ShowNotification(source, _L("playing_other_game"))
         return
     end
     if seatId == 0 then seatId = 1 end
@@ -32,7 +32,7 @@ function JoinBaccaratEntity(source, casinoId, entityId, seatId)
             end
         end
         if not seatId or seatId < 1 then
-            ShowNotification(source, "There are no available seats at this table.")
+            ShowNotification(source, _L("no_seats_available"))
             return 
         end
     end
@@ -44,7 +44,7 @@ function JoinBaccaratEntity(source, casinoId, entityId, seatId)
     SetTimeout(100 * 1, function()
         TriggerClientEvent("pickle_casinos:baccarat:updateSeat", -1, casinoId, entityId, seatId, entity.seats[seatId])
     end)
-    ShowNotification(source, "You have joined the table at seat " .. seatId .. ".")
+    ShowNotification(source, _L("joined_seat", seatId))
     return seatId
 end
 
@@ -60,7 +60,7 @@ function LeaveBaccaratEntity(source, casinoId, entityId, seatId)
             TriggerClientEvent("pickle_casinos:baccarat:updateSeatWager", -1, casinoId, entityId, seatId, entity.seats[seatId].wagers)
         end)
         CurrentPlayers[source] = nil
-        ShowNotification(source, "You have left the baccarat table.")
+        ShowNotification(source, _L("left_baccarat"))
     end
 end
 
@@ -99,7 +99,7 @@ function ProcessBaccaratWager(casinoId, entityId, seat, handId)
     if not entity then return end
     local wager = GetBaccaratTotalWager(entity.seats[seat].wagers)
     if wager > GetCasinoChips(entity.seats[seat].source, casinoId) then
-        ShowNotification(entity.seats[seat].source, "You do not have enough money to place this wager.")
+        ShowNotification(entity.seats[seat].source, _L("insufficient_chips_bet"))
         return false
     end
     RemoveCasinoChips(entity.seats[seat].source, casinoId, wager)
@@ -256,6 +256,7 @@ function StartBaccaratGame(casinoId, entityId)
                 if seatResults[i].won > 0 then
                     AddCasinoChips(entity.seats[i].source, casinoId, seatResults[i].won)
                 end
+                UpdatePlayerBalance(entity.seats[i].source, casinoId)
             end
         end
         TriggerClientEvent("pickle_casinos:baccarat:updateResults", -1, casinoId, entityId, {

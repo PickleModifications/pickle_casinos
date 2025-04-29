@@ -166,7 +166,7 @@ export function HorseRacing({game} : {game: CasinoGame}) {
     useNuiEvent("updateHorseRacingWager", function(data) {
         setHorseWagers(data.wagers);
     });
-    useNuiEvent("updateBalance", function(data) {
+    useNuiEvent("updateBalance", (data) => {
         setMoney(data.balance);
     });
     const horseProgress: number[] = [];

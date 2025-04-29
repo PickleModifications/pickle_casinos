@@ -261,6 +261,20 @@ function RemoveCasinoChips(source, casinoId, amount)
     Inventory.RemoveItem(source, casino.settings.chipItem, amount)
 end
 
+function UpdatePlayerBalance(source, casinoId, noDelay)
+    local performUpdate = function()
+        local balance = GetCasinoChips(source, casinoId)
+        TriggerClientEvent("pickle_casinos:updateBalance", source, balance, casinoId)
+    end
+    if noDelay then
+        performUpdate()
+        return
+    end
+    SetTimeout(100, function()
+        performUpdate()
+    end)
+end
+
 RegisterCallback("pickle_casinos:getManagementStatus", function(source, cb, casinoId)
     return cb(CanManageCasino(source, casinoId))
 end)

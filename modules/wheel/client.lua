@@ -295,9 +295,9 @@ RegisterNUICallback("repeatWheelWager", function(data, cb)
     TriggerServerEvent("pickle_casinos:wheel:repeatWager")
 end)
 
-RegisterNetEvent("pickle_casinos:wheel:updateBalance", function(balance)
+RegisterNetEvent("pickle_casinos:updateBalance", function(balance)
     if not CurrentWheel then return end
-    CurrentWheel.money = balance
+    CurrentWheel.balance = balance
     SendNUIMessage({
         type = "updateBalance",
         balance = balance,
@@ -392,8 +392,7 @@ end)
 RegisterNetEvent("pickle_casinos:exitGame", function()
     if not CurrentWheel then return end
     TriggerServerEvent("pickle_casinos:wheel:leaveTable")
-    DestroyCam(CurrentCamera)
-    RenderScriptCams(false, true, 2000, false, false) 
+    ExitCasinoCamera(CurrentCamera)
     CurrentWheel = nil
     CurrentCamera = nil
 end)

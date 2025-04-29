@@ -84,6 +84,7 @@ function StartHorseRacingTrackRace(trackId)
     for source,player in pairs(track.players) do 
         player.wagers = GetDefaultWager()
         TriggerClientEvent("pickle_casinos:horseracing:updateWager", source,  track.players[source].casinoId, trackId, player.wagers)
+        UpdatePlayerBalance(source, track.players[source].casinoId)
     end
     StartHorseRacingTrackLobby(trackId)
 end

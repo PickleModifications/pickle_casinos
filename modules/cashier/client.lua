@@ -152,6 +152,7 @@ function RenderCashierEntity(casinoId, entityId)
     localCashier.dealerPed = dealerPed
     localCashier.interact = CreateInteraction({
         label = _L("cashier_title"),
+        icon = Config.TargetIcons and Config.TargetIcons["cashier"] or nil,
         coords = GetOffsetFromEntityInWorldCoords(dealerPed, 0.0, 0.0, 0.0),
         heading = heading,
         radius = 1.25

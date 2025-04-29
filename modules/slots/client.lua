@@ -120,7 +120,7 @@ function RenderSlotEntity(casinoId, entityId)
         label = _L("casino_slot_play") .. " " .. slotCfg.label  .. (casinoEntity.settings.vip and (" " .. _L("casino_vip_game")) or ""),
         coords = GetOffsetFromEntityInWorldCoords(slotObject, 0.0, 0.0, 1.0),
         heading = heading,
-        radius = 0.5
+        icon = Config.TargetIcons and Config.TargetIcons["slots"] or nil,
     }, function(selected)
         ServerCallback("pickle_casinos:getVIPStatus", function(isVIP)
             if casinoEntity.settings.vip and not isVIP then return ShowNotification(_L("casino_vip_required")) end
@@ -169,7 +169,7 @@ CreateThread(function()
     end
 end)
 
-RegisterNetEvent("pickle_casinos:slots:updateBalance", function(balance)
+RegisterNetEvent("pickle_casinos:updateBalance", function(balance)
     if not CurrentSlotMachine then return end
     CurrentSlotMachine.money = balance
     SendNUIMessage({
@@ -241,8 +241,7 @@ RegisterNetEvent("pickle_casinos:exitGame", function()
     SetTimeout(4000, function()
         ClearPedTasks(playerPed)
     end)
-    DestroyCam(CurrentCamera)
-    RenderScriptCams(false, true, 2000, false, false) 
+    ExitCasinoCamera(CurrentCamera)
     CurrentCamera = nil
     CurrentSlotMachine = nil
 end)

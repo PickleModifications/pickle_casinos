@@ -81,6 +81,7 @@ function RenderHorseRacingEntity(casinoId, entityId)
     localHorseRacingMachine.machineObject = machineObject
     localHorseRacingMachine.interact = CreateInteraction({
         label = _L("interact_horseracing") .. (casinoEntity.settings.vip and (" " .. _L("casino_vip_game")) or ""),
+        icon = Config.TargetIcons and Config.TargetIcons["horseracing"] or nil,
         coords = GetOffsetFromEntityInWorldCoords(machineObject, 0.0, 0.0, 1.0),
         heading = heading,
     }, function(selected)
@@ -514,8 +515,7 @@ function ExitHorseTrackView()
     end
     if CurrentCamera then
         SetFocusEntity(PlayerPedId())
-        DestroyCam(CurrentCamera, false)
-        RenderScriptCams(false, true, 0, false, false) 
+        ExitCasinoCamera(CurrentCamera, 0)
         CurrentCamera = nil
     end
 end
@@ -599,6 +599,14 @@ RegisterNetEvent("pickle_casinos:horseracing:updateTrackStage", function(trackId
         end
         StartHorseRace(trackId, stage.winner)
     end
+end)
+
+RegisterNetEvent("pickle_casinos:updateBalance", function(balance)
+    if not CurrentTrack then return end
+    SendNUIMessage({
+        type = "updateBalance",
+        balance = balance,
+    })
 end)
 
 RegisterNUICallback("changeHorseRacingTrack", function(data, cb)

@@ -272,6 +272,7 @@ function RenderBaccaratEntity(casinoId, entityId)
         if i > 0 then
             LocalBaccaratTables[casinoId][entityId].interacts[#LocalBaccaratTables[casinoId][entityId].interacts + 1] = CreateInteraction({
                 label = _L("interact_baccarat") .. (casinoEntity.settings.vip and (" " .. _L("casino_vip_game")) or ""),
+                icon = Config.TargetIcons and Config.TargetIcons["baccarat"] or nil,
                 coords = GetOffsetFromEntityInWorldCoords(playArea.surfaceObject, 0.0, -0.8, 1.0),
                 heading = heading,
             }, function(selected)
@@ -418,22 +419,20 @@ RegisterNetEvent("pickle_casinos:exitGame", function()
     local playerPed = PlayerPedId()
     PlayBaccaratAnimation(playerPed, {dict = "anim_casino_b@amb@casino@games@shared@player@", name = "sit_exit_left"}, {time = 4000})
     TriggerServerEvent("pickle_casinos:baccarat:leaveTable", casinoId, entityId, seatId)
-    DestroyCam(CurrentCamera)
-    RenderScriptCams(false, true, 2000, false, false) 
+    ExitCasinoCamera(CurrentCamera)
     CurrentBaccaratTable = nil
     CurrentCamera = nil
     Wait(4000)
     ClearPedTasks(playerPed)
 end)
 
-RegisterNetEvent("pickle_casinos:baccarat:updateMoney", function(money)
-    if CurrentBaccaratTable then
-        CurrentBaccaratTable.money = money
-        SendNUIMessage({
-            type = "updateBaccaratMoney",
-            money = money,
-        })
-    end
+RegisterNetEvent("pickle_casinos:updateBalance", function(balance)
+    if not CurrentBaccaratTable then return end
+    CurrentBaccaratTable.money = balance
+    SendNUIMessage({
+        type = "updateBalance",
+        balance = balance,
+    })
 end)
 
 RegisterNetEvent("pickle_casinos:baccarat:updateSeatWager", function(casinoId, entityId, seatId, wagers)

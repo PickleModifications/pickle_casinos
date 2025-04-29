@@ -52,14 +52,14 @@ function StartWheelGame(casinoId, entityId)
             entity.players[k].wagers = GenerateDefaultWheelWagers()
             LastWagers[k] = entity.players[k].wagers
             TriggerClientEvent("pickle_casinos:wheel:updateWager", k, entity.players[k].wagers)
-            ShowNotification(k, "You don't have enough money to place this wager.")
+            ShowNotification(k, _L("insufficient_chips_bet"))
         end
     end
     if not hasSuccessWager then
         StartWheelLobby(casinoId, entityId)
         return
     end
-    local result = GetSafeDegrees((21 * 9) + 4.5) --GetSafeDegrees(math.random(0, 360)) -- GetSafeDegrees((21 * 9) + 4.5)
+    local result = GetSafeDegrees(math.random(0, 360))
     local section = GetSectionForDegrees(result)
     entity.stage = {type = "spinning", degrees = result}
     TriggerClientEvent("pickle_casinos:wheel:updateStage", -1, casinoId, entityId, entity.stage)
@@ -97,6 +97,7 @@ function StartWheelGame(casinoId, entityId)
         end
         TriggerClientEvent("pickle_casinos:wheel:updateHistory", -1, casinoId, entityId, entity.history)
         for k,v in pairs(entity.players) do
+            UpdatePlayerBalance(k, casinoId)
             entity.players[k].wagers = GenerateDefaultWheelWagers()
             TriggerClientEvent("pickle_casinos:wheel:updateWager", k, entity.players[k].wagers)
         end
@@ -243,9 +244,9 @@ RegisterNetEvent("pickle_casinos:wheel:setWager", function(wagers)
     end
     local money = GetCasinoChips(source, info.casinoId)
     if money - totalWager < 0 then
-        ShowNotification(source, "You don't have enough money to place this wager.")
+        ShowNotification(source, _L("insufficient_chips_bet"))
     elseif totalWager > entity.betRange[2] then
-        ShowNotification(source, "You can't wager more than " .. entity.betRange[2] .. "$.")
+        ShowNotification(source, _L("max_wager_cap", NumberWithCommas(entity.betRange[2])))
     else
         player.wagers = newWagers
     end
@@ -272,7 +273,7 @@ RegisterNetEvent("pickle_casinos:wheel:repeatWager", function()
     local money = GetCasinoChips(source, info.casinoId)
     if money - totalWager < 0 then
         local money = GetCasinoChips(source, info.casinoId)
-        ShowNotification(source, "You don't have enough money to place this wager.")
+        ShowNotification(source, _L("insufficient_chips_bet"))
     else
         player.wagers = newWagers
         if totalWager > 0 then

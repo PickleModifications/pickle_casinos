@@ -234,6 +234,7 @@ end
 function CreateCasinoInteract(casinoId)
     return CreateInteraction({
         label = _L("interact_casino_manage"),
+        icon = Config.TargetIcons and Config.TargetIcons["management"] or nil,
         coords = Casinos[casinoId].settings.location.coords,
         heading = Casinos[casinoId].settings.location.rotation.z,
     }, function(selected)
@@ -311,6 +312,13 @@ function GenerateTemplates()
         })
     end
     return templates
+end
+
+function ExitCasinoCamera(CurrentCamera, durationValue)
+    local duration = durationValue
+    if duration == nil then duration = 2000 end
+    RenderScriptCams(false, true, duration, false, false) 
+    DestroyCam(CurrentCamera)
 end
 
 RegisterNUICallback("editPlayer", function(data, cb)
@@ -396,12 +404,16 @@ RegisterNUICallback("disableEditorFocus", function(data, cb)
 end)
 
 RegisterNUICallback("pageLoaded", function(data, cb)
+    local Currency = Config.Currency or {
+        currency = "USD",
+        countryCode = "en-US",
+    }
     SendNUIMessage({
         type = "setConfig",
         config = {
             chips = Config.Chips,
-            currency = "USD",
-            countryCode = "en-US",
+            currency = Currency.currency,
+            countryCode = Currency.countryCode,
             bonusWheelMultipliers = GenerateWheelBonusConfig(),
             gameSettings = GenerateGameSettingsUI(),
             locale = Language[Config.Language],
@@ -412,6 +424,7 @@ RegisterNUICallback("pageLoaded", function(data, cb)
 end)
 
 RegisterNUICallback("exitGame", function(data, cb)
+    cb("ok")
     TriggerEvent("pickle_casinos:exitGame")
     SetNuiFocus(false, false)
     SendNUIMessage({

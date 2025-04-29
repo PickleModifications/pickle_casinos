@@ -638,8 +638,8 @@ export default function Roulette({game} : {game: CasinoGame}) {
     useNuiEvent("updateRouletteWagers", (data) => {
         setConnects(data.data.connects);
     });
-    useNuiEvent("updateMoney", (data) => {
-        setMoney(data.money);
+    useNuiEvent("updateBalance", (data) => {
+        setMoney(data.balance);
     });
     useNuiEvent("updateRouletteStage", (data) => {
         setStage(data.stage);
@@ -753,7 +753,7 @@ export default function Roulette({game} : {game: CasinoGame}) {
                                 </div>
                             </div>) : (
                                 <div className="flex flex-row gap-2 justify-center items-center w-full border p-2 rounded-md" key={index}>
-                                    <div className="font-bold text-lg truncate text-zinc-600">Empty Seat</div>
+                                    <div className="font-bold text-lg truncate text-zinc-600"><Translate id="empty_seat"/></div>
                                 </div>
                             )
                         ))

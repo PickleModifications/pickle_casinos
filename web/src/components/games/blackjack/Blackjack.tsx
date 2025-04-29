@@ -69,8 +69,8 @@ export default function Blackjack({game} : {game: CasinoGame}) {
             }
         }
     }, [turnTimeLeft]);
-    useNuiEvent("updateMoney", (data) => {
-        setMoney(data.money);
+    useNuiEvent("updateBalance", (data) => {
+        setMoney(data.balance);
     });
     useNuiEvent("updateBlackjackStage", (data) => {
         setStage(data.stage);
@@ -169,7 +169,7 @@ export default function Blackjack({game} : {game: CasinoGame}) {
                     ) : (
                         <div className='flex flex-row items-center justify-between gap-2 border p-2 rounded-md w-full'>
                             <div className="flex flex-row gap-2 items-center">
-                                <div className="font-bold text-lg">Dealer's Hand:</div>
+                                <div className="font-bold text-lg"><Translate id="blackjack_dealerhand"/>:</div>
                                 {dealerHand.value > 0 && <div className="font-bold text-zinc-400 text-lg">{dealerHand.value}{dealerHand.secondaryValue > 0 && `/${dealerHand.secondaryValue}`}</div>}
                             </div>
                             {seats[0].hands[seats[0].currentHand].length > 0 ? <CardsDisplay cards={seats[0].hands[seats[0].currentHand]} stacked={false} direction="right" height={72} /> : <div style={{height: 72}}></div>}
@@ -197,7 +197,7 @@ export default function Blackjack({game} : {game: CasinoGame}) {
                                 <div className="flex flex-row gap-2 justify-center items-center w-full border p-2 rounded-md" key={index}>
                                     <div className="font-bold text-lg truncate text-zinc-600" style={{
                                         maxWidth: 200 - (8 * (player.hands[player.currentHand].length - 1)),
-                                    }}>Empty Seat</div>
+                                    }}><Translate id="empty_seat"/></div>
                                 </div>
                             )
                         ))

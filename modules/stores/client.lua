@@ -113,6 +113,7 @@ function RenderStoreEntity(casinoId, entityId)
         label = storeCfg.label .. (casinoEntity.settings.vip and (" " .. _L("casino_vip_game")) or ""),
         coords = GetOffsetFromEntityInWorldCoords(dealerPed, 0.0, 0.0, 0.0),
         heading = heading,
+        icon = Config.TargetIcons and Config.TargetIcons["stores"] or nil,
         radius = 1.25
     }, function(selected)
         ServerCallback("pickle_casinos:getVIPStatus", function(isVIP)

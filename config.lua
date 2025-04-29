@@ -11,6 +11,24 @@ Config.MaximumChipPurchaseAmount = 1000000 -- Maximum amount of chips a player c
 Config.MaximumItemPurchaseAmount = 100 -- Maximum amount of items a player can purchase at once.
 Config.ImageDirectory = "nui://ox_inventory/web/images/" -- (QB: nui://qb-inventory/html/images/) This is the directory where the images are stored. It should be a relative path to the resource folder.
 
+Config.Currency = {
+    currency = "USD",
+    countryCode = "en-US",
+}
+
+Config.TargetIcons = {
+    cashier = "fa-solid fa-coins",
+    stores = "fa-solid fa-basket-shopping",
+    management = "fa-solid fa-gear",
+    blackjack = "fa-solid fa-play",
+    roulette = "fa-solid fa-play",
+    baccarat = "fa-solid fa-play",
+    poker = "fa-solid fa-play",
+    wheel = "fa-solid fa-play",
+    horseracing = "fa-solid fa-play",
+    slots = "fa-solid fa-play",
+}
+
 Config.AdminGroups = { -- These are the groups that are allowed to use the /casino command.
     "admin",
     "superadmin",

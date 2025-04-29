@@ -32,7 +32,7 @@ function JoinPokerEntity(source, casinoId, entityId, seatId)
                 return i
             end
         end
-        ShowNotification(source, "You are already playing another casino game.")
+        ShowNotification(source, _L("playing_other_game"))
         return
     end
     if entity.seats[seatId].source then
@@ -44,13 +44,13 @@ function JoinPokerEntity(source, casinoId, entityId, seatId)
             end
         end
         if not seatId then
-            ShowNotification(source, "There are no available seats at this table.")
+            ShowNotification(source, _L("no_seats_available"))
             return 
         end
     end
     local newSeat = GenerateDefaultPokerSeat(source, casinoId, entityId)
     if newSeat.balance < entity.settings.bigBlind then
-        ShowNotification(source, "You do not have enough chips to join this table.")
+        ShowNotification(source, _L("insufficient_buy_in"))
         return
     end
     entity.seats[seatId] = newSeat
@@ -62,7 +62,7 @@ function JoinPokerEntity(source, casinoId, entityId, seatId)
     SetTimeout(100 * 1, function()
         TriggerClientEvent("pickle_casinos:poker:updateSeat", -1, casinoId, entityId, seatId, entity.seats[seatId])
     end)
-    ShowNotification(source, "You have joined the table at seat " .. seatId .. ".")
+    ShowNotification(source, _L("joined_seat", seatId))
     return seatId
 end
 
@@ -238,7 +238,6 @@ function StartPokerGame(casinoId, entityId)
                     totalPlayers = totalPlayers + 1
                 end
             end
-            print("Total Seats: " .. totalSeats, "Total Players: " .. totalPlayers)
             if totalSeats <= 1 then
                 currentRound.active = false
             end

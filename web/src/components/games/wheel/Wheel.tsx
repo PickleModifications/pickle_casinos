@@ -172,8 +172,8 @@ export default function Wheel({game}: {game: CasinoGame}) {
         multiplier?: number,
     }[]>(game.data.history || []);
     const [isBonusSpinning, setIsBonusSpinning] = useState(false);
-    useNuiEvent("updateMoney", (data) => {
-        setMoney(data.money);
+    useNuiEvent("updateBalance", (data) => {
+        setMoney(data.balance);
     });
     useNuiEvent("updateWheelStage", (data) => {
         setStage(data.stage);

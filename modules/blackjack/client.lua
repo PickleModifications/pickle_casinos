@@ -252,6 +252,7 @@ function RenderBlackjackEntity(casinoId, entityId)
         if i > 0 then
             LocalBlackjackTables[casinoId][entityId].interacts[#LocalBlackjackTables[casinoId][entityId].interacts + 1] = CreateInteraction({
                 label = _L("interact_blackjack") .. (casinoEntity.settings.vip and (" " .. _L("casino_vip_game")) or ""),
+                icon = Config.TargetIcons and Config.TargetIcons["blackjack"] or nil,
                 coords = GetOffsetFromEntityInWorldCoords(playArea.surfaceObject, 0.0, -0.8, 1.0),
                 heading = heading,
             }, function(selected)
@@ -379,6 +380,11 @@ RegisterNUICallback("setBlackjackWager", function(data, cb)
     cb("ok")
 end)
 
+RegisterNUICallback("repeatWager", function(data, cb)
+    TriggerServerEvent("pickle_casinos:blackjack:repeatWager")
+    cb("ok")
+end)
+
 RegisterNetEvent("pickle_casinos:exitGame", function()
     if not CurrentBlackjackTable then return end
     local casinoId = CurrentBlackjackTable.casinoId
@@ -387,22 +393,20 @@ RegisterNetEvent("pickle_casinos:exitGame", function()
     local playerPed = PlayerPedId()
     PlayBlackjackAnimation(playerPed, {dict = "anim_casino_b@amb@casino@games@shared@player@", name = "sit_exit_left"}, {time = 4000})
     TriggerServerEvent("pickle_casinos:blackjack:leaveTable", casinoId, entityId, seatId)
-    DestroyCam(CurrentCamera)
-    RenderScriptCams(false, true, 2000, false, false) 
+    ExitCasinoCamera(CurrentCamera)
     CurrentBlackjackTable = nil
     CurrentCamera = nil
     Wait(4000)
     ClearPedTasks(playerPed)
 end)
 
-RegisterNetEvent("pickle_casinos:blackjack:updateMoney", function(money)
-    if CurrentBlackjackTable then
-        CurrentBlackjackTable.money = money
-        SendNUIMessage({
-            type = "updateBlackjackMoney",
-            money = money,
-        })
-    end
+RegisterNetEvent("pickle_casinos:updateBalance", function(balance)
+    if not CurrentBlackjackTable then return end
+    CurrentBlackjackTable.balance = money
+    SendNUIMessage({
+        type = "updateBalance",
+        balance = balance,
+    })
 end)
 
 RegisterNetEvent("pickle_casinos:blackjack:updateSeatWager", function(casinoId, entityId, seatId, handId, wager)

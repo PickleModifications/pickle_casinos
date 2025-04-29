@@ -1,4 +1,5 @@
 import { AnimatedValue } from "@/components/casino/Casino"
+import { Translate } from "@/providers/locale/Locale"
 import { useNuiEvent } from "@/providers/nui/useNui"
 import { useEffect, useState } from "react"
 
@@ -72,7 +73,7 @@ export default function Results() {
                 transform: `scale(${scale})`,
                 transformOrigin: "top",
             }}>
-                <OutlinedText><div className="font-bold text-7xl">YOU WON</div></OutlinedText>
+                <OutlinedText><div className="font-bold text-7xl"><Translate id="you_won"/></div></OutlinedText>
                 <OutlinedText><div className="font-bold text-6xl text-green-400"><AnimatedValue value={winnings} time={30}/></div></OutlinedText>
             </div>
         </div>

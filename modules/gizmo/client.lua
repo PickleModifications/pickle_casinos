@@ -19,9 +19,9 @@ function StartMovement(prop)
             end
         end
         ShowInteractText(
-            '[G]     - ' .. (isFrozen and "Unfreeze" or "Freeze") .. '  \n' ..
-            (isFrozen and '[ARROW KEYS]     - Position  \n[SCROLL UP / DOWN]     - Rotate  \n[SHIFT]     - Faster Movement  \n' or '') ..
-            '[E]     - Save Position'
+            '[G]     - ' .. (isFrozen and _L("objects_unfreeze") or _L("objects_freeze")) .. '  \n' ..
+            (isFrozen and _L("objects_position") or '') ..
+            '[E]     - ' .. _L("objects_save")
         )
         if IsControlPressed(1, 21) then
             speedMode = 4

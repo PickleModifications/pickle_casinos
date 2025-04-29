@@ -250,6 +250,7 @@ function RenderRouletteEntity(casinoId, entityId)
             LocalRouletteTables[casinoId][entityId].interacts[#LocalRouletteTables[casinoId][entityId].interacts + 1] = CreateInteraction({
                 label = _L("interact_roulette") .. (casinoEntity.settings.vip and (" " .. _L("casino_vip_game")) or ""),
                 coords = GetOffsetFromEntityInWorldCoords(playArea.surfaceObject, 0.0, -0.8, 1.0),
+                icon = Config.TargetIcons and Config.TargetIcons["roulette"] or nil,
                 heading = heading,
             }, function(selected)
                 ServerCallback("pickle_casinos:getVIPStatus", function(isVIP)
@@ -393,8 +394,7 @@ RegisterNetEvent("pickle_casinos:exitGame", function()
     local playerPed = PlayerPedId()
     PlayRouletteAnimation(playerPed, {dict = "anim_casino_b@amb@casino@games@shared@player@", name = "sit_exit_left"}, {time = 4000})
     TriggerServerEvent("pickle_casinos:roulette:leaveTable", casinoId, entityId, seatId)
-    DestroyCam(CurrentCamera)
-    RenderScriptCams(false, true, 2000, false, false) 
+    ExitCasinoCamera(CurrentCamera)
     CurrentRouletteTable = nil
     CurrentCamera = nil
     Wait(4000)
@@ -411,14 +411,13 @@ RegisterNetEvent("pickle_casinos:roulette:updateHistory", function(casinoId, ent
     })
 end)
 
-RegisterNetEvent("pickle_casinos:roulette:updateMoney", function(money)
-    if CurrentRouletteTable then
-        CurrentRouletteTable.money = money
-        SendNUIMessage({
-            type = "updateRouletteMoney",
-            money = money,
-        })
-    end
+RegisterNetEvent("pickle_casinos:updateBalance", function(balance)
+    if not CurrentRouletteTable then return end
+    CurrentRouletteTable.balance = balance
+    SendNUIMessage({
+        type = "updateBalance",
+        balance = balance,
+    })
 end)
 
 RegisterNetEvent("pickle_casinos:roulette:updateSeatWager", function(casinoId, entityId, seatId, connects)

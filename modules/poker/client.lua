@@ -298,6 +298,7 @@ function RenderPokerEntity(casinoId, entityId)
         defaultInteracts[i] = CreateInteraction({
             label = _L("interact_poker") .. (casinoEntity.settings.vip and (" " .. _L("casino_vip_game")) or ""),
             coords = GetOffsetFromEntityInWorldCoords(playSurface, 0.0, -0.8, 1.0),
+            icon = Config.TargetIcons and Config.TargetIcons["poker"] or nil,
             heading = heading,
         }, function(selected)
             ServerCallback("pickle_casinos:getVIPStatus", function(isVIP)
@@ -468,7 +469,6 @@ end)
 RegisterNetEvent("pickle_casinos:poker:updateSeat", function(casinoId, entityId, seatId, seat, hugeUpdate)
     if not hugeUpdate and CurrentPokerTable and CurrentPokerTable.casinoId == casinoId and CurrentPokerTable.entityId == entityId then
         CurrentPokerTable.seats[seatId] = seat
-        print("UPDATE SEAT", seatId, json.encode(seat, {indent = true}))
         SendNUIMessage({
             type = "updatePokerSeats",
             seats = GetPokerSeatsForUI(),
@@ -635,7 +635,7 @@ RegisterNetEvent("pickle_casinos:poker:updateStage", function(casinoId, entityId
     end
 end)
 
-RegisterNetEvent("pickle_casinos:poker:updateBalance", function(balance)
+RegisterNetEvent("pickle_casinos:updateBalance", function(balance)
     if not CurrentPokerTable then return end
     CurrentPokerTable.money = balance
     SendNUIMessage({
@@ -659,8 +659,7 @@ RegisterNetEvent("pickle_casinos:exitGame", function(isServer)
     local playerPed = PlayerPedId()
     PlayPokerAnimation(playerPed, {dict = "anim_casino_b@amb@casino@games@shared@player@", name = "sit_exit_left"}, {time = 4000})
     TriggerServerEvent("pickle_casinos:poker:leaveTable")
-    DestroyCam(CurrentCamera)
-    RenderScriptCams(false, true, 2000, false, false) 
+    ExitCasinoCamera(CurrentCamera)
     CurrentPokerTable = nil
     CurrentCamera = nil
     Wait(4000)
