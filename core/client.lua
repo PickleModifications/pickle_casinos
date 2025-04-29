@@ -309,7 +309,6 @@ CreateThread(function()
             end
         end
         if closestInteraction.id then
-            print(closestInteraction.id)
             local k = closestInteraction.id
             local v = Interactions[closestInteraction.id]
             wait = 0 

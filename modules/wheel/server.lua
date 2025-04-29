@@ -59,7 +59,7 @@ function StartWheelGame(casinoId, entityId)
         StartWheelLobby(casinoId, entityId)
         return
     end
-    local result = GetSafeDegrees(math.random(0, 360)) -- GetSafeDegrees((21 * 9) + 4.5)
+    local result = GetSafeDegrees((21 * 9) + 4.5) --GetSafeDegrees(math.random(0, 360)) -- GetSafeDegrees((21 * 9) + 4.5)
     local section = GetSectionForDegrees(result)
     entity.stage = {type = "spinning", degrees = result}
     TriggerClientEvent("pickle_casinos:wheel:updateStage", -1, casinoId, entityId, entity.stage)

@@ -30,6 +30,7 @@ RegisterCallback("pickle_casinos:getBalances", function(source, cb, casinoId, en
 end)
 
 RegisterNetEvent("pickle_casinos:casinoExchange", function(casinoId, entityId, exchangeType, param, param2)
+    local source = source
     if exchangeType == "buy" then
         local currency = param
         local amount = tonumber(param2)

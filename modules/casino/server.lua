@@ -418,6 +418,7 @@ RegisterNetEvent("pickle_casinos:updateCasinoEntitySetting", function(casinoId, 
 end)
 
 RegisterNetEvent("pickle_casinos:startCasinoTransfer", function(casinoId, transferInfo)
+    local source = source
     if not CanManageCasino(source, casinoId) then return ShowNotification(source, _L("no_permission")) end
     local casino = Casinos[casinoId]
     if not casino then return end

@@ -4,6 +4,7 @@ function InitializeStoreEntity(casinoId, data)
 end
 
 RegisterNetEvent("pickle_casinos:storePurchase", function(casinoId, entityId, itemIndex, amount)
+    local source = source
     local casino = Casinos[casinoId]
     if not casino then return end
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
