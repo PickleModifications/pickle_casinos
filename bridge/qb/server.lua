@@ -137,7 +137,6 @@ end
 function IsPlayerAdmin(source)
     local source = tonumber(source)
     local permissions = QBCore.Functions.GetPermission(source)
-    print("PERMS", json.encode(permissions, {indent = true}))
     for i=1, #Config.AdminGroups do 
         if QBCore.Functions.HasPermission(source, Config.AdminGroups[i]) then 
             return true 
