@@ -262,39 +262,47 @@ export default function Slots({game} : {game: SlotGame}) {
     const [showInfo, setShowInfo] = useState<boolean>(false);
     const audio = useRef<HTMLAudioElement | null>(null);
     const bonusAudio = useRef<HTMLAudioElement | null>(null);
-    const bet = bets[betIndex] || 0;
+    const bet = bets[betIndex];
     useNuiEvent("updateBalance", (data: any) => {
         setBalance(data.balance);
     });
     useEffect(() => {
-        if (audio.current) {
-            if (spinning) {
-                audio.current.currentTime = 0;
+        const audioFile = `/nui/audio/${game.data.foldername}/spin.mp3`;
+        if (spinning) {
+            if (audio.current) {
+                audio.current.src = audioFile;
+                audio.current.loop = true;
                 audio.current.play();
+            } else {
+                const newAudio = new Audio(audioFile);
+                newAudio.loop = true;
+                newAudio.play();
+                audio.current = newAudio;
             }
-            else {
-                audio.current.pause();
-            }
-        }
-        return () => {
+        } else {
             if (audio.current) {
                 audio.current.pause();
+                audio.current.currentTime = 0;
             }
         }
     }, [spinning]);
     useEffect(() => {
-        if (bonusAudio.current) {
-            if (inBonus) {
-                bonusAudio.current.currentTime = 0;
+        const audioFile = `/nui/audio/${game.data.foldername}/bonus_loop.mp3`;
+        if (inBonus) {
+            if (bonusAudio.current) {
+                bonusAudio.current.src = audioFile;
+                bonusAudio.current.loop = true;
                 bonusAudio.current.play();
+            } else {
+                const newAudio = new Audio(audioFile);
+                newAudio.loop = true;
+                newAudio.play();
+                bonusAudio.current = newAudio;
             }
-            else {
-                bonusAudio.current.pause();
-            }
-        }
-        return () => {
+        } else {
             if (bonusAudio.current) {
                 bonusAudio.current.pause();
+                bonusAudio.current.currentTime = 0;
             }
         }
     }, [inBonus]);
@@ -365,7 +373,7 @@ export default function Slots({game} : {game: SlotGame}) {
         return () => {
             window.removeEventListener("keydown", handleKeyPress);
         };
-    }, [allowSpin, spinning]);
+    }, [allowSpin, spinning, betIndex]);
     let calculatedWin = 0;
     for (let i=0; i<paylineResults.length; i++) {
         const paylineResult = paylineResults[i];
@@ -376,8 +384,6 @@ export default function Slots({game} : {game: SlotGame}) {
     }
     return (
         <div className="absolute top-[50%] left-[50%] transform translate-x-[-50%] translate-y-[-50%] select-none">
-            <audio src={`/nui/audio/${game.data.foldername}/spin.mp3`} ref={audio} loop/>
-            <audio src={`/nui/audio/${game.data.foldername}/bonus_loop.mp3`} ref={bonusAudio} loop/>
             <div className="absolute top-6 right-6 rounded-full border p-2 bg-background/50 hover:scale-105 cursor-pointer transition-transform"  onClick={() => {
                 setShowInfo(true);
             }} >
@@ -548,7 +554,7 @@ export default function Slots({game} : {game: SlotGame}) {
                     </div>
                     <div className="flex flex-row items-center gap-2">
                         <div className="rounded-full border p-2 bg-background/50 hover:scale-105 cursor-pointer transition-transform" onClick={() => {
-                            if (betIndex > 0 && allowSpin) {
+                            if (betIndex > 0 && allowSpin && !inBonus) {
                                 setBetIndex(betIndex - 1);
                             }
                         }}>
@@ -560,7 +566,7 @@ export default function Slots({game} : {game: SlotGame}) {
                             <RotateCw size={64} className={`text-primary ${spinning ? "animate-spin" : ""}`} />
                         </div>
                         <div className="rounded-full border p-2 bg-background/50 hover:scale-105 cursor-pointer transition-transform" onClick={() => {
-                            if (betIndex < bets.length - 1 && allowSpin) {
+                            if (betIndex < bets.length - 1 && allowSpin && !inBonus) {
                                 setBetIndex(betIndex + 1);
                             }
                         }}>
