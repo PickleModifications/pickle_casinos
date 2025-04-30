@@ -85,6 +85,11 @@ function RenderHorseRacingEntity(casinoId, entityId)
         coords = GetOffsetFromEntityInWorldCoords(machineObject, 0.0, 0.0, 1.0),
         heading = heading,
     }, function(selected)
+        local casino = Casinos[casinoId]
+        if not casino then return end
+        if not casino.settings.isOpen then
+            return ShowNotification(_L("casino_closed"))
+        end
         DisplayHorseRacingMenu(casinoId, entityId)
     end)
 end
@@ -133,7 +138,7 @@ RegisterNUICallback("setHorseRacingWager", function(data, cb)
     cb("ok")
 end)
 
-RegisterNUICallback("repeatHorseRacingWager", function()
+RegisterNUICallback("repeatHorseRacingWager", function(data, cb)
     TriggerServerEvent("pickle_casinos:horseracing:setWager", viewingHorseRacingMenu.casinoId, viewingHorseRacingMenu.entityId, CurrentTrack.id, "repeat")
     cb("ok")
 end)
@@ -355,6 +360,9 @@ function StartHorseRace(trackId, targetWinner)
         local done = true
         for i=1, #localTrack.horses do 
             local horse = localTrack.horses[i]
+            if horse.progress == nil then
+                return
+            end
             if winnerSpeed < 0 and horse.progress > winProgress then
                 local targetHorse = localTrack.horses[targetWinner]
                 winnerSpeed = targetHorse.speed + (defaultSpeed / math.random(20, 40))

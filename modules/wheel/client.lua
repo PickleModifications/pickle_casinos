@@ -193,9 +193,15 @@ function RenderWheelEntity(casinoId, entityId)
     wheelEntity.tickObject = tickObject
     wheelEntity.interact = CreateInteraction({
         label = _L("interact_wheel") .. (casinoEntity.settings.vip and (" " .. _L("casino_vip_game")) or ""),
+        icon = Config.TargetIcons and Config.TargetIcons["wheel"] or nil,
         coords = GetOffsetFromEntityInWorldCoords(wheelObject, 0.0, -0.5, 0.0),
         heading = heading,
     }, function(selected)
+        local casino = Casinos[casinoId]
+        if not casino then return end
+        if not casino.settings.isOpen then
+            return ShowNotification(_L("casino_closed"))
+        end
         ServerCallback("pickle_casinos:getVIPStatus", function(isVIP)
             if casinoEntity.settings.vip and not isVIP then return ShowNotification(_L("casino_vip_required")) end
             AttemptSeatAtWheelEntity(casinoId, entityId)

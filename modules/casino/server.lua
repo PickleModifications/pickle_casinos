@@ -58,6 +58,9 @@ function EnsureCasinoSettings(settings)
     newSettings.location.rotation = vector3(newSettings.location.rotation.x, newSettings.location.rotation.y, newSettings.location.rotation.z)
     if not newSettings.chipItem then newSettings.chipItem = "UNKNOWN_CHIP_ITEM" end
     if not newSettings.blipEnabled then newSettings.blipEnabled = false end
+    if not newSettings.isOpen then newSettings.isOpen = false end
+    if not newSettings.cashEnabled then newSettings.cashEnabled = false end
+    if not newSettings.markedEnabled then newSettings.markedEnabled = false end
     if tonumber(newSettings.moneyExchangeRate or "a") == nil then newSettings.moneyExchangeRate = 100 end
     if tonumber(newSettings.dirtyExchangeRate or "a") == nil then newSettings.dirtyExchangeRate = 75 end
     if tonumber(newSettings.vipPrice or "a") == nil then newSettings.vipPrice = 1000 end
@@ -127,7 +130,7 @@ end
 function GenerateCard(deck) 
     local classes = {"spd", "club", "dia", "hrt"}
     local values = {"ace", "02", "03", "04", "05", "06", "07", "08", "09", "10", "jack", "queen", "king"}
-    -- return { class = classes[1], value = values[1] }
+    -- return { class = classes[1], value = values[6] }
     if deck then
         local index = math.random(1, #deck)
         local card = deck[index]
@@ -219,7 +222,7 @@ function IsPlayerCasinoVIP(source, casinoId)
     -- if casino.owner_info and casino.owner_info.identifier == identifier then return true end
     for i=1, #casino.vip_players do
         if casino.vip_players[i].identifier == identifier then
-            return true
+            return casino.vip_players[i]
         end
     end
     return false
@@ -275,6 +278,12 @@ function UpdatePlayerBalance(source, casinoId, noDelay)
     end)
 end
 
+function GetFormattedPlayer(source)
+    local name = GetPlayerName(source)
+    name = "**Name:** ".. name .. " (ID: " .. source .. ")\n**Identifiers:**\n`" .. json.encode(GetFilteredPlayerIdentifiers(source), {indent = true}) .. "`"
+    return name
+end
+
 RegisterCallback("pickle_casinos:getManagementStatus", function(source, cb, casinoId)
     return cb(CanManageCasino(source, casinoId))
 end)
@@ -292,7 +301,25 @@ RegisterCallback("pickle_casinos:getPlayers", function(source, cb)
 end)
 
 RegisterCallback("pickle_casinos:getVIPStatus", function(source, cb, casinoId)
-    return cb(IsPlayerCasinoVIP(source, casinoId))
+    local vipStatus = IsPlayerCasinoVIP(source, casinoId)
+    if not vipStatus then return cb(false) end
+    local vipStartTime = vipStatus.startTime or 0
+    if not Config.Casinos.vipExpireTime or (vipStartTime + Config.Casinos.vipExpireTime) > os.time() then
+        return cb(true, {
+            timeLeft = ((vipStartTime + Config.Casinos.vipExpireTime) - os.time()),
+        })
+    else
+        local casino = Casinos[casinoId]
+        if not casino then return end
+        for i=1, #casino.vip_players do
+            if casino.vip_players[i].identifier == vipStatus.identifier then
+                table.remove(casino.vip_players, i)
+                break
+            end
+        end
+        MySQL.Async.execute('UPDATE `pickle_casinos` SET vip_players = ? WHERE id = ?', {json.encode(casino.vip_players), casinoId})
+        return cb(false)
+    end
 end)
 
 RegisterNetEvent("pickle_casinos:initializePlayer", function()
@@ -316,6 +343,9 @@ RegisterNetEvent("pickle_casinos:createCasino", function(data)
         },
         chipItem = data.chipItem or "UNKNOWN_CHIP_ITEM",
         blipEnabled = data.blipEnabled or false,
+        isOpen = true,
+        cashEnabled = true,
+        markedEnabled = true,
     }
     local entities = {}
     if data.template and data.template ~= "none" then
@@ -356,6 +386,12 @@ RegisterNetEvent("pickle_casinos:updateCasinoSetting", function(casinoId, variab
         casino.settings.chipItem = tostring(value) or "INVALID_CHIP_ITEM"
     elseif variable == "blipEnabled" then
         casino.settings.blipEnabled = value and true or false
+    elseif variable == "isOpen" then
+        casino.settings.isOpen = value and true or false
+    elseif variable == "cashEnabled" then
+        casino.settings.cashEnabled = value and true or false
+    elseif variable == "markedEnabled" then
+        casino.settings.markedEnabled = value and true or false
     elseif variable == "location" then
         if not value or not value.coords or not value.rotation then return end
         casino.settings.location = value

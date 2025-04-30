@@ -135,6 +135,9 @@ function SetPlayerJob(source, job, grade)
 end
 
 function IsPlayerAdmin(source)
+    local source = tonumber(source)
+    local permissions = QBCore.Functions.GetPermission(source)
+    print("PERMS", json.encode(permissions, {indent = true}))
     for i=1, #Config.AdminGroups do 
         if QBCore.Functions.HasPermission(source, Config.AdminGroups[i]) then 
             return true 
@@ -150,10 +153,6 @@ function AddSocietyMoney(name, amount)
         exports["qb-banking"]:AddMoney(name, amount)
     end
 end
-
-RegisterNetEvent("QBCore:Server:OnJobUpdate", function(player)
-    ResyncPermissions(player)
-end)
 
 -- Inventory Fallback
 
@@ -218,6 +217,7 @@ CreateThread(function()
 
     Inventory.GetItemCount = function(source, name)
         local xPlayer = QBCore.Functions.GetPlayer(tonumber(source))
+        if not xPlayer then return 0 end
         local item = xPlayer.Functions.GetItemByName(name)
         return item and item.amount or 0
     end

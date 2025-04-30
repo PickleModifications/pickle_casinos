@@ -253,6 +253,11 @@ function RenderRouletteEntity(casinoId, entityId)
                 icon = Config.TargetIcons and Config.TargetIcons["roulette"] or nil,
                 heading = heading,
             }, function(selected)
+                local casino = Casinos[casinoId]
+                if not casino then return end
+                if not casino.settings.isOpen then
+                    return ShowNotification(_L("casino_closed"))
+                end
                 ServerCallback("pickle_casinos:getVIPStatus", function(isVIP)
                     if casinoEntity.settings.vip and not isVIP then return ShowNotification(_L("casino_vip_required")) end
                     AttemptSeatAtRouletteEntity(casinoId, entityId)
@@ -388,6 +393,10 @@ end)
 
 RegisterNetEvent("pickle_casinos:exitGame", function()
     if not CurrentRouletteTable then return end
+    if DoesRouletteEntityExist(CurrentRouletteTable.casinoId, CurrentRouletteTable.entityId) then
+        local rouletteTable = LocalRouletteTables[CurrentRouletteTable.casinoId][CurrentRouletteTable.entityId]
+        PlayCasinoDealerSpeech(rouletteTable.dealerPed, "MINIGAME_DEALER_LEAVE_NEUTRAL_GAME", "SPEECH_PARAMS_FORCE_NORMAL_CLEAR")
+    end
     local casinoId = CurrentRouletteTable.casinoId
     local entityId = CurrentRouletteTable.entityId
     local seatId = CurrentRouletteTable.seatId
@@ -558,6 +567,7 @@ RegisterNetEvent("pickle_casinos:roulette:updateStage", function(casinoId, entit
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
     local dealerPed = rouletteTable.dealerPed
     if stage.type == "waiting" then
+        PlayCasinoDealerSpeech(rouletteTable.dealerPed, "MINIGAME_DEALER_PLACE_BET", "SPEECH_PARAMS_FORCE_NORMAL_CLEAR")
         if isCurrentTable then
             EnsureRouletteCamera()
             local tableCoords = GetOffsetFromEntityInWorldCoords(rouletteTable.surfaceObject, 0.0, -0.5, 3.0)
@@ -580,6 +590,7 @@ RegisterNetEvent("pickle_casinos:roulette:updateStage", function(casinoId, entit
             end)
         end
     elseif stage.type == "rolling" then
+        PlayCasinoDealerSpeech(rouletteTable.dealerPed, "MINIGAME_DEALER_CLOSED_BETS", "SPEECH_PARAMS_FORCE_NORMAL_CLEAR")
         if isCurrentTable then
             SendNUIMessage({
                 type = "updateRouletteStage",
@@ -590,6 +601,7 @@ RegisterNetEvent("pickle_casinos:roulette:updateStage", function(casinoId, entit
         end
         PerformRouletteSpin(casinoId, entityId, stage.targetNumber)
     elseif stage.type == "winningNumber" then
+        PlayCasinoDealerSpeech(rouletteTable.dealerPed, ("MINIGAME_ROULETTE_BALL_" .. stage.winningNumber), "SPEECH_PARAMS_FORCE_NORMAL_CLEAR")
         if isCurrentTable then
             SendNUIMessage({
                 type = "updateRouletteStage",

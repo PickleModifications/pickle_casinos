@@ -194,7 +194,7 @@ function CreateCurrentCasinoEntity(coords, rotation, data)
         DeleteScriptObject(CurrentCasinoEntity.object)
         CurrentCasinoEntity = nil
     end
-    CurrentCasinoEntity = {}
+    CurrentCasinoEntity = {entityType = data.info.entityType, settings = data.info.settings}
     local model
     local entityType = data.info.entityType
     if not entityType and data.info.entityId then
@@ -245,6 +245,25 @@ function CreateCasinoInteract(casinoId)
     end)
 end
 
+function CreateCasinoBlip(casinoId) 
+    local casino = Casinos[casinoId]
+    if not casino then return end
+    if not casino.settings.blipEnabled then return end
+    local blip = AddBlipForCoord(casino.settings.location.coords.x, casino.settings.location.coords.y, casino.settings.location.coords.z)
+    local blipCfg = Config.CasinoBlip or {}
+    SetBlipSprite(blip, blipCfg.sprite or 1)
+    SetBlipDisplay(blip, blipCfg.display or 4)
+    SetBlipScale(blip, blipCfg.scale or 1.0)
+    SetBlipColour(blip, blipCfg.color or 0)
+    local category = blipCfg.category or 40
+    SetBlipCategory(blip, category)
+    AddTextEntry("BLIP_CAT_" .. category, _L("blip_casino"))
+    BeginTextCommandSetBlipName("STRING")
+    AddTextComponentSubstringPlayerName(casino.settings.label)
+    EndTextCommandSetBlipName(blip)
+    return blip
+end
+
 function RegisterCasino(casinoId, data)
     Casinos[casinoId] = data
     for i=1, #Casinos[casinoId].entities do
@@ -253,6 +272,7 @@ function RegisterCasino(casinoId, data)
     LocalCasinos[casinoId] = {
         location = Casinos[casinoId].settings.location,
         interact = CreateCasinoInteract(casinoId),
+        blip = CreateCasinoBlip(casinoId),
     }
 end
 
@@ -320,6 +340,10 @@ function ExitCasinoCamera(CurrentCamera, durationValue)
     ClearFocus()
 	DestroyAllCams()
     RenderScriptCams(false, true, duration, true, false) 
+end
+
+function PlayCasinoDealerSpeech(ped, speech, speechAction)
+    PlayPedAmbientSpeechNative(ped, speech, speechAction, 1)
 end
 
 RegisterNUICallback("editPlayer", function(data, cb)
@@ -561,7 +585,16 @@ end)
 RegisterNUICallback("updateTempCasinoEntitySettings", function(data, cb)
     cb("ok")
     if not CurrentCasinoEntity then return end
-    CreateCurrentCasinoEntity(GetEntityCoords(CurrentCasinoEntity.object), GetEntityRotation(CurrentCasinoEntity.object), {
+    if CurrentCasinoEntity.entityType == data.entityType then 
+        if not CurrentCasinoEntity.settings.tableModel and not CurrentCasinoEntity.settings.game then
+            return
+        end
+    end
+    local coords = GetEntityCoords(CurrentCasinoEntity.object)
+    if CurrentCasinoEntity.entityType and CurrentCasinoEntity.entityType == "poker" then
+        coords = coords - vector3(0.0, 0.0, 0.19)
+    end
+    CreateCurrentCasinoEntity(coords, GetEntityRotation(CurrentCasinoEntity.object), {
         info = {
             entityType = data.entityType,
             settings = data.settings,
@@ -674,6 +707,10 @@ RegisterNetEvent("pickle_casinos:updateCasinoSetting", function(casinoId, variab
         LocalCasinos[casinoId].location = casino.settings.location
         DeleteInteraction(LocalCasinos[casinoId].interact)
         LocalCasinos[casinoId].interact = CreateCasinoInteract(casinoId)
+        if LocalCasinos[casinoId].blip then
+            RemoveBlip(LocalCasinos[casinoId].blip)
+        end
+        LocalCasinos[casinoId].blip = CreateCasinoBlip(casinoId)
     end
     SendNUIMessage({
         type = "updateCasinoSetting",
@@ -736,8 +773,13 @@ RegisterNetEvent("pickle_casinos:deleteCasino", function(casinoId)
         elseif entity.type == "store" then
             DeleteStoreEntity(casinoId, entity.id)
         end
+    end
+    if LocalCasinos[casinoId] then
         if LocalCasinos[casinoId].interact then
             DeleteInteraction(LocalCasinos[casinoId].interact)
+        end
+        if LocalCasinos[casinoId].blip then
+            RemoveBlip(LocalCasinos[casinoId].blip)
         end
     end
     Casinos[casinoId] = nil

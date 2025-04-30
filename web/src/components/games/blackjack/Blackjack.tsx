@@ -161,7 +161,7 @@ export default function Blackjack({game} : {game: CasinoGame}) {
                 </div>
                 <div className="flex flex-col gap-2 items-center w-[33.333333%] px-8">
                     {stage.type === "waiting" ? (
-                        <WagerComponent betRange={wagerLimit} money={money} wager={0} setWager={(value) => {
+                        <WagerComponent wagerData={{ game: "blackjack" }} betRange={wagerLimit} money={money} wager={0} setWager={(value) => {
                             fetchNui("setBlackjackWager", {
                                 wager: value
                             });

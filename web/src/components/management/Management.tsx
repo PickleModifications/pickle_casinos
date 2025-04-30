@@ -69,11 +69,12 @@ function DisplaySettings({casinoId, settings} : {casinoId: number, settings: Cas
         {variable: "moneyExchangeRate", type: "range", min: 1, max: 100, default: 100, step: 1},
         {variable: "dirtyExchangeRate", type: "range", min: 1, max: 100, default: 75, step: 1},
         {variable: "vipPrice", type: "priceRange", min: (config.maxVipPrice || 1000000) / 100, max: (config.maxVipPrice || 1000000), default: (config.maxVipPrice || 1000000) / 100, step: (config.maxVipPrice || 1000000) / 100},
+        {variable: "isOpen", type: "checkbox", default: true},
     ]
     useEffect(() => {
         const newSettings: CasinoSettings = {};
         settingsConfig.forEach((setting) => {
-            newSettings[setting.variable] = settingsState[setting.variable] || setting.default;
+            newSettings[setting.variable] = settingsState[setting.variable] != undefined ? settingsState[setting.variable] : setting.default;
         });
         setSettingsState(newSettings);
     }, [settings]);
@@ -88,7 +89,8 @@ function DisplaySettings({casinoId, settings} : {casinoId: number, settings: Cas
         <div className="flex flex-col gap-2 h-full overflow-y-auto p-2">
             {settingsConfig.map((setting, settingIndex) => (
                 <div key={settingIndex} className="flex flex-row justify-between items-center w-full">
-                    <div className="flex flex-col gap-1 w-full">
+                    {setting.type.toLowerCase().includes("range") && (
+                        <div className="flex flex-col gap-1 w-full">
                         <div className="flex flex-col">
                             <div className="flex flex-row w-full justify-between items-center">
                                 <div className="text-sm font-bold"><Translate id={"casino_manage_" + setting.variable}/></div>
@@ -116,7 +118,24 @@ function DisplaySettings({casinoId, settings} : {casinoId: number, settings: Cas
                                 }} />
                             </div>
                         )}
-                    </div>
+                        </div>
+                    )}
+                    {setting.type.toLowerCase().includes("checkbox") && (
+                        <>
+                            <div className="text-md font-bold"><Translate id={"casino_manage_" + setting.variable}/></div>
+                            <input type="checkbox" className="bg-secondary/50 text-sm text-right text-zinc-400 rounded-md px-2 py-1" checked={settingsState[setting.variable]} onChange={(e) => {
+                                setSettingsState((prevState) => ({
+                                    ...prevState,
+                                    [setting.variable]: e.target.checked,
+                                }));
+                                fetchNui("updateCasinoSetting", {
+                                    casinoId: casinoId,
+                                    variable: setting.variable,
+                                    value: e.target.checked ? true : false,
+                                })
+                            }} />
+                        </>
+                    )}
                 </div>
             ))}
             <Button variant={"default"} className="w-full" onClick={() => {

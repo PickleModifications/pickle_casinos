@@ -10,6 +10,13 @@ Config.UseObjectGizmo = false -- This enables the use of object_gizmo for placin
 Config.MaximumChipPurchaseAmount = 1000000 -- Maximum amount of chips a player can purchase at once.
 Config.MaximumItemPurchaseAmount = 100 -- Maximum amount of items a player can purchase at once.
 Config.ImageDirectory = "nui://ox_inventory/web/images/" -- (QB: nui://qb-inventory/html/images/) This is the directory where the images are stored. It should be a relative path to the resource folder.
+Config.DisableIPIdentifier = true -- This disables the IP identifier from being sent to the logs.
+
+Config.CasinoBlip = {
+    sprite = 679,
+    color = 0,
+    scale = 1.0,
+}
 
 Config.Currency = {
     currency = "USD",
@@ -30,6 +37,7 @@ Config.TargetIcons = {
 }
 
 Config.AdminGroups = { -- These are the groups that are allowed to use the /casino command.
+    "group.admin",
     "admin",
     "superadmin",
     "god",
@@ -89,6 +97,7 @@ Config.FrameworkSettings = {
 }
 
 Config.Casinos = {
+    vipExpireTime = 10,-- 86400 * 1, -- Time in seconds before a VIP membership expires, set to 0 to make VIP permanent. (1 day = 86400 seconds)
     tax = 10, -- Percentage of the profit that the casino pays in tax when withdrawing clean cash from the management system.
     taxRecipients = { -- This should always add up to 100%; above is where you set the percentage of the tax.
         ["police"] = 50, -- The percentage of the tax paid by the casinos to this society.

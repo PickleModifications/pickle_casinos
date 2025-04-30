@@ -301,6 +301,11 @@ function RenderPokerEntity(casinoId, entityId)
             icon = Config.TargetIcons and Config.TargetIcons["poker"] or nil,
             heading = heading,
         }, function(selected)
+            local casino = Casinos[casinoId]
+            if not casino then return end
+            if not casino.settings.isOpen then
+                return ShowNotification(_L("casino_closed"))
+            end
             ServerCallback("pickle_casinos:getVIPStatus", function(isVIP)
                 if casinoEntity.settings.vip and not isVIP then return ShowNotification(_L("casino_vip_required")) end
                 AttemptSeatAtPokerEntity(casinoId, entityId)

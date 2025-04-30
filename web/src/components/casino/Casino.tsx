@@ -439,6 +439,11 @@ export function WagerComponent({wager, setWager, betRange, money, wagerData} : {
             setValue(data.data.wager);
         }); 
     }
+    if (wagerData && wagerData.game == "blackjack") {
+        useNuiEvent("updateBlackjackWager", (data) => {
+            setValue(data.data.wager);
+        }); 
+    }
     return (
         <>
             {wagerTypeString === "default" && ( <DefaultWagerComponent wager={value} setWager={setWager} betRange={betRange} money={money} chips={chips} attemptWagerUpdate={attemptWagerUpdate} closestChip={closestChip} config={config} /> )}

@@ -77,21 +77,6 @@ function GetBaccaratEntity(casinoId, entityId)
     }
 end
 
-function GetBaccaratCardsValue(cards)
-    local totalNumber = 0
-    for i=1, #cards do
-        local card = cards[i]
-        if card.value == "ace" then
-            totalNumber = totalNumber + 1
-        elseif card.value == "jack" or card.value == "queen" or card.value == "king" then
-            totalNumber = totalNumber + 10
-        else
-            totalNumber = totalNumber + tonumber(card.value)
-        end
-    end
-    return totalNumber % 10
-end
-
 function ProcessBaccaratWager(casinoId, entityId, seat, handId)
     local casino = Casinos[casinoId]
     if not casino then return end
@@ -123,14 +108,19 @@ function StartBaccaratGame(casinoId, entityId)
         end
     end
     CreateThread(function()
+        local isFirstCard = true
         local round = 0
         repeat
             round = round + 1
             local sides = {"player", "banker"}
             for i=1, 2 do
-                entity.stage = {type = "dealing", side = sides[i], card = GenerateCard(), cardIndex = #entity.cards[sides[i]] + 1}
+                entity.stage = {type = "dealing", side = sides[i], card = GenerateCard(), cardIndex = #entity.cards[sides[i]] + 1, isFirstCard = isFirstCard}
                 entity.cards[sides[i]][#entity.cards[sides[i]] + 1] = entity.stage.card
                 TriggerClientEvent("pickle_casinos:baccarat:updateStage", -1, casinoId, entityId, entity.stage)
+                if isFirstCard then
+                    Wait(3000)
+                end
+                isFirstCard = false
                 SetTimeout(1300, function()
                     TriggerClientEvent("pickle_casinos:baccarat:updateCards", -1, casinoId, entityId, sides[i], entity.cards[sides[i]])
                 end)
@@ -259,6 +249,7 @@ function StartBaccaratGame(casinoId, entityId)
                 UpdatePlayerBalance(entity.seats[i].source, casinoId)
             end
         end
+        Wait(750)
         TriggerClientEvent("pickle_casinos:baccarat:updateResults", -1, casinoId, entityId, {
             type = "results", 
             winningWagers = winningWagers,

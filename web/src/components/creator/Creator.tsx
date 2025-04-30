@@ -379,6 +379,8 @@ type CasinoSettings = {
     location: Location,
     blipEnabled: boolean,
     template: string,
+    cashEnabled: boolean,
+    markedEnabled: boolean,
 }
 
 function CasinoDisplay({ isManager, casino, onExit }: { isManager?: boolean, casino?: Casino, onExit: () => void }) {
@@ -392,6 +394,8 @@ function CasinoDisplay({ isManager, casino, onExit }: { isManager?: boolean, cas
         chipItem: casino?.settings.chipItem || "",
         location: casino?.settings.location || DEFAULT_LOCATION,
         blipEnabled: casino?.settings.blipEnabled || false,
+        cashEnabled: casino?.settings.cashEnabled || false,
+        markedEnabled: casino?.settings.markedEnabled || false,
         template: casino?.settings.template || "default",
     })
     const [currentEntityId, setCurrentEntityId] = useState<string | null>(null)
@@ -568,6 +572,38 @@ function CasinoDisplay({ isManager, casino, onExit }: { isManager?: boolean, cas
                                         })
                                     }} />
                                 </div>
+                                {!isManager && (<div className="flex flex-row w-full items-center justify-between">
+                                    <div className="text-md font-bold"><Translate id="casino_cashenabled"/></div>
+                                    <input type="checkbox" className="bg-secondary/50 text-sm text-right text-zinc-400 rounded-md px-2 py-1" checked={settings.cashEnabled} onChange={(e) => {
+                                        setSettings((prev) => {
+                                            return {
+                                                ...prev,
+                                                cashEnabled: e.target.checked,
+                                            }
+                                        })
+                                        fetchNui("updateCasinoSetting", {
+                                            casinoId: casinoState.id,
+                                            variable: "cashEnabled",
+                                            value: e.target.checked ? true : false,
+                                        })
+                                    }} />
+                                </div>)}
+                                {!isManager && (<div className="flex flex-row w-full items-center justify-between">
+                                    <div className="text-md font-bold"><Translate id="casino_markedenabled"/></div>
+                                    <input type="checkbox" className="bg-secondary/50 text-sm text-right text-zinc-400 rounded-md px-2 py-1" checked={settings.markedEnabled} onChange={(e) => {
+                                        setSettings((prev) => {
+                                            return {
+                                                ...prev,
+                                                markedEnabled: e.target.checked,
+                                            }
+                                        })
+                                        fetchNui("updateCasinoSetting", {
+                                            casinoId: casinoState.id,
+                                            variable: "markedEnabled",
+                                            value: e.target.checked ? true : false,
+                                        })
+                                    }} />
+                                </div>)}
                                 {!isManager && (<div className="flex flex-row w-full items-center justify-between">
                                     <div className="text-md font-bold"><Translate id="casino_owner"/></div>
                                     <Player info={{casinoId: casinoState.id}} className="text-sm text-zinc-400" defaultPlayer={casinoState.owner_info || undefined} onUpdate={(player: Player) => {

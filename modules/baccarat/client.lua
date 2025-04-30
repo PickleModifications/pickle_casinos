@@ -276,6 +276,11 @@ function RenderBaccaratEntity(casinoId, entityId)
                 coords = GetOffsetFromEntityInWorldCoords(playArea.surfaceObject, 0.0, -0.8, 1.0),
                 heading = heading,
             }, function(selected)
+                local casino = Casinos[casinoId]
+                if not casino then return end
+                if not casino.settings.isOpen then
+                    return ShowNotification(_L("casino_closed"))
+                end
                 ServerCallback("pickle_casinos:getVIPStatus", function(isVIP)
                     if casinoEntity.settings.vip and not isVIP then return ShowNotification(_L("casino_vip_required")) end
                     AttemptSeatAtBaccaratEntity(casinoId, entityId)
@@ -413,6 +418,10 @@ end)
 
 RegisterNetEvent("pickle_casinos:exitGame", function()
     if not CurrentBaccaratTable then return end
+    if DoesBaccaratEntityExist(CurrentBaccaratTable.casinoId, CurrentBaccaratTable.entityId) then
+        local baccaratTable = LocalBaccaratTables[CurrentBaccaratTable.casinoId][CurrentBaccaratTable.entityId]
+        PlayCasinoDealerSpeech(baccaratTable.dealerPed, "MINIGAME_DEALER_LEAVE_NEUTRAL_GAME", "SPEECH_PARAMS_FORCE_NORMAL_CLEAR")
+    end
     local casinoId = CurrentBaccaratTable.casinoId
     local entityId = CurrentBaccaratTable.entityId
     local seatId = CurrentBaccaratTable.seatId
@@ -490,6 +499,10 @@ RegisterNetEvent("pickle_casinos:baccarat:updateCards", function(casinoId, entit
     playArea.sides[side] = {}
     local heading = casinoEntity.settings.location.rotation.z
     local cardOffset = PLAY_AREA_OFFSETS[0].cards
+    if #cards > 0 then
+        local value = GetBaccaratCardsValue(cards)
+        PlayCasinoDealerSpeech(baccaratTable.dealerPed, (value <= 1 and ("MINIGAME_ROULETTE_BALL_" .. value) or ("MINIGAME_BJACK_DEALER_" .. value)), "SPEECH_PARAMS_FORCE_NORMAL_CLEAR", 1)
+    end
     for i=1, #cards do
         local card = cards[i]
         local factor = (side == "player" and 1 or -1)
@@ -538,6 +551,13 @@ RegisterNetEvent("pickle_casinos:baccarat:performAction", function(casinoId, ent
 end)
 
 RegisterNetEvent("pickle_casinos:baccarat:updateResults", function(casinoId, entityId, results, seatResults)
+    if not DoesBaccaratEntityExist(casinoId, entityId) then return end
+    local baccaratTable = LocalBaccaratTables[casinoId][entityId]
+    if not baccaratTable or not baccaratTable.visible then return end
+    if not results.winningWagers.tie then
+        local speech = (results.winningWagers.banker and "MINIGAME_BJACK_DEALER_PLAYER_BUST" or "MINIGAME_DEALER_BUSTS")
+        PlayCasinoDealerSpeech(baccaratTable.dealerPed, speech, "SPEECH_PARAMS_FORCE_NORMAL_CLEAR", 1)
+    end
     if CurrentBaccaratTable and CurrentBaccaratTable.casinoId == casinoId and CurrentBaccaratTable.entityId == entityId then
         SendNUIMessage({
             type = "updateBaccaratStage",
@@ -582,6 +602,7 @@ RegisterNetEvent("pickle_casinos:baccarat:updateStage", function(casinoId, entit
     SetEntitySmoothRotation(dealerPed, baccaratTable.lastDealerRotation, targetRotation) 
     baccaratTable.lastDealerRotation = targetRotation
     if stage.type == "waiting" then
+        PlayCasinoDealerSpeech(baccaratTable.dealerPed, "MINIGAME_DEALER_PLACE_BET", "SPEECH_PARAMS_FORCE_NORMAL_CLEAR")
         if isCurrentTable then
             CurrentBaccaratTable.waitingTime = stage.time
         end
@@ -596,6 +617,10 @@ RegisterNetEvent("pickle_casinos:baccarat:updateStage", function(casinoId, entit
                     card = stage.card,
                 }
             })
+        end
+        if stage.isFirstCard then
+            PlayCasinoDealerSpeech(baccaratTable.dealerPed, "MINIGAME_DEALER_CLOSED_BETS", "SPEECH_PARAMS_FORCE_NORMAL_CLEAR")
+            Wait(3000)
         end
         local animation = {
             dict = "anim_casino_b@amb@casino@games@blackjack@dealer",

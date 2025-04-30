@@ -116,6 +116,11 @@ function RenderStoreEntity(casinoId, entityId)
         icon = Config.TargetIcons and Config.TargetIcons["stores"] or nil,
         radius = 1.25
     }, function(selected)
+        local casino = Casinos[casinoId]
+        if not casino then return end
+        if not casino.settings.isOpen then
+            return ShowNotification(_L("casino_closed"))
+        end
         ServerCallback("pickle_casinos:getVIPStatus", function(isVIP)
             if casinoEntity.settings.vip and not isVIP then return ShowNotification(_L("casino_vip_required")) end
             OpenStoreMenu(casinoId, entityId)

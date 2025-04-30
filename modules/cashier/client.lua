@@ -67,10 +67,21 @@ function OpenCashierExchangeMenu(casinoId, entityId, exchangeType)
     ServerCallback("pickle_casinos:getBalances", function(balances)
         if exchangeType == "buy" then
             local options = {}
-            options[#options + 1] = {required = true, type = 'select', label = _L("cashier_buy_currency"), description = _L("cashier_buy_currency_desc"), icon = 'money-bills', default = "money", options = {
-                {label = _L("cashier_buy_currency_cash", casino.settings.moneyExchangeRate .. "%"), value = "money"},
-                {label = _L("cashier_buy_currency_dirty", casino.settings.dirtyExchangeRate .. "%"), value = "dirty"},
-            }}
+            local currencyOptions = {}
+            if casino.settings.cashEnabled then
+                currencyOptions[#currencyOptions + 1] = {label = _L("cashier_buy_currency_cash", casino.settings.moneyExchangeRate .. "%"), value = "money"}
+            end
+            if casino.settings.markedEnabled then
+                currencyOptions[#currencyOptions + 1] = {label = _L("cashier_buy_currency_dirty", casino.settings.dirtyExchangeRate .. "%"), value = "dirty"}
+            end
+            if #currencyOptions == 0 then
+                ShowNotification(_L("no_currency_accepted"))
+                SetTimeout(200, function()
+                    OpenCashierMenu(casinoId, entityId)
+                end)
+                return
+            end
+            options[#options + 1] = {required = true, type = 'select', label = _L("cashier_buy_currency"), description = _L("cashier_buy_currency_desc"), icon = 'money-bills', default = currencyOptions[1].value, options = currencyOptions}
             local input = lib.inputDialog(_L("cashier_"..exchangeType.."_chips"), options)
             if not input or not input[1] then 
                 SetTimeout(200, function()
@@ -89,7 +100,7 @@ function OpenCashierMenu(casinoId, entityId)
     CurrentCashier = { casinoId = casinoId, entityId = entityId }
     local casino = Casinos[casinoId]
     if not casino then return end
-    ServerCallback("pickle_casinos:getVIPStatus", function(isVIP)
+    ServerCallback("pickle_casinos:getVIPStatus", function(isVIP, vipData)
         local vipPrice = casino.settings.vipPrice or 0
         local menuId = "pickle_casinos_cashier_" .. casinoId
         local options = {}
@@ -122,8 +133,20 @@ function OpenCashierMenu(casinoId, entityId)
                 end
             }
         else
+            local function formatTime(seconds)
+                local days = math.floor(seconds / 86400)
+                local hours = math.floor((seconds % 86400) / 3600)
+                local minutes = math.floor((seconds % 3600) / 60)
+                local secs = seconds % 60
+                local dayStr = days > 1 and "s" or ""
+                if days > 0 then
+                    string.format((days > 0 and ("%d day"..dayStr .. " ") or "").."%02d:%02d:%02d", days, hours, minutes, secs)
+                else
+                    return string.format("%02d:%02d:%02d", hours, minutes, secs)
+                end
+            end
             options[#options + 1] = {
-                title = _L("cashier_vip_owned"),
+                title = _L("cashier_vip_owned", Config.Casinos.vipExpireTime and _L("expires_in", formatTime(vipData.timeLeft)) or _L("cashier_vip_owned_infinite")),
                 description = _L("cashier_vip_desc"),
                 disabled = true,
                 icon = 'star',
@@ -157,6 +180,11 @@ function RenderCashierEntity(casinoId, entityId)
         heading = heading,
         radius = 1.25
     }, function(selected)
+        local casino = Casinos[casinoId]
+        if not casino then return end
+        if not casino.settings.isOpen then
+            return ShowNotification(_L("casino_closed"))
+        end
         OpenCashierMenu(casinoId, entityId)
     end)
 end

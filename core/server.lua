@@ -18,7 +18,7 @@ function GetFilteredPlayerIdentifiers(source)
     local identifiers = GetPlayerIdentifiersArray(source)
     local filteredIdentifiers = {}
     for i=1, #identifiers do
-        if string.match(identifiers[i], "ip:") and Config.DisableIPIdentifier then
+        if not string.match(identifiers[i], "ip:") or not Config.DisableIPIdentifier then
             table.insert(filteredIdentifiers, identifiers[i])
         end
     end

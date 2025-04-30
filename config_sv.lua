@@ -1,35 +1,30 @@
 ConfigSV = {}
 ConfigSV.Webhooks = {
-    ["onCoinProductPurchase"] = { 
+    ["purchaseChips"] = { 
         url = "DISCORD_WEBHOOK_URL",
-        title = "Coin Product Purchase", 
+        title = "Casino Chips Purchased", 
         fields = {
-            { name = "Product ID", value = "productId", inline = false },
-            { name = "Product Label", value = "productLabel", inline = false },
-            { name = "Price", value = "coins", inline = false },
+            { name = "Casino ID", value = "casinoId", inline = false },
+            { name = "Casino Label", value = "casinoLabel", inline = false },
             { name = "Player", value = "player", inline = false },
-            { name = "Command(s) Executed:", value = "commands", inline = false },
+            { name = "Currency", value = "currency", inline = false },
+            { name = "Price", value = "price", inline = false },
+            { name = "Chips Given", value = "chips", inline = false },
         } 
     },
-    ["onCoinAdded"] = { 
+    ["sellChips"] = { 
         url = "DISCORD_WEBHOOK_URL",
-        title = "Coin(s) Added to Player",
+        title = "Casino Chips Sold",
         fields = {
+            { name = "Casino ID", value = "casinoId", inline = false },
+            { name = "Casino Label", value = "casinoLabel", inline = false },
             { name = "Player", value = "player", inline = false },
-            { name = "Origin", value = "origin", inline = false },
-            { name = "Amount", value = "playerCoins", inline = false },
-        }
-    },
-    ["onCoinRemoved"] = { 
-        url = "DISCORD_WEBHOOK_URL",
-        title = "Coin(s) Removed from Player",
-        fields = {
-            { name = "Player", value = "player", inline = false },
-            { name = "Origin", value = "origin", inline = false },
-            { name = "Amount", value = "playerCoins", inline = false },
+            { name = "Chips Given", value = "price", inline = false },
+            { name = "Money", value = "chips", inline = false },
         }
     },
 }
+
 ConfigSV.WebhookHandler = function(webhookId, fields)
     local webhook = ConfigSV.Webhooks[webhookId]
     if webhook then
@@ -40,7 +35,7 @@ ConfigSV.WebhookHandler = function(webhookId, fields)
                 ["color"] = 16711680,
                 ["fields"] = {},
                 ["footer"] = {
-                    ["text"] = "Pickle's In-Game Store - " .. os.date("%c"),
+                    ["text"] = "Pickle's Casinos - " .. os.date("%c"),
                 },
             }
         }

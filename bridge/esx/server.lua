@@ -150,10 +150,6 @@ function AddSocietyMoney(name, amount)
     end)
 end
 
-RegisterNetEvent('esx:setJob', function(player, job, lastJob)
-    ResyncPermissions(player)
-end)
-
 -- Inventory Fallback
 
 CreateThread(function()

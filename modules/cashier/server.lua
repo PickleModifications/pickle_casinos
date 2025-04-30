@@ -51,6 +51,14 @@ RegisterNetEvent("pickle_casinos:casinoExchange", function(casinoId, entityId, e
         if chips <= 0 then return end
         RemoveMoney(source, amount, currency)
         ShowNotification(source, _L("cashier_bought_chips", NumberWithCommas(chips, true), NumberWithCommas(amount), currency == "money" and _L("cashier_buy_currency_type_cash") or _L("cashier_buy_currency_type_dirty")))
+        ConfigSV.WebhookHandler("purchaseChips", {
+            casinoId = casinoId,
+            casinoLabel = casino.settings.label or "No Label",
+            player = GetFormattedPlayer(source),
+            currency = currency,
+            price = NumberWithCommas(amount),
+            chips = NumberWithCommas(chips, true)
+        })
         if IsCasinoOwned(casinoId) then 
             if currency == "money" then
                 casino.balance = (casino.balance or 0) + amount
@@ -87,6 +95,13 @@ RegisterNetEvent("pickle_casinos:casinoExchange", function(casinoId, entityId, e
         Inventory.RemoveItem(source, casino.settings.chipItem, amount)
         AddMoney(source, amount, "money")
         ShowNotification(source, _L("cashier_sold_chips", NumberWithCommas(amount, true), NumberWithCommas(amount), _L("cashier_buy_currency_type_cash")))
+        ConfigSV.WebhookHandler("sellChips", {
+            casinoId = casinoId,
+            casinoLabel = casino.settings.label or "No Label",
+            player = GetFormattedPlayer(source),
+            chips = NumberWithCommas(amount, true),
+            price = NumberWithCommas(amount),
+        })
         AddCasinoTransaction(source, casinoId, "withdraw", amount)
     else
         return 
@@ -113,7 +128,7 @@ RegisterNetEvent("pickle_casinos:purchaseVIP", function(casinoId, entityId)
     end
     ShowNotification(source, _L("cashier_vip_bought", NumberWithCommas(vipPrice)))
     RemoveMoney(source, vipPrice)
-    table.insert(casino.vip_players, { identifier = identifier, name = GetPlayerCharacterName(source) })
+    table.insert(casino.vip_players, { identifier = identifier, name = GetPlayerCharacterName(source), startTime = os.time() })
     MySQL.Async.execute('UPDATE `pickle_casinos` SET vip_players = ? WHERE id = ?', {
         json.encode(casino.vip_players),
         casinoId

@@ -166,6 +166,7 @@ function AttemptSeatAtBlackjackEntity(casinoId, entityId)
         end
         local playerPed = PlayerPedId()
         local playArea = blackjackTable.playAreas[seatId]
+        PlayCasinoDealerSpeech(blackjackTable.dealerPed, "MINIGAME_DEALER_GREET", "SPEECH_PARAMS_FORCE_NORMAL_CLEAR")
         PlayBlackjackAnimation(playerPed, {dict = "anim_casino_b@amb@casino@games@shared@player@", name = "sit_enter_left"}, {time = 6000})
         Wait(6000)
         local coords = GetOffsetFromEntityInWorldCoords(playArea.surfaceObject, 0.0, -0.5, 0.05)
@@ -256,6 +257,11 @@ function RenderBlackjackEntity(casinoId, entityId)
                 coords = GetOffsetFromEntityInWorldCoords(playArea.surfaceObject, 0.0, -0.8, 1.0),
                 heading = heading,
             }, function(selected)
+                local casino = Casinos[casinoId]
+                if not casino then return end
+                if not casino.settings.isOpen then
+                    return ShowNotification(_L("casino_closed"))
+                end
                 ServerCallback("pickle_casinos:getVIPStatus", function(isVIP)
                     if casinoEntity.settings.vip and not isVIP then return ShowNotification(_L("casino_vip_required")) end
                     AttemptSeatAtBlackjackEntity(casinoId, entityId)
@@ -387,6 +393,10 @@ end)
 
 RegisterNetEvent("pickle_casinos:exitGame", function()
     if not CurrentBlackjackTable then return end
+    if DoesBlackjackEntityExist(CurrentBlackjackTable.casinoId, CurrentBlackjackTable.entityId) then
+        local blackjackTable = LocalBlackjackTables[CurrentBlackjackTable.casinoId][CurrentBlackjackTable.entityId]
+        PlayCasinoDealerSpeech(blackjackTable.dealerPed, "MINIGAME_DEALER_LEAVE_NEUTRAL_GAME", "SPEECH_PARAMS_FORCE_NORMAL_CLEAR")
+    end
     local casinoId = CurrentBlackjackTable.casinoId
     local entityId = CurrentBlackjackTable.entityId
     local seatId = CurrentBlackjackTable.seatId
@@ -419,6 +429,14 @@ RegisterNetEvent("pickle_casinos:blackjack:updateSeatWager", function(casinoId, 
             type = "updateBlackjackSeats",
             seats = GetBlackjackSeatsForUI(),
         })
+        if CurrentBlackjackTable.seatId == seatId and handId == 1 then
+            SendNUIMessage({
+                type = "updateBlackjackWager",
+                data = {
+                    wager = wager,
+                },
+            })
+        end
     end
     local blackjackTable = LocalBlackjackTables[casinoId][entityId]
     if not blackjackTable or not blackjackTable.visible then return end
@@ -452,6 +470,16 @@ RegisterNetEvent("pickle_casinos:blackjack:updateSeatCards", function(casinoId, 
     end
     local blackjackTable = LocalBlackjackTables[casinoId][entityId]
     if not blackjackTable or not blackjackTable.visible then return end
+    local value, secondaryValue = GetValueOfCards(cards)
+    local blackjackValue = value
+    if secondaryValue > value then
+        blackjackValue = secondaryValue
+    end
+    local speech = (blackjackValue == 21 and "BLACKJACK" or blackjackValue)
+    if blackjackValue > 21 then
+        speech = seatId == 0 and "DEALER_BUSTS" or "PLAYER_BUST"
+    end
+    PlayCasinoDealerSpeech(blackjackTable.dealerPed, speech == "DEALER_BUSTS" and "MINIGAME_DEALER_BUSTS" or "MINIGAME_BJACK_DEALER_" .. speech, "SPEECH_PARAMS_FORCE_NORMAL_CLEAR")
     local playArea = blackjackTable.playAreas[seatId]
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
     for i=1, #playArea.hands[handId] do
@@ -545,6 +573,7 @@ RegisterNetEvent("pickle_casinos:blackjack:updateStage", function(casinoId, enti
     SetEntitySmoothRotation(dealerPed, blackjackTable.lastDealerRotation, targetRotation) 
     blackjackTable.lastDealerRotation = targetRotation
     if stage.type == "waiting" then
+        PlayCasinoDealerSpeech(blackjackTable.dealerPed, "MINIGAME_DEALER_PLACE_BET", "SPEECH_PARAMS_FORCE_NORMAL_CLEAR")
         CreateThread(function()
             while stage.time > 1 do
                 stage.time = stage.time - 1
@@ -571,6 +600,10 @@ RegisterNetEvent("pickle_casinos:blackjack:updateStage", function(casinoId, enti
                     card = stage.card,
                 }
             })
+        end
+        if stage.isFirstCard then
+            PlayCasinoDealerSpeech(blackjackTable.dealerPed, "MINIGAME_DEALER_CLOSED_BETS", "SPEECH_PARAMS_FORCE_NORMAL_CLEAR")
+            Wait(3000)
         end
         local animation
         -- if cardIndex == 1 then 
@@ -602,6 +635,7 @@ RegisterNetEvent("pickle_casinos:blackjack:updateStage", function(casinoId, enti
             DeleteScriptObject(card)
         end)
     elseif stage.type == "turn" then
+        PlayCasinoDealerSpeech(blackjackTable.dealerPed, "MINIGAME_BJACK_DEALER_ANOTHER_CARD", "SPEECH_PARAMS_FORCE_NORMAL_CLEAR")
         if not stage.hasHit and not IsEntityPlayingAnim(dealerPed, "anim_casino_b@amb@casino@games@blackjack@dealer", "dealer_focus_player_0" .. stage.seat .. "_idle_intro", 3) then 
             PlayAnim(blackjackTable.dealerPed, "anim_casino_b@amb@casino@games@blackjack@dealer", "dealer_focus_player_0" .. stage.seat .. "_idle_intro", 3.0, 1.0, -1, 2, 0, 0, 0, 0 )
         end
