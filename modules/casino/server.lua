@@ -30,6 +30,8 @@ function InitializeCasinoEntity(casinoId, entity, dataOnly)
         entity = InitializePokerEntity(casinoId, entity, dataOnly)
     elseif entity.type == "wheel" then
         entity = InitializeWheelEntity(casinoId, entity, dataOnly)
+    elseif entity.type == "luckywheel" then
+        entity = InitializeLuckyWheelEntity(casinoId, entity, dataOnly)
     elseif entity.type == "horseracing" then
         entity = InitializeHorseRacingEntity(casinoId, entity, dataOnly)
     elseif entity.type == "cashier" then
@@ -189,6 +191,10 @@ function EnsureGameSettings(entityType, settings)
     end
     if entityType == "cashier" or entityType == "store" then
         defaultSettings["dealerModel"] = settings.dealerModel
+    end
+    if entityType == "luckywheel" then
+        defaultSettings["spinPrice"] = settings.spinPrice or 0
+        defaultSettings["vehicleLocation"] = settings.vehicleLocation or { coords = vector3(0, 0, 0), rotation = vector3(0, 0, 0) }
     end
     if entityType == "store" then
         defaultSettings["store"] = settings.store or 1

@@ -115,11 +115,19 @@ function GameSettingsDisplay({ game, variable, defaultValue, onUpdate }: { game:
     const GameSettings: GameSettingsType = config.gameSettings || {}
     const gameSetting = GameSettings[game as keyof typeof GameSettings].find(setting => setting.variable === variable)
     const [isEditing, setIsEditing] = useState(false)
-    const [value, setValue] = useState<any>(defaultValue || null)
+    const [value, setValue] = useState<any>(defaultValue || gameSetting?.default)
     const dropdownLabel = gameSetting?.options?.find(option => option.value === value)?.label || gameSetting?.default || null
     useEffect(() => {
         if (gameSetting) {
-            setValue(defaultValue || (gameSetting.default || null))
+            if (defaultValue != undefined) {
+                setValue(defaultValue)
+            }
+            else if (gameSetting.default != undefined) {
+                setValue(gameSetting.default)
+            }
+            else {
+                setValue(null)
+            }
         }
     }, [gameSetting])
     return gameSetting && (

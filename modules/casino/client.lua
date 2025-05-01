@@ -30,6 +30,8 @@ function CreateCasinoEntity(casinoId, entityId)
         CreatePokerEntity(casinoId, entityId)
     elseif casinoEntity.type == "wheel" then
         CreateWheelEntity(casinoId, entityId)
+    elseif casinoEntity.type == "luckywheel" then
+        CreateLuckyWheelEntity(casinoId, entityId)
     elseif casinoEntity.type == "horseracing" then
         CreateHorseRacingEntity(casinoId, entityId)
     elseif casinoEntity.type == "cashier" then
@@ -166,6 +168,10 @@ function GenerateGameSettingsUI()
         ["wheel"] = {
             {variable = "maxWager", type = "money", default = 100, min = 100, label = _L("max_wager")},
         },
+        ["luckywheel"] = {
+            {variable = "vehicleLocation", type = "location", default = 0, min = 100, label = _L("luckywheel_vehicle_location")},
+            {variable = "spinPrice", type = "money", default = 0, min = 0, label = _L("luckywheel_spin_price")},
+        },
         ["horseracing"] = {
             {variable = "maxWager", type = "money", default = 100, min = 100, label = _L("max_wager")},
         },
@@ -209,6 +215,8 @@ function CreateCurrentCasinoEntity(coords, rotation, data)
         if entityType == "slot" then
             model = Config.Slots[data.info.settings.game].model
         elseif entityType == "wheel" then
+            model = `vw_prop_vw_luckywheel_01a`
+        elseif entityType == "luckywheel" then
             model = `vw_prop_vw_luckywheel_01a`
         elseif entityType == "horseracing" then
             model = Config.HorseRacing.machineModel
@@ -766,6 +774,8 @@ RegisterNetEvent("pickle_casinos:deleteCasino", function(casinoId)
             DeletePokerEntity(casinoId, entity.id)
         elseif entity.type == "wheel" then
             DeleteWheelEntity(casinoId, entity.id)
+        elseif entity.type == "luckywheel" then
+            DeleteLuckyWheelEntity(casinoId, entity.id)
         elseif entity.type == "horseracing" then
             DeleteHorseRacingEntity(casinoId, entity.id)
         elseif entity.type == "cashier" then
