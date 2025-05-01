@@ -95,6 +95,7 @@ Config.TargetedModels = { -- These are the models that when scanning with /mapob
 Config.FrameworkSettings = {
     -- Note to framework creators: stop breaking your frameworks by moving / removing stuff in big 2025, if it continues I'm making pickle core
     society = "qb-management", -- This is the society that the casinos will use to pay taxes. (qb-management or qb-banking, if using ESX don't worry it's automatic)
+    dirtyMoney = "DEFAULT", -- DEFAULT / item name (black_money, marked_bills, etc).
 }
 
 Config.Casinos = {

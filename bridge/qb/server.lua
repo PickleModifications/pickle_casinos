@@ -63,7 +63,8 @@ function AddMoney(source, count, currency)
     if (currency == "money") then
         xPlayer.Functions.AddMoney('cash', count)
     elseif (currency == "dirty") then
-        Inventory.AddItem(source, 'dirty_money', count)
+        local setting = Config.FrameworkSettings.dirtyMoney
+        Inventory.AddItem(source, setting == "DEFAULT" and 'dirty_money' or setting, count)
     end
     TriggerClientEvent("pickle_casinos:updateMoney", source, money)
 end
@@ -74,7 +75,8 @@ function RemoveMoney(source, count, currency)
     if (currency == "money") then
         xPlayer.Functions.RemoveMoney('cash', count)
     elseif (currency == "dirty") then
-        Inventory.RemoveItem(source, 'dirty_money', count)
+        local setting = Config.FrameworkSettings.dirtyMoney
+        Inventory.RemoveItem(source, setting == "DEFAULT" and 'dirty_money' or setting, count)
     end
     TriggerClientEvent("pickle_casinos:updateMoney", source, money)
 end
@@ -86,7 +88,8 @@ function GetMoney(source, currency)
     if (currency == "money") then
         money = xPlayer.PlayerData.money.cash
     elseif (currency == "dirty") then
-        money = Inventory.GetItemCount(source, 'dirty_money')
+        local setting = Config.FrameworkSettings.dirtyMoney
+        money = Inventory.GetItemCount(source, setting == "DEFAULT" and 'dirty_money' or setting)
     end
     TriggerClientEvent("pickle_casinos:updateMoney", source, money)
     return money
