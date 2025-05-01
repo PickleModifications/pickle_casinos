@@ -32,6 +32,7 @@ Config.TargetIcons = {
     baccarat = "fa-solid fa-play",
     poker = "fa-solid fa-play",
     wheel = "fa-solid fa-play",
+    luckywheel = "fa-solid fa-play",
     horseracing = "fa-solid fa-play",
     slots = "fa-solid fa-play",
 }
@@ -97,7 +98,7 @@ Config.FrameworkSettings = {
 }
 
 Config.Casinos = {
-    vipExpireTime = 10,-- 86400 * 1, -- Time in seconds before a VIP membership expires, set to 0 to make VIP permanent. (1 day = 86400 seconds)
+    vipExpireTime = 86400 * 1, -- Time in seconds before a VIP membership expires, set to 0 to make VIP permanent. (1 day = 86400 seconds)
     tax = 10, -- Percentage of the profit that the casino pays in tax when withdrawing clean cash from the management system.
     taxRecipients = { -- This should always add up to 100%; above is where you set the percentage of the tax.
         ["police"] = 50, -- The percentage of the tax paid by the casinos to this society.
@@ -614,6 +615,136 @@ Config.HorseRacing = {
             label = "1/2",
             multiplier = 0.5,
             chances = 64,
+        },
+    }
+}
+
+Config.LuckyWheel = {
+    spinCooldown = 86400 * 1, -- Time in seconds before the player can spin again. (1 day = 86400 seconds)
+    paidCooldown = true, -- If true, the player will have to wait the cooldown out even if the spin costs money.
+    rotateVehicle = true, -- If true, the vehicle will rotate when the wheel is spinning.
+    sections = {
+        ["vehicle"] = { 
+            chance = 1,
+            chooseRandomReward = true, -- If true, it will choose a random prize from the list below - otherwise it will use the first one
+            rewards = { -- When casinoCost is above 0, it will require player-owned casinos to have the money to pay this prize, if they don't the wager will be refunded and prize(s) will be cancelled.
+                -- THE FIRST VEHICLE IN THIS LIST WILL BE THE DISPLAY VEHICLE.
+                {type = "vehicle", model = "adder", casinoCost = 100000, name = "Adder"},
+            },
+        },
+        ["mystery"] = { 
+            chance = 5,
+            chooseRandomReward = true, -- If true, it will choose a random prize from the list below - otherwise it will use the first one
+            rewards = { -- When casinoCost is above 0, it will require player-owned casinos to have the money to pay this prize, if they don't the wager will be refunded and prize(s) will be cancelled.
+                {type = "money", amount = 25000, casinoCost = 25000},
+                {type = "item", name = "shirt", amount = 1, casinoCost = 10}, -- cost is 0 because chips are exchanged for money in the casino, so it doesn't cost the casino anything.
+                {type = "chips", amount = 50000, casinoCost = 0}, -- cost is 0 because chips are exchanged for money in the casino, so it doesn't cost the casino anything.
+            },
+        },
+        ["discount"] = { 
+            chance = 20,
+            chooseRandomReward = true, -- If true, it will choose a random prize from the list below - otherwise it will use the first one
+            rewards = { -- When casinoCost is above 0, it will require player-owned casinos to have the money to pay this prize, if they don't the wager will be refunded and prize(s) will be cancelled.
+                {type = "money", amount = 1000, casinoCost = 1000},
+            },
+        },
+        ["clothing"] = { 
+            chance = 20,
+            chooseRandomReward = true, -- If true, it will choose a random prize from the list below - otherwise it will use the first one
+            rewards = { -- When casinoCost is above 0, it will require player-owned casinos to have the money to pay this prize, if they don't the wager will be refunded and prize(s) will be cancelled.
+                {type = "item", name = "shirt", amount = 1, casinoCost = 10}, -- cost is 0 because chips are exchanged for money in the casino, so it doesn't cost the casino anything.
+            },
+        },
+        ["money_50k"] = { 
+            chance = 10,
+            chooseRandomReward = false, -- If true, it will choose a random prize from the list below - otherwise it will use the first one
+            rewards = { -- When casinoCost is above 0, it will require player-owned casinos to have the money to pay this prize, if they don't the wager will be refunded and prize(s) will be cancelled.
+                {type = "money", amount = 50000, casinoCost = 50000},
+            },
+        },
+        ["money_40k"] = { 
+            chance = 10,
+            chooseRandomReward = true, -- If true, it will choose a random prize from the list below - otherwise it will use the first one
+            rewards = { -- When casinoCost is above 0, it will require player-owned casinos to have the money to pay this prize, if they don't the wager will be refunded and prize(s) will be cancelled.
+                {type = "money", amount = 40000, casinoCost = 40000},
+            },
+        },
+        ["money_30k"] = { 
+            chance = 10,
+            chooseRandomReward = true, -- If true, it will choose a random prize from the list below - otherwise it will use the first one
+            rewards = { -- When casinoCost is above 0, it will require player-owned casinos to have the money to pay this prize, if they don't the wager will be refunded and prize(s) will be cancelled.
+                {type = "money", amount = 30000, casinoCost = 30000},
+            },
+        },
+        ["money_20k"] = { 
+            chance = 10,
+            chooseRandomReward = true, -- If true, it will choose a random prize from the list below - otherwise it will use the first one
+            rewards = { -- When casinoCost is above 0, it will require player-owned casinos to have the money to pay this prize, if they don't the wager will be refunded and prize(s) will be cancelled.
+                {type = "money", amount = 20000, casinoCost = 20000},
+            },
+        },
+        ["chips_25k"] = { 
+            chance = 10,
+            chooseRandomReward = true, -- If true, it will choose a random prize from the list below - otherwise it will use the first one
+            rewards = { -- When casinoCost is above 0, it will require player-owned casinos to have the money to pay this prize, if they don't the wager will be refunded and prize(s) will be cancelled.
+                {type = "chips", amount = 25000, casinoCost = 0}, -- cost is 0 because chips are exchanged for money in the casino, so it doesn't cost the casino anything.
+            },
+        },
+        ["chips_20k"] = { 
+            chance = 10,
+            chooseRandomReward = true, -- If true, it will choose a random prize from the list below - otherwise it will use the first one
+            rewards = { -- When casinoCost is above 0, it will require player-owned casinos to have the money to pay this prize, if they don't the wager will be refunded and prize(s) will be cancelled.
+                {type = "chips", amount = 20000, casinoCost = 0}, -- cost is 0 because chips are exchanged for money in the casino, so it doesn't cost the casino anything.
+            },
+        },
+        ["chips_15k"] = { 
+            chance = 10,
+            chooseRandomReward = true, -- If true, it will choose a random prize from the list below - otherwise it will use the first one
+            rewards = { -- When casinoCost is above 0, it will require player-owned casinos to have the money to pay this prize, if they don't the wager will be refunded and prize(s) will be cancelled.
+                {type = "chips", amount = 15000, casinoCost = 0}, -- cost is 0 because chips are exchanged for money in the casino, so it doesn't cost the casino anything.
+            },
+        },
+        ["chips_10k"] = { 
+            chance = 10,
+            chooseRandomReward = true, -- If true, it will choose a random prize from the list below - otherwise it will use the first one
+            rewards = { -- When casinoCost is above 0, it will require player-owned casinos to have the money to pay this prize, if they don't the wager will be refunded and prize(s) will be cancelled.
+                {type = "chips", amount = 10000, casinoCost = 0}, -- cost is 0 because chips are exchanged for money in the casino, so it doesn't cost the casino anything.
+            },
+        },
+        ["rp_15k"] = { 
+            chance = 15,
+            chooseRandomReward = true, -- If true, it will choose a random prize from the list below - otherwise it will use the first one
+            rewards = { -- When casinoCost is above 0, it will require player-owned casinos to have the money to pay this prize, if they don't the wager will be refunded and prize(s) will be cancelled.
+                {type = "xp", name = "casino", amount = 15000, casinoCost = 0}, -- cost is 0 because chips are exchanged for money in the casino, so it doesn't cost the casino anything.
+            },
+        },
+        ["rp_10k"] = { 
+            chance = 15,
+            chooseRandomReward = true, -- If true, it will choose a random prize from the list below - otherwise it will use the first one
+            rewards = { -- When casinoCost is above 0, it will require player-owned casinos to have the money to pay this prize, if they don't the wager will be refunded and prize(s) will be cancelled.
+                {type = "xp", name = "casino", amount = 10000, casinoCost = 0}, -- cost is 0 because chips are exchanged for money in the casino, so it doesn't cost the casino anything.
+            },
+        },
+        ["rp_7k"] = { 
+            chance = 15,
+            chooseRandomReward = true, -- If true, it will choose a random prize from the list below - otherwise it will use the first one
+            rewards = { -- When casinoCost is above 0, it will require player-owned casinos to have the money to pay this prize, if they don't the wager will be refunded and prize(s) will be cancelled.
+                {type = "xp", name = "casino", amount = 7500, casinoCost = 0}, -- cost is 0 because chips are exchanged for money in the casino, so it doesn't cost the casino anything.
+            },
+        },
+        ["rp_5k"] = { 
+            chance = 15,
+            chooseRandomReward = true, -- If true, it will choose a random prize from the list below - otherwise it will use the first one
+            rewards = { -- When casinoCost is above 0, it will require player-owned casinos to have the money to pay this prize, if they don't the wager will be refunded and prize(s) will be cancelled.
+                {type = "xp", name = "casino", amount = 5000, casinoCost = 0}, -- cost is 0 because chips are exchanged for money in the casino, so it doesn't cost the casino anything.
+            },
+        },
+        ["rp_2k"] = { 
+            chance = 15,
+            chooseRandomReward = true, -- If true, it will choose a random prize from the list below - otherwise it will use the first one
+            rewards = { -- When casinoCost is above 0, it will require player-owned casinos to have the money to pay this prize, if they don't the wager will be refunded and prize(s) will be cancelled.
+                {type = "xp", name = "casino", amount = 2500, casinoCost = 0}, -- cost is 0 because chips are exchanged for money in the casino, so it doesn't cost the casino anything.
+            },
         },
     }
 }

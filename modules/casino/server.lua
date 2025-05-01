@@ -194,7 +194,10 @@ function EnsureGameSettings(entityType, settings)
     end
     if entityType == "luckywheel" then
         defaultSettings["spinPrice"] = settings.spinPrice or 0
-        defaultSettings["vehicleLocation"] = settings.vehicleLocation or { coords = vector3(0, 0, 0), rotation = vector3(0, 0, 0) }
+        defaultSettings["vehicleLocation"] = settings.vehicleLocation and {
+            coords = vector3(settings.vehicleLocation.coords.x, settings.vehicleLocation.coords.y, settings.vehicleLocation.coords.z) or vector3(0, 0, 0),
+            rotation = vector3(settings.vehicleLocation.rotation.x, settings.vehicleLocation.rotation.y, settings.vehicleLocation.rotation.z) or vector3(0, 0, 0)
+        } or { coords = vector3(0, 0, 0), rotation = vector3(0, 0, 0) }
     end
     if entityType == "store" then
         defaultSettings["store"] = settings.store or 1
@@ -221,17 +224,29 @@ function UpdateCasinoEntitiesSQL(casinoId)
     MySQL.Async.execute('UPDATE `pickle_casinos` SET entities = ? WHERE id = ?', {json.encode(entities), casinoId})
 end
 
-function IsPlayerCasinoVIP(source, casinoId)
+function GetPlayerCasinoInfo(source, casinoId)
     local casino = Casinos[casinoId]
     if not casino then return false end
     local identifier = GetIdentifier(source)
-    -- if casino.owner_info and casino.owner_info.identifier == identifier then return true end
     for i=1, #casino.vip_players do
         if casino.vip_players[i].identifier == identifier then
-            return casino.vip_players[i]
+            return casino.vip_players[i], i
         end
     end
-    return false
+    return { identifier = identifier, name = GetPlayerCharacterName(source) }, nil
+end
+
+function UpdateCasinoPlayerInfo(casinoId)
+    local casino = Casinos[casinoId]
+    if not casino then return end
+    MySQL.Async.execute('UPDATE `pickle_casinos` SET vip_players = ? WHERE id = ?', {json.encode(casino.vip_players), casinoId})
+end
+
+function IsPlayerCasinoVIP(source, casinoId)
+    local casino = Casinos[casinoId]
+    if not casino then return false end
+    local player = GetPlayerCasinoInfo(source, casinoId)
+    return player.startTime ~= nil
 end
 
 function AddCasinoTransaction(source, casinoId, transactionType, amount)
@@ -307,9 +322,8 @@ RegisterCallback("pickle_casinos:getPlayers", function(source, cb)
 end)
 
 RegisterCallback("pickle_casinos:getVIPStatus", function(source, cb, casinoId)
-    local vipStatus = IsPlayerCasinoVIP(source, casinoId)
-    if not vipStatus then return cb(false) end
-    local vipStartTime = vipStatus.startTime or 0
+    local playerInfo, playerIndex = GetPlayerCasinoInfo(source, casinoId)
+    local vipStartTime = playerInfo.startTime or 0
     if not Config.Casinos.vipExpireTime or (vipStartTime + Config.Casinos.vipExpireTime) > os.time() then
         return cb(true, {
             timeLeft = ((vipStartTime + Config.Casinos.vipExpireTime) - os.time()),
@@ -317,13 +331,10 @@ RegisterCallback("pickle_casinos:getVIPStatus", function(source, cb, casinoId)
     else
         local casino = Casinos[casinoId]
         if not casino then return end
-        for i=1, #casino.vip_players do
-            if casino.vip_players[i].identifier == vipStatus.identifier then
-                table.remove(casino.vip_players, i)
-                break
-            end
+        if playerIndex then
+            casino.vip_players[playerIndex].startTime = nil
+            MySQL.Async.execute('UPDATE `pickle_casinos` SET vip_players = ? WHERE id = ?', {json.encode(casino.vip_players), casinoId})
         end
-        MySQL.Async.execute('UPDATE `pickle_casinos` SET vip_players = ? WHERE id = ?', {json.encode(casino.vip_players), casinoId})
         return cb(false)
     end
 end)

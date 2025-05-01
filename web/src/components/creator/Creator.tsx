@@ -63,10 +63,13 @@ type Casino = {
     owner_info?: Player | null,
 }
 
-function Location({ info, defaultLocation, className, onUpdate }: { info?: any, defaultLocation: Location, className?: string, onUpdate?: (location: Location) => void }) {
+function Location({ id, info, defaultLocation, className, onUpdate }: { id?: any, info?: any, defaultLocation: Location, className?: string, onUpdate?: (location: Location) => void }) {
     const coordinates = defaultLocation.coords || {x: 0, y: 0, z: 0}
     const rotation = defaultLocation.rotation || {x: 0, y: 0, z: 0}
+    console.log(coordinates, rotation, defaultLocation)
     useNuiEvent("setLocation", (data: any) => {
+        if (!id && data.id) return;
+        if (id && data.id !== id) return;
         if (onUpdate) {
             onUpdate(data.location)
         }
@@ -77,6 +80,7 @@ function Location({ info, defaultLocation, className, onUpdate }: { info?: any, 
             {onUpdate && (
                 <Edit size={16} className="cursor-pointer hover:scale-95 transition-all duration-200" onClick={() => {
                     fetchNui("editLocation", {
+                        id: id,
                         info: info,
                         coords: coordinates, 
                         rotation: rotation,
@@ -135,41 +139,61 @@ function GameSettingsDisplay({ game, variable, defaultValue, onUpdate }: { game:
             <div className="text-md font-bold">{gameSetting.label}</div>
             {isEditing ? (
                 <div className="flex flex-row items-center gap-2">
-                    {gameSetting.type === "money" && (
-                        <input type="number" className="bg-secondary/50 text-sm text-right text-zinc-400 rounded-md px-2 py-1" defaultValue={value || gameSetting.min} min={gameSetting.min} onChange={(e) => {
-                            const value = parseFloat(e.target.value)
-                            if (!isNaN(value)) {
+                    {gameSetting.type !== "location" ? (
+                        <>
+                            {gameSetting.type === "money" && (
+                                <input type="number" className="bg-secondary/50 text-sm text-right text-zinc-400 rounded-md px-2 py-1" defaultValue={value || gameSetting.min} min={gameSetting.min} onChange={(e) => {
+                                    const value = parseFloat(e.target.value)
+                                    if (!isNaN(value)) {
+                                        setValue(value)
+                                    }
+                                }
+                                } placeholder="Enter value..." />
+                            )}
+                            {gameSetting.type === "dropdown" && (
+                                <select className="bg-secondary/50 text-sm text-right rounded-md px-2 py-1" value={value} onChange={(e) => {
+                                    setValue(parseInt(e.target.value) || e.target.value)
+                                }}>
+                                    {gameSetting.options && gameSetting.options.map((option, index) => (
+                                        <option key={index} value={option.value}>{option.label}</option>
+                                    ))}
+                                </select>
+                            )}
+                            <Save size={16} className="cursor-pointer hover:scale-95 transition-all duration-200" onClick={() => {
+                                setIsEditing(false)
+                                onUpdate(value)
                                 setValue(value)
-                            }
-                        }
-                        } placeholder="Enter value..." />
+                            }}/>
+                        </>
+                    ) : (
+                        <Location info={{game: game, variable: variable}} className="text-sm text-zinc-400" defaultLocation={value || DEFAULT_LOCATION} onUpdate={(location: Location) => {
+                            setValue(location)
+                            onUpdate(location)
+                        }} />
                     )}
-                    {gameSetting.type === "dropdown" && (
-                        <select className="bg-secondary/50 text-sm text-right rounded-md px-2 py-1" value={value} onChange={(e) => {
-                            setValue(parseInt(e.target.value) || e.target.value)
-                        }}>
-                            {gameSetting.options && gameSetting.options.map((option, index) => (
-                                <option key={index} value={option.value}>{option.label}</option>
-                            ))}
-                        </select>
-                    )}
-                    <Save size={16} className="cursor-pointer hover:scale-95 transition-all duration-200" onClick={() => {
-                        setIsEditing(false)
-                        onUpdate(value)
-                        setValue(value)
-                    }}/>
+
                 </div>
             ) : (
                 <div className="flex flex-row items-center gap-2">
-                    {gameSetting.type === "money" && (
-                        <div className="text-sm text-zinc-400"><DisplayCurrency value={value} /></div>
+                    {gameSetting.type !== "location" ? (
+                        <>
+                            {gameSetting.type === "money" && (
+                                <div className="text-sm text-zinc-400"><DisplayCurrency value={value} /></div>
+                            )}
+                            {gameSetting.type === "dropdown" && (
+                                <div className="text-sm text-zinc-400">{dropdownLabel}</div>
+                            )}
+                            <Edit size={16} className="cursor-pointer hover:scale-95 transition-all duration-200" onClick={() => {
+                                setIsEditing(true)
+                            }}/>
+                        </>
+                    ) : (
+                        <Location id={variable} info={{game: game, variable: variable}} className="text-sm text-zinc-400" defaultLocation={value} onUpdate={(location: Location) => {
+                            setValue(location)
+                            onUpdate(location)
+                        }} />
                     )}
-                    {gameSetting.type === "dropdown" && (
-                        <div className="text-sm text-zinc-400">{dropdownLabel}</div>
-                    )}
-                    <Edit size={16} className="cursor-pointer hover:scale-95 transition-all duration-200" onClick={() => {
-                        setIsEditing(true)
-                    }}/>
+
                 </div>
             )}
         </div>

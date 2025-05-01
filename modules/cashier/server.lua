@@ -119,16 +119,18 @@ RegisterNetEvent("pickle_casinos:purchaseVIP", function(casinoId, entityId)
         ShowNotification(source, _L("insufficient_funds"))
         return
     end
-    for i=1, #casino.vip_players do 
-        local vipPlayer = casino.vip_players[i]
-        if vipPlayer.identifier == identifier then
-            ShowNotification(source, _L("cashier_vip_already_owned"))
-            return
-        end
+    local playerInfo, playerIndex = GetPlayerCasinoInfo(source, casinoId)
+    if playerInfo.startTime then
+        ShowNotification(source, _L("cashier_vip_already_owned"))
+        return
+    end
+    if playerIndex then
+        casino.vip_players[playerIndex].startTime = os.time()
+    else
+        table.insert(casino.vip_players, { identifier = identifier, name = GetPlayerCharacterName(source), startTime = os.time() })
     end
     ShowNotification(source, _L("cashier_vip_bought", NumberWithCommas(vipPrice)))
     RemoveMoney(source, vipPrice)
-    table.insert(casino.vip_players, { identifier = identifier, name = GetPlayerCharacterName(source), startTime = os.time() })
     MySQL.Async.execute('UPDATE `pickle_casinos` SET vip_players = ? WHERE id = ?', {
         json.encode(casino.vip_players),
         casinoId

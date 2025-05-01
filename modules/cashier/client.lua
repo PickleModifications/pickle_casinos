@@ -127,26 +127,14 @@ function OpenCashierMenu(casinoId, entityId)
                 icon = 'star',
                 onSelect = function()
                     TriggerServerEvent("pickle_casinos:purchaseVIP", casinoId, entityId)
-                    SetTimeout(200, function()
+                    SetTimeout(1000, function()
                         OpenCashierMenu(casinoId, entityId)
                     end)
                 end
             }
         else
-            local function formatTime(seconds)
-                local days = math.floor(seconds / 86400)
-                local hours = math.floor((seconds % 86400) / 3600)
-                local minutes = math.floor((seconds % 3600) / 60)
-                local secs = seconds % 60
-                local dayStr = days > 1 and "s" or ""
-                if days > 0 then
-                    string.format((days > 0 and ("%d day"..dayStr .. " ") or "").."%02d:%02d:%02d", days, hours, minutes, secs)
-                else
-                    return string.format("%02d:%02d:%02d", hours, minutes, secs)
-                end
-            end
             options[#options + 1] = {
-                title = _L("cashier_vip_owned", Config.Casinos.vipExpireTime and _L("expires_in", formatTime(vipData.timeLeft)) or _L("cashier_vip_owned_infinite")),
+                title = _L("cashier_vip_owned", (Config.Casinos.vipExpireTime and vipData.timeLeft) and _L("expires_in", GetFormattedTime(vipData.timeLeft)) or _L("cashier_vip_owned_infinite")),
                 description = _L("cashier_vip_desc"),
                 disabled = true,
                 icon = 'star',

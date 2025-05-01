@@ -169,7 +169,10 @@ function GenerateGameSettingsUI()
             {variable = "maxWager", type = "money", default = 100, min = 100, label = _L("max_wager")},
         },
         ["luckywheel"] = {
-            {variable = "vehicleLocation", type = "location", default = 0, min = 100, label = _L("luckywheel_vehicle_location")},
+            {variable = "vehicleLocation", type = "location", default = {
+                coords = vector3(0.0, 0.0, 0.0),
+                rotation = vector3(0.0, 0.0, 0.0),
+            }, label = _L("luckywheel_vehicle_location")},
             {variable = "spinPrice", type = "money", default = 0, min = 0, label = _L("luckywheel_spin_price")},
         },
         ["horseracing"] = {
@@ -263,6 +266,7 @@ function CreateCasinoBlip(casinoId)
     SetBlipDisplay(blip, blipCfg.display or 4)
     SetBlipScale(blip, blipCfg.scale or 1.0)
     SetBlipColour(blip, blipCfg.color or 0)
+    SetBlipAsShortRange(blip, true)
     local category = blipCfg.category or 40
     SetBlipCategory(blip, category)
     AddTextEntry("BLIP_CAT_" .. category, _L("blip_casino"))
@@ -501,6 +505,7 @@ RegisterNUICallback("editLocation", function(data, cb)
         local result = StartGizmoEditor({model = `prop_tennis_ball`, coords = coords, rotation = rotation})
         SendNUIMessage({
             type = "setLocation",
+            id = data.id,
             location = {
                 coords = result.position,
                 rotation = result.rotation,
@@ -526,6 +531,7 @@ RegisterNUICallback("editLocation", function(data, cb)
         result.position = result.position + vector3(0.0, 0.0, zOffset)
         SendNUIMessage({
             type = "setLocation",
+            id = data.id,
             location = {
                 coords = result.position,
                 rotation = result.rotation,
