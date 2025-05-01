@@ -170,7 +170,6 @@ RegisterCallback("pickle_casinos:luckywheel:requestSpin", function(source, cb, c
     local balance = GetCasinoChips(source, casinoId)
     if not Config.LuckyWheel then print("^1ERROR: LUCKY WHEEL CONFIG UNDEFINED, CHECK LAST UPDATE FOR CONFIG.LUCKYWHEEL AND COPY IT TO YOURS.^0") return cb(false) end
     if isSpinning or balance < spinPrice then 
-        print(entity.stage.type, isSpinning, balance, spinPrice)
         ShowNotification(source, (isSpinning and _L("luckywheel_spin_in_progress") or _L("insufficient_chips")))
         return cb(false) 
     end
