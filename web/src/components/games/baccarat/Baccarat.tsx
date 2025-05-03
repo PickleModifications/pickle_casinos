@@ -313,11 +313,12 @@ export default function Baccarat({game}: {game: CasinoGame}) {
             ...baccaratWagers,
             [type]: (baccaratWagers[type as keyof BaccaratWager] || 0) + value
         };
-        if (CalculateBaccaratWagers(newWagers) > money) { return; }
+        if (CalculateBaccaratWagers(newWagers) > money || CalculateBaccaratWagers(newWagers) > wagerLimit[1]) { return; }
         playAudio("bet");
         fetchNui("setBaccaratWager", {
             wager: newWagers
         });
+        setBaccaratWagers(newWagers);
     }
     return (
         <div className='flex flex-col bg-background/95 absolute w-full px-8 py-8' style={{
@@ -382,17 +383,27 @@ export default function Baccarat({game}: {game: CasinoGame}) {
                                         eitherPair: 0
                                     }
                                 });
+                                setBaccaratWagers({
+                                    player: 0,
+                                    banker: 0,
+                                    tie: 0,
+                                    suitedPair: 0,
+                                    playerPair: 0,
+                                    bankerPair: 0,
+                                    eitherPair: 0
+                                });
                             }
                             else if (data.type == "doubleWager") {
                                 let newWagers = Object.keys(baccaratWagers).reduce((acc, key) => {
                                     acc[key as keyof BaccaratWager] = (baccaratWagers[key as keyof BaccaratWager] || 0) * 2;
                                     return acc;
                                 }, {} as BaccaratWager);
-                                if (CalculateBaccaratWagers(newWagers) > money) { return; }
+                                if (CalculateBaccaratWagers(newWagers) > money || CalculateBaccaratWagers(newWagers) > wagerLimit[1]) { return; }
                                 playAudio("bet");
                                 fetchNui("setBaccaratWager", {
                                     wager: newWagers
                                 });
+                                setBaccaratWagers(newWagers);
                             }
                         }} />
                     )}

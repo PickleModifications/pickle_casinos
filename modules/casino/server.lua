@@ -1,4 +1,5 @@
 CurrentPlayers = {}
+PlayerCooldowns = {}
 
 function IsCasinoOwned(casinoId)
     local casino = Casinos[casinoId]
@@ -305,6 +306,33 @@ function GetFormattedPlayer(source)
     return name
 end
 
+function PerformCooldownProcess(source)
+    local source = tonumber(source)
+    local threshold = Config.CooldownTime or 10
+    local warningThreshold = threshold - 1
+    local newCooldown = false
+    if not PlayerCooldowns[source] then
+        newCooldown = true
+        PlayerCooldowns[source] = {
+            cooldown = 0,
+        }
+    end
+    if PlayerCooldowns[source] then 
+        PlayerCooldowns[source].cooldown = PlayerCooldowns[source].cooldown + 1
+        if PlayerCooldowns[source].cooldown == warningThreshold then
+            ShowNotification(source, _L("cooldown_warning"))
+        end
+    end
+    if newCooldown then
+        SetTimeout(1000, function()
+            if PlayerCooldowns[source] and PlayerCooldowns[source].cooldown >= threshold then
+                ShowNotification(source, _L("cooldown_expired"))
+            end
+            PlayerCooldowns[source] = nil
+        end)
+    end
+end
+
 RegisterCallback("pickle_casinos:getManagementStatus", function(source, cb, casinoId)
     return cb(CanManageCasino(source, casinoId))
 end)
@@ -323,12 +351,9 @@ end)
 
 RegisterCallback("pickle_casinos:getVIPStatus", function(source, cb, casinoId)
     local playerInfo, playerIndex = GetPlayerCasinoInfo(source, casinoId)
-    local vipStartTime = playerInfo.startTime or 0
-    if not Config.Casinos.vipExpireTime or (vipStartTime + Config.Casinos.vipExpireTime) > os.time() then
-        return cb(true, {
-            timeLeft = ((vipStartTime + Config.Casinos.vipExpireTime) - os.time()),
-        })
-    else
+    local vipStartTime = playerInfo.startTime
+    if not vipStartTime then return cb(false) end
+    if Config.Casinos.vipExpireTime > 0 and (vipStartTime + Config.Casinos.vipExpireTime) < os.time() then
         local casino = Casinos[casinoId]
         if not casino then return end
         if playerIndex then
@@ -336,7 +361,10 @@ RegisterCallback("pickle_casinos:getVIPStatus", function(source, cb, casinoId)
             MySQL.Async.execute('UPDATE `pickle_casinos` SET vip_players = ? WHERE id = ?', {json.encode(casino.vip_players), casinoId})
         end
         return cb(false)
-    end
+    end 
+    return cb(true, {
+        timeLeft = Config.Casinos.vipExpireTime > 0 and ((vipStartTime + Config.Casinos.vipExpireTime) - os.time()) or nil,
+    })
 end)
 
 RegisterNetEvent("pickle_casinos:initializePlayer", function()

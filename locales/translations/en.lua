@@ -138,7 +138,7 @@ Language["en"] = {
     luckywheel_no_casino_balance = "The casino does not have enough balance to give your prizes, your spin has been refunded.",
     luckywheel_reward_item = "%s (x%s)",
     luckywheel_reward_chips = "%s chips",
-    luckywheel_reward_vehicle = "You won a %s!",
+    luckywheel_reward_vehicle = "a %s",
     luckywheel_reward_xp = "%s %s XP",
     luckywheel_reward = "You won %s from the lucky wheel!",
     luckywheel_reward_multiple = "You won %s and %s other prize(s) from the lucky wheel!",
@@ -248,4 +248,5 @@ Language["en"] = {
     no_currency_accepted = "This casino is not accepting any currency exchanges at this time.",
     casino_closed = "The casino is closed, please come back later.",
     expires_in = "Expires in: %s",
+    cooldown_warning = "Slow down, you may be kicked for spamming.",
 }

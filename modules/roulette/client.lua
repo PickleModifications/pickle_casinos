@@ -363,18 +363,6 @@ CreateThread(function()
     end
 end)
 
-RegisterNUICallback("performRouletteAction", function(data, cb)
-    local animations = {
-        ["hit"] = { dict = "anim_casino_b@amb@casino@games@roulette@player", name = "request_card" },
-        ["stand"] = { dict = "anim_casino_b@amb@casino@games@roulette@player", name = "decline_card_001" },
-        ["double"] = { dict = "anim_casino_b@amb@casino@games@roulette@player", name = "place_bet_small" },
-        ["split"] = { dict = "anim_casino_b@amb@casino@games@roulette@player", name = "place_bet_small" },
-    }
-    TriggerServerEvent("pickle_casinos:roulette:performAction", data.action)
-    PlayRouletteAnimation(PlayerPedId(), {dict = animations[data.action].dict, name = animations[data.action].name}, {time = 1000})
-    cb("ok")
-end)
-
 RegisterNUICallback("updateRouletteWagers", function(data, cb)
     TriggerServerEvent("pickle_casinos:roulette:updateRouletteWagers", data.data.connects)
     cb("ok")

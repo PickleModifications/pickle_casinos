@@ -134,7 +134,7 @@ function OpenCashierMenu(casinoId, entityId)
             }
         else
             options[#options + 1] = {
-                title = _L("cashier_vip_owned", (Config.Casinos.vipExpireTime and vipData.timeLeft) and _L("expires_in", GetFormattedTime(vipData.timeLeft)) or _L("cashier_vip_owned_infinite")),
+                title = _L("cashier_vip_owned", vipData.timeLeft and _L("expires_in", GetFormattedTime(vipData.timeLeft) or "UNKNOWN_TIME") or _L("cashier_vip_owned_infinite")),
                 description = _L("cashier_vip_desc"),
                 disabled = true,
                 icon = 'star',

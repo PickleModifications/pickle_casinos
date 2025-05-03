@@ -285,6 +285,13 @@ export default function Slots({game} : {game: SlotGame}) {
                 audio.current.currentTime = 0;
             }
         }
+        return () => {
+            if (audio.current) {
+                audio.current.pause();
+                audio.current.currentTime = 0;
+                audio.current = null;
+            }
+        }
     }, [spinning]);
     useEffect(() => {
         const audioFile = `/nui/audio/${game.data.foldername}/bonus_loop.mp3`;
@@ -303,6 +310,13 @@ export default function Slots({game} : {game: SlotGame}) {
             if (bonusAudio.current) {
                 bonusAudio.current.pause();
                 bonusAudio.current.currentTime = 0;
+            }
+        }
+        return () => {
+            if (bonusAudio.current) {
+                bonusAudio.current.pause();
+                bonusAudio.current.currentTime = 0;
+                bonusAudio.current = null;
             }
         }
     }, [inBonus]);

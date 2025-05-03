@@ -732,11 +732,6 @@ export default function Roulette({game} : {game: CasinoGame}) {
                             onClick: (type, index, row) => {
                                 if (performingAction) return;
                                 setPerformingAction(true);
-                                fetchNui("placeRouletteWager", {
-                                    type: type,
-                                    index: index,
-                                    row: row,
-                                });
                             }
                         }} />
                     )}

@@ -146,7 +146,7 @@ function AttemptSeatAtBlackjackEntity(casinoId, entityId)
         local casinoId = CurrentBlackjackTable.casinoId
         local entityId = CurrentBlackjackTable.entityId
         local seatId = CurrentBlackjackTable.seatId
-        local stage = CurrentBlackjackTable.stage or {type = "waiting", time = 10}
+        local stage = CurrentBlackjackTable.stage or {type = "waiting", time = GetWaitingTime("blackjack")}
         SetNuiFocus(true, true)
         SendNUIMessage({
             type = "setCurrentGame",
@@ -645,7 +645,7 @@ RegisterNetEvent("pickle_casinos:blackjack:updateStage", function(casinoId, enti
                 stage = {
                     type = "turn",
                     seat = stage.seat,
-                    timeLeft = 10,
+                    timeLeft = GetSeatTurnTime("blackjack"),
                 }
             })
             SendNUIMessage({
@@ -702,7 +702,7 @@ RegisterNetEvent("pickle_casinos:blackjack:updateStage", function(casinoId, enti
                 blackjackTable.playAreas[0].hands[i] = {}
             end
         end
-        if isCurrentTable then
+        if isCurrentTable and CurrentBlackjackTable then
             CurrentBlackjackTable.seats[stage.seat].hands = {{}, {}}
             SendNUIMessage({
                 type = "updateBlackjackSeats",

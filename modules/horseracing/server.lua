@@ -93,7 +93,7 @@ function StartHorseRacingTrackLobby(trackId)
     local track = Tracks[trackId]
     if not track then return end
     track.horses = GenerateHorses()
-    track.stage = {type = "waiting", time = Config.WaitingTime + 1}
+    track.stage = {type = "waiting", time = GetWaitingTime("horseracing")}
     TriggerClientEvent("pickle_casinos:horseracing:updateTrackStage", -1, trackId, track.stage, track.horses)
     CreateThread(function()
         while track.stage.type == "waiting" and track.stage.time > 1 do
@@ -149,6 +149,7 @@ end
 
 RegisterNetEvent("pickle_casinos:horseracing:setWager", function(casinoId, entityId, trackId, wager)
     local source = tonumber(source)
+    PerformCooldownProcess(source)
     local casino = Casinos[casinoId]
     if not casino then return end
     local track = Tracks[trackId]

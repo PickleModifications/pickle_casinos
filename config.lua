@@ -4,13 +4,22 @@ Config.Debug = false -- This enables debugging prints.
 Config.RenderDistance = 50.0
 Config.InteractDistance = 2.5
 Config.UseTarget = true -- This enables the use of the target system when available.
-Config.WaitingTime = 10 -- Time to wait before starting a round for players to place bets.
-Config.SeatTurnTime = 10 -- Time to wait for players to place bets / decide before moving to the next player.
 Config.UseObjectGizmo = false -- This enables the use of object_gizmo for placing objects. If false, it uses the default movement system.
 Config.MaximumChipPurchaseAmount = 1000000 -- Maximum amount of chips a player can purchase at once.
 Config.MaximumItemPurchaseAmount = 100 -- Maximum amount of items a player can purchase at once.
 Config.ImageDirectory = "nui://ox_inventory/web/images/" -- (QB: nui://qb-inventory/html/images/) This is the directory where the images are stored. It should be a relative path to the resource folder.
 Config.DisableIPIdentifier = true -- This disables the IP identifier from being sent to the logs.
+
+Config.DisplayCurrencyAsChips = false -- This shows bet amounts and winnings as a number without any currency - set as false to disable this.
+
+Config.GameTimes = { -- seatTurnTime is each person's time they get to decide an action, waitingTime is the betting round time.
+    ["blackjack"] = {seatTurnTime = 15, waitingTime = 15},
+    ["baccarat"] = {seatTurnTime = 15, waitingTime = 15},
+    ["roulette"] = {seatTurnTime = 15, waitingTime = 15},
+    ["poker"] = {seatTurnTime = 15, waitingTime = 15},
+    ["wheel"] = {seatTurnTime = 15, waitingTime = 15},
+    ["horseracing"] = {seatTurnTime = 15, waitingTime = 15},
+}
 
 Config.CasinoBlip = {
     sprite = 679,
@@ -630,7 +639,7 @@ Config.LuckyWheel = {
             chooseRandomReward = true, -- If true, it will choose a random prize from the list below - otherwise it will use the first one
             rewards = { -- When casinoCost is above 0, it will require player-owned casinos to have the money to pay this prize, if they don't the wager will be refunded and prize(s) will be cancelled.
                 -- THE FIRST VEHICLE IN THIS LIST WILL BE THE DISPLAY VEHICLE.
-                {type = "vehicle", model = "adder", casinoCost = 100000, name = "Adder"},
+                {type = "vehicle", label = "Adder", model = "adder", casinoCost = 100000, name = "Adder"},
             },
         },
         ["mystery"] = { 

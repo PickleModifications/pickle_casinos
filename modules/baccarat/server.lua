@@ -288,7 +288,7 @@ function StartBaccaratLobby(casinoId, entityId)
     else
         BaccaratLobbies[casinoId][entityId] = true
     end
-    entity.stage = {type = "waiting", time = 11}
+    entity.stage = {type = "waiting", time = GetWaitingTime("baccarat")}
     TriggerClientEvent("pickle_casinos:baccarat:updateStage", -1, casinoId, entityId, entity.stage)
     CreateThread(function()
         while entity.stage.type == "waiting" and entity.stage.time > 1 do
@@ -390,8 +390,9 @@ RegisterNetEvent("pickle_casinos:baccarat:leaveTable", function()
 end)
 
 RegisterNetEvent("pickle_casinos:baccarat:setWager", function(wager)
-    if not wager or type(wager) ~= "table" then return end
     local source = source
+    PerformCooldownProcess(source)
+    if not wager or type(wager) ~= "table" then return end
     local info = GetPlayerBaccaratInfo(source)
     if not info then return end
     local entity = GetCasinoEntity(info.casinoId, info.entityId)
@@ -415,6 +416,7 @@ end)
 
 RegisterNetEvent("pickle_casinos:baccarat:repeatWager", function()
     local source = source
+    PerformCooldownProcess(source)
     local info = GetPlayerBaccaratInfo(source)
     if not info then return end
     local entity = GetCasinoEntity(info.casinoId, info.entityId)

@@ -130,7 +130,7 @@ function StartWheelLobby(casinoId, entityId)
     else 
         WheelLobbies[casinoId][entityId] = true
     end
-    entity.stage = {type = "waiting", time = 11}
+    entity.stage = {type = "waiting", time = GetWaitingTime("wheel")}
     TriggerClientEvent("pickle_casinos:wheel:updateStage", -1, casinoId, entityId, entity.stage)
     CreateThread(function()
         for k,v in pairs(entity.players) do
@@ -218,8 +218,9 @@ function GetRandomMultiplier()
 end
 
 RegisterNetEvent("pickle_casinos:wheel:setWager", function(wagers)
-    if not wagers or type(wagers) ~= "table" then return end
     local source = source
+    PerformCooldownProcess(source)
+    if not wagers or type(wagers) ~= "table" then return end
     local info = GetPlayerWheelInfo(source)
     if not info then return end
     local entity = GetCasinoEntity(info.casinoId, info.entityId)
@@ -255,6 +256,7 @@ end)
 
 RegisterNetEvent("pickle_casinos:wheel:repeatWager", function()
     local source = source
+    PerformCooldownProcess(source)
     local info = GetPlayerWheelInfo(source)
     if not info then return end
     local entity = GetCasinoEntity(info.casinoId, info.entityId)

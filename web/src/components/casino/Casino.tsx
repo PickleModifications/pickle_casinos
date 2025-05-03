@@ -36,7 +36,12 @@ export function DisplayCurrency({value} : {value: number}) {
 }
 
 export function GetCurrencyString(value: number, config: Config) {
-    return value.toLocaleString(config.countryCode || "en-US", {style: "currency", currency: config.currency || "USD", minimumFractionDigits: 0, maximumFractionDigits: 0});
+    if (config.displayCurrencyAsChips) {
+        return value.toLocaleString(config.countryCode || "en-US");
+    } 
+    else {
+        return value.toLocaleString(config.countryCode || "en-US", {style: "currency", currency: config.currency || "USD", minimumFractionDigits: 0, maximumFractionDigits: 0});
+    }
 }
 
 export function GameIcon({name, style}: {name: string, style?: React.CSSProperties}) {
@@ -216,7 +221,6 @@ export function DefaultWagerComponent({wager, setWager, betRange, money, chips, 
                     </div>
                 ))}
                 <div className="relative rounded-full bg-blue-600 border-zinc-400 p-2 cursor-pointer hover:scale-90 transition-transform" style={{width: 48, height: 48}} onClick={() => { 
-                    attemptWagerUpdate(0); 
                     fetchNui("repeatWager", {});
                     playAudio("bet");
                 }}>

@@ -448,6 +448,7 @@ RegisterNUICallback("pageLoaded", function(data, cb)
     SendNUIMessage({
         type = "setConfig",
         config = {
+            displayCurrencyAsChips = Config.DisplayCurrencyAsChips,
             chips = Config.Chips,
             currency = Currency.currency,
             countryCode = Currency.countryCode,

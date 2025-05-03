@@ -50,3 +50,17 @@ function GetFormattedTime(seconds)
         return string.format("%02d:%02d:%02d", hours, minutes, secs)
     end
 end
+
+function GetWaitingTime(game)
+    if not Config.GameTimes then return (Config.WaitingTime or 10) end
+    local timeCfg = Config.GameTimes[game]
+    if not timeCfg then return (Config.WaitingTime or 10) end
+    return timeCfg.waitingTime or (Config.WaitingTime or 10)
+end
+
+function GetSeatTurnTime(game)
+    if not Config.GameTimes then return (Config.SeatTurnTime or 10) end
+    local timeCfg = Config.GameTimes[game]
+    if not timeCfg then return (Config.SeatTurnTime or 10) end
+    return timeCfg.seatTurnTime or (Config.SeatTurnTime or 10)
+end

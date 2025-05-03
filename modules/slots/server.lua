@@ -174,7 +174,6 @@ RegisterNetEvent("pickle_casinos:slots:leaveSlotMachine", function()
     local entity = GetCasinoEntity(casinoId, entityId)
     if not entity then return end
     entity.currentPlayer = nil
-    SendCasinoEntityUpdate(casinoId, entityId)
 end)
 
 RegisterCallback("pickle_casinos:slots:requestSeat", function(source, cb, casinoId, entityId)

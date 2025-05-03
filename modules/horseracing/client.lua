@@ -148,7 +148,7 @@ RegisterNUICallback("setHorseRacingTrack", function(data, cb)
     ServerCallback("pickle_casinos:horseracing:getHorseRacingInfo", function(result)
         local localTrack = LocalHorseRacingTracks[trackId]
         local newTrack = result.tracks[trackId]
-        CurrentTrack = {id = trackId, waitingTime = Config.WaitingTime}
+        CurrentTrack = {id = trackId, waitingTime = GetWaitingTime("horseracing")}
         if result.tracks[trackId].stage.type == "waiting" then
             CurrentTrack.waitingTime = newTrack.stage.time
         end
@@ -257,6 +257,9 @@ function RenderHorseRacingTrack(trackId)
         local startCoords = GetOffsetFromEntityInWorldCoords(localTrack.raceCenterObject, ((i-1) * 1.0) - (horseCount / 2), 0.0, 0.0)
         local horse = {}
         horse.ped = CreateNPC(`RaceHorse`, startCoords.x, startCoords.y, startCoords.z, false, false)
+        SetEntityInvincible(horse.ped, true)
+        SetBlockingOfNonTemporaryEvents(horse.ped, true)
+        TaskSetBlockingOfNonTemporaryEvents(horse.ped, true)
         SetPedComponentVariation(horse.ped, 11, 0, i - 1, 0)
         horse.surfaceObject = CreateTennisBall(startCoords.x, startCoords.y, startCoords.z, false, false, false)
         SetEntityAlpha(horse.surfaceObject, 0, false)

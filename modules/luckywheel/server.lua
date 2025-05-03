@@ -37,7 +37,9 @@ function ProcessLuckyWheelRewards(source, casinoId, entityId, section, rewards)
         elseif reward.type == "chips" then
             AddCasinoChips(source, casinoId, reward.amount)
         elseif reward.type == "item" then
-            Inventory.AddItem(source, reward.item, reward.amount)
+            Inventory.AddItem(source, reward.name, reward.amount)
+        elseif reward.type == "vehicle" then
+            AddOwnedVehicle(source, reward.model)
         elseif reward.type == "xp" and Config.XPEnabled then
             AddPlayerXP(source, reward.name, reward.amount)
         end
@@ -51,7 +53,7 @@ function ProcessLuckyWheelRewards(source, casinoId, entityId, section, rewards)
     elseif firstPrize.type == "item" then
         prizeString = _L("luckywheel_reward_item", GetItemLabel(firstPrize.name) or "Unknown Item", NumberWithCommas(firstPrize.amount, true))
     elseif firstPrize.type == "vehicle" then
-        prizeString = _L("luckywheel_reward_vehicle", firstPrize.label or "Unknown Vehicle")
+        prizeString = _L("luckywheel_reward_vehicle", firstPrize.label or firstPrize.model)
     elseif firstPrize.type == "xp" then
         prizeString = _L("luckywheel_reward_xp", NumberWithCommas(firstPrize.amount, true), firstPrize.label or firstPrize.name)
     else 

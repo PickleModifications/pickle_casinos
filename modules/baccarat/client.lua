@@ -143,7 +143,7 @@ function AttemptSeatAtBaccaratEntity(casinoId, entityId)
         local casinoId = CurrentBaccaratTable.casinoId
         local entityId = CurrentBaccaratTable.entityId
         local seatId = CurrentBaccaratTable.seatId
-        local stage = CurrentBaccaratTable.stage or {type = "waiting", time = 10}
+        local stage = CurrentBaccaratTable.stage or {type = "waiting", time = GetWaitingTime("baccarat")}
         SetNuiFocus(true, true)
         SendNUIMessage({
             type = "setCurrentGame",

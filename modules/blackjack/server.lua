@@ -90,7 +90,7 @@ function StartBlackjackTurn(casinoId, entityId, seat, handId, splitAllowed)
     repeat
         entity.stage = {type = "turn", seat = seat, hasHit = hasHit, action = nil, handId = handId, hands = entity.seats[seat].hands}
         TriggerClientEvent("pickle_casinos:blackjack:updateStage", -1, casinoId, entityId, entity.stage)
-        local timeLeft = 11
+        local timeLeft = GetSeatTurnTime("blackjack")
         repeat
             local entity2 = GetCasinoEntity(casinoId, entityId)
             timeLeft = timeLeft - 1
@@ -357,7 +357,7 @@ function StartBlackjackLobby(casinoId, entityId)
     else
         BlackjackLobbies[casinoId][entityId] = true
     end
-    entity.stage = {type = "waiting", time = 11}
+    entity.stage = {type = "waiting", time = GetWaitingTime("blackjack")}
     TriggerClientEvent("pickle_casinos:blackjack:updateStage", -1, casinoId, entityId, entity.stage)
     CreateThread(function()
         for i=1, #entity.seats do
@@ -459,6 +459,7 @@ end)
 
 RegisterNetEvent("pickle_casinos:blackjack:setWager", function(wager)
     local source = source
+    PerformCooldownProcess(source)
     local info = GetPlayerBlackjackInfo(source)
     if not info then return end
     local entity = GetCasinoEntity(info.casinoId, info.entityId)
@@ -470,6 +471,7 @@ end)
 
 RegisterNetEvent("pickle_casinos:blackjack:repeatWager", function()
     local source = source
+    PerformCooldownProcess(source)
     local info = GetPlayerBlackjackInfo(source)
     if not info then return end
     local entity = GetCasinoEntity(info.casinoId, info.entityId)

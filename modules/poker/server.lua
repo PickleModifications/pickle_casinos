@@ -296,9 +296,9 @@ function StartPokerGame(casinoId, entityId)
                             debugPrint("Minimum Bet: " .. minimumBet, "Highest Bet: " .. currentRound.highestBet, "SEAT INFO:", currentSeat, currentRound.seatBets[currentSeat])
                             entity.seats[currentSeat].action = nil
                             TriggerClientEvent("pickle_casinos:poker:updateSeatAction", -1, casinoId, entityId, currentSeat, entity.seats[currentSeat].action)
-                            entity.stage = {type = "seatTurn", time = Config.SeatTurnTime, seat = currentSeat, minimumBet = minimumBet}
+                            entity.stage = {type = "seatTurn", time = GetSeatTurnTime("poker"), seat = currentSeat, minimumBet = minimumBet}
                             TriggerClientEvent("pickle_casinos:poker:updateStage", -1, casinoId, entityId, entity.stage)
-                            for i=1, Config.SeatTurnTime + 1 do 
+                            for i=1, GetSeatTurnTime("poker") + 1 do 
                                 if entity.seats[currentSeat].action then break end
                                 Wait(1000)
                             end
@@ -495,7 +495,7 @@ function StartPokerLobby(casinoId, entityId)
     else
         PokerLobbies[casinoId][entityId] = true
     end
-    entity.stage = {type = "waiting", time = Config.WaitingTime}
+    entity.stage = {type = "waiting", time = GetWaitingTime("poker")}
     TriggerClientEvent("pickle_casinos:poker:updateStage", -1, casinoId, entityId, entity.stage)
     CreateThread(function()
         while entity.stage.type == "waiting" and entity.stage.time > 1 do
