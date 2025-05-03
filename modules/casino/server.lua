@@ -194,6 +194,7 @@ function EnsureGameSettings(entityType, settings)
         defaultSettings["dealerModel"] = settings.dealerModel
     end
     if entityType == "luckywheel" then
+        defaultSettings["wheelModel"] = settings.wheelModel
         defaultSettings["spinPrice"] = settings.spinPrice or 0
         defaultSettings["vehicleLocation"] = settings.vehicleLocation and {
             coords = vector3(settings.vehicleLocation.coords.x, settings.vehicleLocation.coords.y, settings.vehicleLocation.coords.z) or vector3(0, 0, 0),

@@ -139,10 +139,11 @@ function RenderLuckyWheelEntity(casinoId, entityId)
     local wheelEntity = LocalLuckyWheels[casinoId][entityId]
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
     if not wheelEntity.visible or not casinoEntity then return end
+    local wheelModel = casinoEntity.settings.wheelModel or `vw_prop_vw_luckywheel_02a`
     local coords = casinoEntity.settings.location.coords
     local heading = casinoEntity.settings.location.rotation.z
     local standObject = CreateProp(`vw_prop_vw_luckywheel_01a`, coords, false, false, false)
-    local wheelObject = CreateProp(`vw_prop_vw_luckywheel_02a`, coords, false, false, false)
+    local wheelObject = CreateProp(wheelModel, coords, false, false, false)
     local tickObject = CreateProp(`vw_prop_vw_jackpot_off`, coords, false, false, false)
     FreezeEntityPosition(standObject, true)
     SetEntityHeading(standObject, heading)

@@ -64,3 +64,18 @@ function GetSeatTurnTime(game)
     if not timeCfg then return (Config.SeatTurnTime or 10) end
     return timeCfg.seatTurnTime or (Config.SeatTurnTime or 10)
 end
+
+function GetCreatorOptions(game)
+    local gameCfg = Config.CreatorOptions[game]
+    if not gameCfg then 
+        if game == "luckywheel" then
+            return {
+                wheelModels = {
+                    {label = "Wheel #1", model = `vw_prop_vw_luckywheel_02a`},
+                }
+            }
+        end
+        return {}
+    end
+    return gameCfg
+end

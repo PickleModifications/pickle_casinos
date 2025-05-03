@@ -279,6 +279,12 @@ Config.CreatorOptions = {
             {label = "Table #1", model = `fury_p_poker_table`},
         }
     },
+    luckywheel = {
+        wheelModels = {
+            {label = "Wheel #1", model = `vw_prop_vw_luckywheel_02a`},
+            -- Add MLO wheel models here if you want to use them.
+        }
+    },
     wheel = {}, -- No additional settings
     horseracing = {}, -- No additional settings
     slots = {}, -- No additional settings
