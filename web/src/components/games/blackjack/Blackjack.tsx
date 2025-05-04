@@ -117,7 +117,7 @@ export default function Blackjack({game} : {game: CasinoGame}) {
                                 {stage.type === "waiting" && <Translate id="blackjack_nextround" args={[stage.time]} />}
                                 {stage.type === "dealing" && <Translate id="blackjack_dealing" />}
                                 {stage.type === "displayCard" && <Translate id="blackjack_displaycard" />}
-                                {stage.type === "turn" && (currentSeat == stage.seat ? <Translate id="blackjack_playerturn" args={[turnTimeLeft]} /> : <Translate id="blackjack_otherturn" args={[stage.seatId]} />)}
+                                {stage.type === "turn" && (currentSeat == stage.seat ? <Translate id="blackjack_playerturn" args={[turnTimeLeft]} /> : <Translate id="blackjack_otherturn" args={[stage.seat]} />)}
                                 {/* {stage.type === "results" && (
                                     stage.seatResults[currentSeat].won > 0 ? (
                                         <div className="text-green-400">
