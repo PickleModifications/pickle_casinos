@@ -109,7 +109,7 @@ Config.FrameworkSettings = {
 }
 
 Config.Casinos = {
-    vipExpireTime = 86400 * 1, -- Time in seconds before a VIP membership expires, set to 0 to make VIP permanent. (1 day = 86400 seconds)
+    vipExpireTime = 86400 * 7, -- Time in seconds before a VIP membership expires, set to 0 to make VIP permanent. (1 day = 86400 seconds)
     tax = 10, -- Percentage of the profit that the casino pays in tax when withdrawing clean cash from the management system.
     taxRecipients = { -- This should always add up to 100%; above is where you set the percentage of the tax.
         ["police"] = 50, -- The percentage of the tax paid by the casinos to this society.

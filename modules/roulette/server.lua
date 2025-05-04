@@ -381,3 +381,13 @@ RegisterNetEvent("pickle_casinos:roulette:updateRouletteWagers", function(connec
     end
     TriggerClientEvent("pickle_casinos:roulette:updateSeatWager", -1, info.casinoId, info.entityId, info.seatId, entity.seats[info.seatId].connects)
 end)
+
+
+AddEventHandler('playerDropped', function()
+    local source = source
+    local info = GetPlayerRouletteInfo(source)
+    if not info then return end
+    local entity = GetCasinoEntity(info.casinoId, info.entityId)
+    if not entity then return end
+    LeaveRouletteEntity(source, info.casinoId, info.entityId, info.seatId)
+end)

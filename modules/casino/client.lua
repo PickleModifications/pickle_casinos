@@ -169,7 +169,7 @@ function GenerateGameSettingsUI()
             {variable = "maxWager", type = "money", default = 100, min = 100, label = _L("max_wager")},
         },
         ["luckywheel"] = {
-            {variable = "wheelModel", type = "dropdown", label = _L("wheel_model"), default = 1, options = modelToOptions(GetCreatorOptions("luckywheel").wheelModels)},
+            {variable = "wheelModel", type = "dropdown", label = _L("wheel_model"), default = GetCreatorOptions("luckywheel").wheelModels[1].model, options = modelToOptions(GetCreatorOptions("luckywheel").wheelModels)},
             {variable = "vehicleLocation", type = "location", default = {
                 coords = vector3(0.0, 0.0, 0.0),
                 rotation = vector3(0.0, 0.0, 0.0),

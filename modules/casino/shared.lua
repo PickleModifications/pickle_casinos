@@ -45,7 +45,7 @@ function GetFormattedTime(seconds)
     local secs = seconds % 60
     local dayStr = days > 1 and "s" or ""
     if days > 0 then
-        string.format((days > 0 and ("%d day"..dayStr .. " ") or "").."%02d:%02d:%02d", days, hours, minutes, secs)
+        return string.format(("%d day"..dayStr .. " ").."%02d:%02d:%02d", days, hours, minutes, secs)
     else
         return string.format("%02d:%02d:%02d", hours, minutes, secs)
     end

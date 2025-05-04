@@ -387,6 +387,7 @@ RegisterNUICallback("setBlackjackWager", function(data, cb)
 end)
 
 RegisterNUICallback("repeatWager", function(data, cb)
+    if not CurrentBlackjackTable then return end
     TriggerServerEvent("pickle_casinos:blackjack:repeatWager")
     cb("ok")
 end)

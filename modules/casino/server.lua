@@ -270,7 +270,8 @@ end
 
 function GetCasinoChips(source, casinoId)
     local casino = Casinos[casinoId]
-    if not casino then return end
+    if not source then return 0 end
+    if not casino then return 0 end
     local chips = Inventory.GetItemCount(source, casino.settings.chipItem) or 0
     return chips
 end
@@ -310,7 +311,7 @@ end
 function PerformCooldownProcess(source)
     local source = tonumber(source)
     local threshold = Config.CooldownTime or 10
-    local warningThreshold = threshold - 1
+    local warningThreshold = threshold - 3
     local newCooldown = false
     if not PlayerCooldowns[source] then
         newCooldown = true
@@ -324,10 +325,12 @@ function PerformCooldownProcess(source)
             ShowNotification(source, _L("cooldown_warning"))
         end
     end
+    print("COOLDOWN", PlayerCooldowns[source].cooldown, threshold)
     if newCooldown then
         SetTimeout(1000, function()
             if PlayerCooldowns[source] and PlayerCooldowns[source].cooldown >= threshold then
-                DropPlayer(source, "Pickle Casinos: You have been kicked for spamming game actions.")
+                ShowNotification(source, "Pickle Casinos: You have been kicked for spamming game actions.")
+                -- DropPlayer(source, "Pickle Casinos: You have been kicked for spamming game actions.")
             end
             PlayerCooldowns[source] = nil
         end)

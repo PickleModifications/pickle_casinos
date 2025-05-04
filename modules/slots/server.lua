@@ -224,6 +224,18 @@ RegisterCallback("pickle_casinos:slots:spinSlot", function(source, cb, betIndex)
     cb(spin, playerMoney)
 end)
 
+
+AddEventHandler('playerDropped', function()
+    local source = source
+    local playerInfo = GetPlayerSlotInfo(source)
+    if not playerInfo then return end
+    local casinoId = playerInfo.casinoId
+    local entityId = playerInfo.entityId
+    local entity = GetCasinoEntity(casinoId, entityId)
+    if not entity then return end
+    entity.currentPlayer = nil
+end)
+
 -- RegisterCommand("slotrtp", function(source, args, rawCommand)
 --     if source and source > 0 then return end
 --     local slotId = args[1]

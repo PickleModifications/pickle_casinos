@@ -203,3 +203,13 @@ RegisterCallback("pickle_casinos:horseracing:getHorseRacingInfo", function(sourc
         tracks = Tracks,
     })
 end)
+
+
+AddEventHandler('playerDropped', function()
+    local source = source
+    for k,v in pairs(Tracks) do
+        if v.players[source] then
+            v.players[source] = nil
+        end
+    end
+end)

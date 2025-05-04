@@ -488,3 +488,10 @@ RegisterNetEvent("pickle_casinos:blackjack:repeatWager", function()
     entity.seats[info.seatId].wagers[1] = LastWagers[source][1]
     TriggerClientEvent("pickle_casinos:blackjack:updateSeatWager", -1, info.casinoId, info.entityId, info.seatId, 1, entity.seats[info.seatId].wagers[1])
 end)
+
+AddEventHandler('playerDropped', function()
+    local source = source
+    local info = GetPlayerBlackjackInfo(source)
+    if not info then return end
+    LeaveBlackjackEntity(source, info.casinoId, info.entityId, info.seatId)
+end)

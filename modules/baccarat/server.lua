@@ -429,3 +429,14 @@ RegisterNetEvent("pickle_casinos:baccarat:repeatWager", function()
     end
     TriggerClientEvent("pickle_casinos:baccarat:updateSeatWager", -1, info.casinoId, info.entityId, info.seatId, entity.seats[info.seatId].wagers)
 end)
+
+AddEventHandler('playerDropped', function()
+    local source = source
+    local info = GetPlayerBaccaratInfo(source)
+    if info then
+        LeaveBaccaratEntity(source, info.casinoId, info.entityId, info.seatId)
+    end
+    if CurrentPlayers[source] then
+        CurrentPlayers[source] = nil
+    end
+end)
