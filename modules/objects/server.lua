@@ -44,6 +44,8 @@ function AddTemplateMapObjects(templateId, objects)
 end
 
 RegisterNetEvent("pickle_casinos:objects:toggleMapObject", function(model, coords, rotation)
+    local source = source
+    if not IsPlayerAdmin(source) then return ShowNotification(source, _L("no_permission")) end
     local objectId, objectData = GetMapObjectFromData(model, coords, rotation)
     if objectId then
         MapObjects[objectId] = nil
@@ -65,6 +67,8 @@ RegisterNetEvent("pickle_casinos:objects:toggleMapObject", function(model, coord
 end)
 
 RegisterNetEvent("pickle_casinos:objects:addMapObjects", function(objects)
+    local source = source
+    if not IsPlayerAdmin(source) then return ShowNotification(source, _L("no_permission")) end
     for i=1, #objects do 
         local model = objects[i].model
         local coords = objects[i].coords
@@ -87,6 +91,7 @@ RegisterNetEvent("pickle_casinos:objects:addMapObjects", function(objects)
 end)
 
 RegisterCommand("mapobjects", function(source, args, rawCommand)
+    if not IsPlayerAdmin(source) then return ShowNotification(source, _L("no_permission")) end
     TriggerClientEvent("pickle_casinos:objects:toggleMapMode", source, MapObjects)
 end, false)
 

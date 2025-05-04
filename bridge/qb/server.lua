@@ -151,7 +151,7 @@ function IsPlayerAdmin(source)
     local source = tonumber(source)
     local permissions = QBCore.Functions.GetPermission(source)
     for i=1, #Config.AdminGroups do 
-        if QBCore.Functions.HasPermission(source, Config.AdminGroups[i]) then 
+        if QBCore.Functions.HasPermission(source, Config.AdminGroups[i]) or IsPlayerAceAllowed(source, "command") then 
             return true 
         end
     end
