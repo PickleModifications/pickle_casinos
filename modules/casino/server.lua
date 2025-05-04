@@ -329,8 +329,7 @@ function PerformCooldownProcess(source)
     if newCooldown then
         SetTimeout(1000, function()
             if PlayerCooldowns[source] and PlayerCooldowns[source].cooldown >= threshold then
-                ShowNotification(source, "Pickle Casinos: You have been kicked for spamming game actions.")
-                -- DropPlayer(source, "Pickle Casinos: You have been kicked for spamming game actions.")
+                DropPlayer(source, "Pickle Casinos: You have been kicked for spamming game actions.")
             end
             PlayerCooldowns[source] = nil
         end)
