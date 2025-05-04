@@ -48,6 +48,7 @@ Config.TargetIcons = {
 
 Config.AdminGroups = { -- These are the groups that are allowed to use the /casino command.
     "group.admin",
+    "group.god",
     "admin",
     "superadmin",
     "god",
