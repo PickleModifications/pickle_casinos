@@ -23,6 +23,9 @@ function DisplayHorseRacingMenu(casinoId, entityId)
         if not casinoEntity then return end
         if not result then return end
         viewingHorseRacingMenu = {casinoId = casinoId, entityId = entityId}
+        if Config.ToggleGameMode then
+            Config.ToggleGameMode(true)
+        end
         SetNuiFocus(true, true)
         SendNUIMessage({
             type = "setCurrentGame",

@@ -144,6 +144,9 @@ function AttemptSeatAtBaccaratEntity(casinoId, entityId)
         local entityId = CurrentBaccaratTable.entityId
         local seatId = CurrentBaccaratTable.seatId
         local stage = CurrentBaccaratTable.stage or {type = "waiting", time = GetWaitingTime("baccarat")}
+        if Config.ToggleGameMode then
+            Config.ToggleGameMode(true)
+        end
         SetNuiFocus(true, true)
         SendNUIMessage({
             type = "setCurrentGame",

@@ -42,6 +42,9 @@ function AttemptSeatAtWheelEntity(casinoId, entityId)
         if (stage.type == "waiting") then
             CurrentWheel.waitingTime = stage.time
         end
+        if Config.ToggleGameMode then
+            Config.ToggleGameMode(true)
+        end
         SetNuiFocus(true, true)
         SendNUIMessage({
             type = "setCurrentGame",

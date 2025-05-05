@@ -127,6 +127,9 @@ function AttemptSeatAtPokerEntity(casinoId, entityId)
             -90.0, 0.0, localPokerTable.heading + 180.0, 45.0, 
             0, 0, 0, 2
         )
+        if Config.ToggleGameMode then
+            Config.ToggleGameMode(true)
+        end
         SendNUIMessage({
             type = "setCurrentGame",
             game = {

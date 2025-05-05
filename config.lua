@@ -22,6 +22,14 @@ Config.PlaceableEntities = { -- These are the entities that can be placed in the
     ["slots"] = {item = "slot_machine"},
 }
 
+Config.ToggleGameMode = function(state)
+    if state then
+        -- Do stuff when going into a game
+    else
+        -- Do stuff when exiting out of a game
+    end
+end
+
 Config.GameTimes = { -- seatTurnTime is each person's time they get to decide an action, waitingTime is the betting round time.
     ["blackjack"] = {seatTurnTime = 15, waitingTime = 15},
     ["baccarat"] = {seatTurnTime = 15, waitingTime = 15},

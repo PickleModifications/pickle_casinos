@@ -526,7 +526,6 @@ RegisterNetEvent("pickle_casinos:createCasinoEntity", function(casinoId, entityT
 end)
 
 RegisterNetEvent("pickle_casinos:deleteCasinoEntity", function(casinoId, entityId)
-    local isEntityOwner = false
     local source = source
     local casinoEntity = GetCasinoEntity(casinoId, entityId)
     if not casinoEntity then return end
@@ -553,7 +552,10 @@ RegisterNetEvent("pickle_casinos:deleteCasinoEntity", function(casinoId, entityI
 end)
 
 RegisterNetEvent("pickle_casinos:updateCasinoEntitySetting", function(casinoId, entityId, variable, value)
-    if not CanManageCasino(source, casinoId) then return ShowNotification(source, _L("no_permission")) end
+    local casinoEntity = GetCasinoEntity(casinoId, entityId)
+    if not casinoEntity then return end
+    local isEntityOwner = (casinoEntity.owner_info and casinoEntity.owner_info.identifier == GetIdentifier(source))
+    if not CanManageCasino(source, casinoId) and not isEntityOwner then return ShowNotification(source, _L("no_permission")) end
     local casino = Casinos[casinoId]
     if not casino then return end
     local entity = GetCasinoEntity(casinoId, entityId)

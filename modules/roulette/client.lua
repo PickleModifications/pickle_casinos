@@ -96,6 +96,9 @@ function AttemptSeatAtRouletteEntity(casinoId, entityId)
         local casinoId = CurrentRouletteTable.casinoId
         local entityId = CurrentRouletteTable.entityId
         local seatId = CurrentRouletteTable.seatId
+        if Config.ToggleGameMode then
+            Config.ToggleGameMode(true)
+        end
         SetNuiFocus(true, true)
         SendNUIMessage({
             type = "setCurrentGame",

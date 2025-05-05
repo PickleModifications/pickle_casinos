@@ -74,6 +74,9 @@ function AttemptSeatAtSlotEntity(casinoId, entityId)
         SetTimeout(2000, function()
             local slotStructure = GetSlotStructure()
             if not slotStructure then return end
+            if Config.ToggleGameMode then
+                Config.ToggleGameMode(true)
+            end
             SetNuiFocus(true, true)
             SendNUIMessage({
                 type = "setCurrentGame",
@@ -121,6 +124,7 @@ function RenderSlotEntity(casinoId, entityId)
         coords = GetOffsetFromEntityInWorldCoords(slotObject, 0.0, 0.0, 1.0),
         heading = heading,
         icon = Config.TargetIcons and Config.TargetIcons["slots"] or nil,
+        radius = 0.1,
     }, function(selected)
         local casino = Casinos[casinoId]
         if not casino then return end
