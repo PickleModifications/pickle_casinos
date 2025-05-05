@@ -251,4 +251,8 @@ Language["en"] = {
     casino_closed = "The casino is closed, please come back later.",
     expires_in = "Expires in: %s",
     cooldown_warning = "Slow down, you may be kicked for spamming.",
+    personal_casinos = "Personal Casinos",
+    personal_casinos_create_exit = "Cancel Creation",
+    personal_casinos_dialog = "Manage casino entity?",
+    personal_casinos_entity_exit = "Exit Casino Entity",
 }

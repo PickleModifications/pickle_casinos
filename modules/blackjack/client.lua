@@ -249,26 +249,24 @@ function RenderBlackjackEntity(casinoId, entityId)
         FreezeEntityPosition(playArea.surfaceObject, true)
         SetEntityHeading(playArea.surfaceObject, heading + cardOffset.rotation.z)
     end
-    for i,playArea in pairs(LocalBlackjackTables[casinoId][entityId].playAreas) do
-        if i > 0 then
-            LocalBlackjackTables[casinoId][entityId].interacts[#LocalBlackjackTables[casinoId][entityId].interacts + 1] = CreateInteraction({
-                label = _L("interact_blackjack") .. (casinoEntity.settings.vip and (" " .. _L("casino_vip_game")) or ""),
-                icon = Config.TargetIcons and Config.TargetIcons["blackjack"] or nil,
-                coords = GetOffsetFromEntityInWorldCoords(playArea.surfaceObject, 0.0, -0.8, 1.0),
-                heading = heading,
-            }, function(selected)
-                local casino = Casinos[casinoId]
-                if not casino then return end
-                if not casino.settings.isOpen then
-                    return ShowNotification(_L("casino_closed"))
-                end
-                ServerCallback("pickle_casinos:getVIPStatus", function(isVIP)
-                    if casinoEntity.settings.vip and not isVIP then return ShowNotification(_L("casino_vip_required")) end
-                    AttemptSeatAtBlackjackEntity(casinoId, entityId)
-                end, casinoId, entityId)
-            end)
+    LocalBlackjackTables[casinoId][entityId].interacts[1] = CreateInteraction({
+        label = _L("interact_blackjack") .. (casinoEntity.settings.vip and (" " .. _L("casino_vip_game")) or ""),
+        icon = Config.TargetIcons and Config.TargetIcons["blackjack"] or nil,
+        coords = GetOffsetFromEntityInWorldCoords(surfaceObject, 0.0, 0.0, 1.0),
+        heading = heading,
+    }, function(selected)
+        local casino = Casinos[casinoId]
+        if not casino then return end
+        if not casino.settings.isOpen then
+            return ShowNotification(_L("casino_closed"))
         end
-    end
+        local casinoEntity = GetCasinoEntity(casinoId, entityId)
+        if casinoEntity.owner_info and LOCAL_IDENTIFIER == casinoEntity.owner_info.identifier and RequestCasinoEntityMenu(casinoId, entityId) then return end
+        ServerCallback("pickle_casinos:getVIPStatus", function(isVIP)
+            if casinoEntity.settings.vip and not isVIP then return ShowNotification(_L("casino_vip_required")) end
+            AttemptSeatAtBlackjackEntity(casinoId, entityId)
+        end, casinoId, entityId)
+    end)
 end
 
 function UnrenderBlackjackEntity(casinoId, entityId)

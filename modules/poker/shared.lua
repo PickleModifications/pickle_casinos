@@ -33,44 +33,67 @@ function EvaluatePokerHand(hand, community)
     -- Check for flush
     local function isFlush(cards)
         if #cards < 5 then return false end
-        local suit = getCardSuit(cards[1])
-        for i = 2, #cards do
-            if getCardSuit(cards[i]) ~= suit then
-                return false
-            end
+        local suits = {}
+        for i=1, #cards do 
+          local suit = getCardSuit(cards[i])
+          suits[suit] = (suits[suit] or 0) + 1
         end
-        return true
+        for k,v in pairs(suits) do
+          if v >= 5 then
+            return true
+          end
+        end
     end
 
     -- Check for straight
     local function isStraight(cards)
         if #cards < 5 then return false end
-        local uniqueRanks = {}
+    
+        local ranks = {}
         for _, card in ipairs(cards) do
             local rank = getCardRank(card)
-            if not uniqueRanks[rank] then
+            table.insert(ranks, rank)
+        end
+    
+        -- Function to get unique and sorted ranks
+        local function getUniqueSortedRanks(rankList)
+            local uniqueRanks = {}
+            for _, rank in ipairs(rankList) do
                 uniqueRanks[rank] = true
             end
+            local sortedRanks = {}
+            for rank in pairs(uniqueRanks) do
+                table.insert(sortedRanks, rank)
+            end
+            table.sort(sortedRanks)
+            return sortedRanks
         end
-        local sortedRanks = {}
-        for rank in pairs(uniqueRanks) do
-            table.insert(sortedRanks, rank)
-        end
-        table.sort(sortedRanks)
-
+    
+        local sortedRanks = getUniqueSortedRanks(ranks)
+    
         if #sortedRanks < 5 then return false end
-
+    
+        -- Check for standard straights
         for i = 1, #sortedRanks - 4 do
             if sortedRanks[i + 4] - sortedRanks[i] == 4 then
                 return { sortedRanks[i + 4] } -- Return high card of the straight
             end
         end
-
+    
         -- Check for the special case of A-2-3-4-5 straight
-        if uniqueRanks[1] and uniqueRanks[2] and uniqueRanks[3] and uniqueRanks[4] and uniqueRanks[#values] then
-            return { 5 } -- Rank of 5 is the high card in this case
+        local hasAceLowStraight = false
+        local uniqueRanksSet = {}
+        for _, rank in ipairs(ranks) do
+            uniqueRanksSet[rank] = true
         end
-
+        if uniqueRanksSet[1] and uniqueRanksSet[2] and uniqueRanksSet[3] and uniqueRanksSet[4] and uniqueRanksSet[14] then -- Assuming Ace has rank 1 or 14
+            hasAceLowStraight = true
+        end
+    
+        if hasAceLowStraight then
+            return { 5 } -- Rank of 5 is the high card in A-2-3-4-5
+        end
+    
         return false
     end
 
@@ -119,18 +142,20 @@ function EvaluatePokerHand(hand, community)
     end
 
     -- Check for flush (now that straight flush is checked)
-    if isFlush(allCards) then
-        local highCards = {}
-        for _, card in ipairs(allCards) do
-            table.insert(highCards, getCardRank(card))
-        end
-        return "flush", highCards
-    end
+
 
     if #fourOfKind > 0 then
         return "four_of_a_kind", { getCardRank({ value = fourOfKind[1] }) }
     elseif #threeOfKind > 0 and #cardPairs > 0 then
         return "full_house", { getCardRank({ value = threeOfKind[1] }), getCardRank({ value = cardPairs[1] }) }
+    elseif isFlush(allCards) then
+        local highCards = {}
+        for _, card in ipairs(allCards) do
+            table.insert(highCards, getCardRank(card))
+        end
+        return "flush", highCards
+    elseif isStraight(allCards) then
+        return "straight", {isStraight(allCards)[1]}
     elseif #threeOfKind > 0 then
         return "three_of_a_kind", { getCardRank({ value = threeOfKind[1] }) }
     elseif #cardPairs > 1 then
@@ -211,10 +236,3 @@ function GetPokerWinners(players, community)
 
     return winners, results
 end
-
--- local winners, results = GetPokerWinners(players, communityCards)
--- debugPrint("Winner:", table.concat(winners, ", "))
--- for playerId, result in pairs(results) do
---     debugPrint(playerId, "has", result.rank, "with tiebreaker", table.concat(result.tiebreaker, ", "))
--- end
-

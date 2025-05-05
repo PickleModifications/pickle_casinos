@@ -30,7 +30,6 @@ shared_scripts {
 client_scripts {
 	"bridge/**/**/client.lua",
 	"modules/**/client.lua",
-	"modules/**/client.js",
     "core/client.lua"
 }
 

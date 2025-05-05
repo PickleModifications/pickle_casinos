@@ -17,6 +17,7 @@ export type Config = {
     gameSettings?: GameSettingsType;
     templates: {label: string, value: string}[];
     displayCurrencyAsChips: boolean;
+    personalCasinosLabel: string;
 }
 
 interface ConfigContextProps {
@@ -28,6 +29,7 @@ const ConfigContext = createContext<ConfigContextProps | undefined>(undefined);
 
 export const ConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [config, setConfig] = useState<Config>({
+        personalCasinosLabel: "ERR_PERSONAL_CASINOS_LABEL",
         maxVipPrice: 1000000,
         identifier: "ERR_NO_IDENTIFIER",
         currency: "GBP",

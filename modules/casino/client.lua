@@ -1,6 +1,7 @@
 CLIENT_FPS = 60
 
 CurrentCasinoEntity = nil
+LOCAL_IDENTIFIER = "ERR_UNKNOWN"
 LOCAL_MONEY = 0
 local isEditing = false
 local gizmoEntity = nil
@@ -85,7 +86,8 @@ function SetEntitySmoothRotation(entity, from, to, speed)
     end)
 end
 
-function StartCasinoEditor(casinoId)
+function StartCasinoEditor(casinoId, editorData)
+    local editorData = editorData or {}
     if isEditing then return end
     isEditing = true
     SetEditorFocus(true)
@@ -93,6 +95,7 @@ function StartCasinoEditor(casinoId)
         type = "openCasinoEditor",
         casinos = CasinosArrayUI(),
         casinoId = casinoId,
+        editorData = editorData,
     })
     CreateThread(function()
         while isEditing do 
@@ -359,6 +362,21 @@ function PlayCasinoDealerSpeech(ped, speech, speechAction)
     PlayPedAmbientSpeechNative(ped, speech, speechAction, 1)
 end
 
+function RequestCasinoEntityMenu(casinoId, entityId)
+    local alert = lib.alertDialog({
+        header = _L("personal_casinos_dialog"),
+        centered = true,
+        cancel = true
+    })
+    local isEditing = (alert == "confirm")
+    if isEditing then
+        StartCasinoEditor(casinoId, {
+            entityId = entityId,
+        })
+    end
+    return isEditing
+end
+
 RegisterNUICallback("editPlayer", function(data, cb)
     cb("ok")
     SendNUIMessage({
@@ -449,6 +467,7 @@ RegisterNUICallback("pageLoaded", function(data, cb)
     SendNUIMessage({
         type = "setConfig",
         config = {
+            personalCasinosLabel = PERSONAL_CASINOS_LABEL,
             displayCurrencyAsChips = Config.DisplayCurrencyAsChips,
             chips = Config.Chips,
             currency = Currency.currency,
@@ -673,7 +692,8 @@ RegisterNetEvent("pickle_casinos:updateCasinoBalance", function(casinoId, balanc
     })
 end)
 
-RegisterNetEvent("pickle_casinos:syncCasinos", function(data)
+RegisterNetEvent("pickle_casinos:syncCasinos", function(data, identifier)
+    LOCAL_IDENTIFIER = identifier
     for k,v in pairs(data) do
         RegisterCasino(k, v)
         -- Casinos[k] = v
@@ -853,6 +873,17 @@ end)
 
 RegisterNetEvent("pickle_casinos:casinosMenu", function()
     StartCasinoEditor()
+end)
+
+RegisterNetEvent("pickle_casinos:createPlacedEntity", function(entityType)
+    local casinoId
+    for k,v in pairs(Casinos) do
+        if v.settings.label == PERSONAL_CASINOS_LABEL then
+            casinoId = k
+            break
+        end
+    end
+    StartCasinoEditor(casinoId, {isCreatingEntity = true, entityType = entityType})
 end)
 
 AddEventHandler("onResourceStop", function(resourceName)

@@ -1,3 +1,5 @@
+PERSONAL_CASINOS_LABEL = "WORLD_ENTITIES"
+
 Casinos = {}
 
 local CHIP_VALUATIONS = {

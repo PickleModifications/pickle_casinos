@@ -8,6 +8,13 @@ function IsCasinoOwned(casinoId)
     return false
 end
 
+function IsCasinoPersonalCasinos(casinoId)
+    local casino = Casinos[casinoId]
+    if not casino then return false end
+    if casino.settings.label == PERSONAL_CASINOS_LABEL then return true end
+    return false
+end
+
 function CanManageCasino(source, casinoId)
     if IsPlayerAdmin(source) then return true end
     if not casinoId then return false end
@@ -221,6 +228,7 @@ function UpdateCasinoEntitiesSQL(casinoId)
             id = Casinos[casinoId].entities[i].id,
             type = Casinos[casinoId].entities[i].type,
             settings = Casinos[casinoId].entities[i].settings,
+            owner_info = Casinos[casinoId].entities[i].owner_info,
         })
     end
     MySQL.Async.execute('UPDATE `pickle_casinos` SET entities = ? WHERE id = ?', {json.encode(entities), casinoId})
@@ -272,6 +280,9 @@ function GetCasinoChips(source, casinoId)
     local casino = Casinos[casinoId]
     if not source then return 0 end
     if not casino then return 0 end
+    if casino.settings.label == PERSONAL_CASINOS_LABEL then 
+        return GetMoney(source)
+    end
     local chips = Inventory.GetItemCount(source, casino.settings.chipItem) or 0
     return chips
 end
@@ -279,12 +290,18 @@ end
 function AddCasinoChips(source, casinoId, amount)
     local casino = Casinos[casinoId]
     if not casino then return end
+    if casino.settings.label == PERSONAL_CASINOS_LABEL then 
+        return AddMoney(source, amount)
+    end
     Inventory.AddItem(source, casino.settings.chipItem, amount)
 end
 
 function RemoveCasinoChips(source, casinoId, amount)
     local casino = Casinos[casinoId]
     if not casino then return end
+    if casino.settings.label == PERSONAL_CASINOS_LABEL then 
+        return RemoveMoney(source, amount)
+    end
     Inventory.RemoveItem(source, casino.settings.chipItem, amount)
 end
 
@@ -372,7 +389,7 @@ end)
 
 RegisterNetEvent("pickle_casinos:initializePlayer", function()
     local source = source
-    TriggerClientEvent("pickle_casinos:syncCasinos", source, Casinos)
+    TriggerClientEvent("pickle_casinos:syncCasinos", source, Casinos, GetIdentifier(source))
     TriggerClientEvent("pickle_casinos:setupInventory", source, {
         items = Inventory.Items,
     })
@@ -395,6 +412,9 @@ RegisterNetEvent("pickle_casinos:createCasino", function(data)
         cashEnabled = true,
         markedEnabled = true,
     }
+    if casinoSettings.label == PERSONAL_CASINOS_LABEL then
+        casinoSettings.label = "UNKNOWN_LABEL"
+    end
     local entities = {}
     if data.template and data.template ~= "none" then
         local template = Templates[data.template]
@@ -430,6 +450,9 @@ RegisterNetEvent("pickle_casinos:updateCasinoSetting", function(casinoId, variab
     if not casino then return end
     if variable == "label" then
         casino.settings.label = tostring(value) or "INVALID_LABEL"
+        if casino.settings.label == PERSONAL_CASINOS_LABEL then
+            casino.settings.label = "INVALID_LABEL"
+        end
     elseif variable == "chipItem" then
         casino.settings.chipItem = tostring(value) or "INVALID_CHIP_ITEM"
     elseif variable == "blipEnabled" then
@@ -482,6 +505,12 @@ RegisterNetEvent("pickle_casinos:createCasinoEntity", function(casinoId, entityT
         type = entityType,
         settings = EnsureGameSettings(entityType, settings),
     }
+    if IsCasinoPersonalCasinos(casinoId) then
+        entity.owner_info = {
+            identifier = GetIdentifier(source),
+            name = GetPlayerCharacterName(source)
+        }
+    end
     table.insert(casino.entities, entity)
     UpdateCasinoEntitiesSQL(casinoId)
     InitializeCasinoEntity(casinoId, entity)
@@ -489,17 +518,30 @@ RegisterNetEvent("pickle_casinos:createCasinoEntity", function(casinoId, entityT
 end)
 
 RegisterNetEvent("pickle_casinos:deleteCasinoEntity", function(casinoId, entityId)
-    if not CanManageCasino(source, casinoId) then return ShowNotification(source, _L("no_permission")) end
+    local isEntityOwner = false
+    local source = source
+    local casinoEntity = GetCasinoEntity(casinoId, entityId)
+    if not casinoEntity then return end
+    local isEntityOwner = (casinoEntity.owner_info and casinoEntity.owner_info.identifier == GetIdentifier(source))
+    if not CanManageCasino(source, casinoId) and not isEntityOwner then return ShowNotification(source, _L("no_permission")) end
     local casino = Casinos[casinoId]
     if not casino then return end
+    local entityType = nil
     for i=1, #casino.entities do
         if casino.entities[i].id == entityId then
+            entityType = casino.entities[i].type
             table.remove(casino.entities, i)
             break
         end
     end
     UpdateCasinoEntitiesSQL(casinoId)
     TriggerClientEvent("pickle_casinos:deleteCasinoEntity", -1, casinoId, entityId)
+    if IsCasinoPersonalCasinos(casinoId) then
+        local placeableCfg = Config.PlaceableEntities[entityType]
+        if not placeableCfg then return end
+        local item = placeableCfg.item
+        Inventory.AddItem(source, item, 1)
+    end
 end)
 
 RegisterNetEvent("pickle_casinos:updateCasinoEntitySetting", function(casinoId, entityId, variable, value)
@@ -572,6 +614,11 @@ RegisterCommand("casinos", function(source, args, raw)
 end)
 
 CreateThread(function() 
+    for k,v in pairs(Config.PlaceableEntities) do 
+        RegisterUsableItem(v.item, function(source)
+            TriggerClientEvent("pickle_casinos:createPlacedEntity", source, k)
+        end)
+    end
     MySQL.Async.execute([[
         CREATE TABLE IF NOT EXISTS `pickle_casinos` (
             `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -586,6 +633,7 @@ CreateThread(function()
         )
     ]], {}, function()
         MySQL.Async.fetchAll("SELECT * FROM `pickle_casinos`", {}, function(results)
+            local personalCasinoFound = false
             for i=1, #results do
                 local result = results[i]
                 local settings = json.decode(result.settings) or {}
@@ -593,6 +641,9 @@ CreateThread(function()
                 local transactions = json.decode(result.transactions) or {}
                 local vip_players = json.decode(result.vip_players) or {}
                 local owner_info = json.decode(result.owner_info) or nil
+                if settings and settings.label == PERSONAL_CASINOS_LABEL then
+                    personalCasinoFound = true
+                end
                 RegisterCasino(result.id, {
                     id = result.id,
                     balance = result.balance,
@@ -603,6 +654,44 @@ CreateThread(function()
                     transactions = transactions,
                     vip_players = vip_players,
                 }, true)
+            end
+            if not personalCasinoFound then
+                MySQL.Async.execute('INSERT INTO `pickle_casinos` (settings, entities, transactions, vip_players) VALUES (?, ?, ?, ?)', {
+                    json.encode({
+                        label = PERSONAL_CASINOS_LABEL,
+                        location = {
+                            coords = vector3(0, 0, 0),
+                            rotation = vector3(0, 0, 0)
+                        },
+                        chipItem = "UNKNOWN_CHIP_ITEM",
+                        blipEnabled = false,
+                        isOpen = true,
+                        cashEnabled = true,
+                        markedEnabled = true,
+                    }), "[]", "[]", "[]"
+                }, function(id)
+                    RegisterCasino(id, {
+                        id = id,
+                        balance = 0,
+                        marked_balance = 0,
+                        owner_info = nil,
+                        settings = {
+                            label = PERSONAL_CASINOS_LABEL,
+                            location = {
+                                coords = vector3(0, 0, 0),
+                                rotation = vector3(0, 0, 0)
+                            },
+                            chipItem = "UNKNOWN_CHIP_ITEM",
+                            blipEnabled = false,
+                            isOpen = true,
+                            cashEnabled = true,
+                            markedEnabled = true,
+                        },
+                        entities = {},
+                        transactions = {},
+                        vip_players = {},
+                    }, true)
+                end)
             end
         end)
     end)

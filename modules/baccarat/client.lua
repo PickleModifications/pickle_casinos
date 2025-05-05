@@ -281,6 +281,8 @@ function RenderBaccaratEntity(casinoId, entityId)
                 if not casino.settings.isOpen then
                     return ShowNotification(_L("casino_closed"))
                 end
+                local casinoEntity = GetCasinoEntity(casinoId, entityId)
+                if casinoEntity.owner_info and LOCAL_IDENTIFIER == casinoEntity.owner_info.identifier and RequestCasinoEntityMenu(casinoId, entityId) then return end
                 ServerCallback("pickle_casinos:getVIPStatus", function(isVIP)
                     if casinoEntity.settings.vip and not isVIP then return ShowNotification(_L("casino_vip_required")) end
                     AttemptSeatAtBaccaratEntity(casinoId, entityId)
