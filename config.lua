@@ -13,7 +13,7 @@ Config.DisableIPIdentifier = true -- This disables the IP identifier from being 
 Config.DisplayCurrencyAsChips = false -- This shows bet amounts and winnings as a number without any currency - set as false to disable this.
 
 Config.PlaceableEntities = { -- These are the entities that can be placed in the Personal Casinos update.
-    ["blackjack"] = {item = "iron"},
+    ["blackjack"] = {item = "blackjack_table"},
     ["baccarat"] = {item = "baccarat_table"},
     ["roulette"] = {item = "roulette_table"},
     ["poker"] = {item = "poker_table"},
