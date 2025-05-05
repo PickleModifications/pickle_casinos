@@ -496,9 +496,17 @@ RegisterNetEvent("pickle_casinos:updateCasinoOwner", function(casinoId, newOwner
 end)
 
 RegisterNetEvent("pickle_casinos:createCasinoEntity", function(casinoId, entityType, settings)
-    if not CanManageCasino(source, casinoId) then return ShowNotification(source, _L("no_permission")) end
+    local source = source
+    if not IsCasinoPersonalCasinos(casinoId) and not CanManageCasino(source, casinoId) then return ShowNotification(source, _L("no_permission")) end
     local casino = Casinos[casinoId]
     if not casino then return end
+    if IsCasinoPersonalCasinos(casinoId) then
+        local placeableCfg = Config.PlaceableEntities[entityType]
+        if not placeableCfg then return end
+        local item = placeableCfg.item
+        if Inventory.GetItemCount(source, item) < 1 then return end
+        Inventory.RemoveItem(source, item, 1)
+    end
     local entityId = GenerateEntityId(casinoId)
     local entity = {
         id = entityId,
