@@ -13,14 +13,14 @@ function RemoveTargetModel(models, optionsNames)
     exports.ox_target:removeModel(models, optionsNames)
 end
 
-function AddTargetZone(coords, radius, defaultOptions, defaultIcon)
+function AddTargetZone(coords, radius, defaultOptions, defaultIcon, distance)
     local options = {}
     for i=1, #defaultOptions do 
         options[i] = defaultOptions[i]
         if not options[i].icon then
             options[i].icon = defaultIcon
         end
-        options[i].distance = radius * 2
+        options[i].distance = distance
     end
     return exports.ox_target:addSphereZone({
         coords = coords,

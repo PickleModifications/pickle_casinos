@@ -19,7 +19,7 @@ Config.PlaceableEntities = { -- These are the entities that can be placed in the
     ["poker"] = {item = "poker_table"},
     ["wheel"] = {item = "wheel_machine"},
     ["horseracing"] = {item = "horseracing_machine"},
-    ["slots"] = {item = "slot_machine"},
+    ["slot"] = {item = "slot_machine"},
 }
 
 Config.ToggleGameMode = function(state)

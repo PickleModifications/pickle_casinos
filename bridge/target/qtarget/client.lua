@@ -20,7 +20,7 @@ function AddTargetZone(coords, radius, options)
     repeat
         index = "bailbounty_coord_" .. math.random(1, 999999999)
     until not Zones[index]
-    exports['qtarget']:AddBoxZone(index, coords, radius, radius, {
+    exports['qtarget']:AddBoxZone(index, coords, radius, distance, {
         name = index,
         heading = 0.0,
         minZ = coords.z,

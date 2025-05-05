@@ -666,7 +666,7 @@ CreateThread(function()
                 }, true)
             end
             if not personalCasinoFound then
-                MySQL.Async.execute('INSERT INTO `pickle_casinos` (settings, entities, transactions, vip_players) VALUES (?, ?, ?, ?)', {
+                MySQL.insert('INSERT INTO `pickle_casinos` (settings, entities, transactions, vip_players) VALUES (?, ?, ?, ?)', {
                     json.encode({
                         label = PERSONAL_CASINOS_LABEL,
                         location = {

@@ -298,11 +298,20 @@ function RenderPokerEntity(casinoId, entityId)
             betChips = betChips,
             surfaceObject = playSurface,
         }
-        defaultInteracts[i] = CreateInteraction({
+    end
+    localPokerTable.tableObject = tableObject
+    localPokerTable.surfaceObject = surfaceObject
+    localPokerTable.dealerPed = dealerPed
+    localPokerTable.dealerCards = dealerCards
+    localPokerTable.playAreas = defaultPlayAreas
+    localPokerTable.interacts = {
+        CreateInteraction({
             label = _L("interact_poker") .. (casinoEntity.settings.vip and (" " .. _L("casino_vip_game")) or ""),
-            coords = GetOffsetFromEntityInWorldCoords(playSurface, 0.0, -0.8, 1.0),
+            coords = GetOffsetFromEntityInWorldCoords(surfaceObject, 0.0, 0.0, 0.0),
             icon = Config.TargetIcons and Config.TargetIcons["poker"] or nil,
             heading = heading,
+            distance = 3.0,
+            radius = 3.0,
         }, function(selected)
             local casino = Casinos[casinoId]
             if not casino then return end
@@ -316,13 +325,7 @@ function RenderPokerEntity(casinoId, entityId)
                 AttemptSeatAtPokerEntity(casinoId, entityId)
             end, casinoId, entityId)
         end)
-    end
-    localPokerTable.tableObject = tableObject
-    localPokerTable.surfaceObject = surfaceObject
-    localPokerTable.dealerPed = dealerPed
-    localPokerTable.dealerCards = dealerCards
-    localPokerTable.playAreas = defaultPlayAreas
-    localPokerTable.interacts = defaultInteracts
+    }
 end
 
 function UnrenderPokerEntity(casinoId, entityId)

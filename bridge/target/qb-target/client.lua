@@ -22,7 +22,7 @@ function RemoveTargetModel(models, optionsNames)
     exports['qb-target']:RemoveTargetModel(models, optionsNames)
 end
 
-function AddTargetZone(coords, radius, options, defaultIcon)
+function AddTargetZone(coords, radius, options, defaultIcon, distance)
     local index
     repeat
         index = "bailbounty_coord_" .. math.random(1, 999999999)
@@ -41,7 +41,7 @@ function AddTargetZone(coords, radius, options, defaultIcon)
     end
     exports['qb-target']:AddCircleZone(index, coords, radius, {name = index}, {
         options = options,
-        distance = radius
+        distance = distance
     })
     return index
 end

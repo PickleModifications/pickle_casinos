@@ -124,7 +124,8 @@ function RenderSlotEntity(casinoId, entityId)
         coords = GetOffsetFromEntityInWorldCoords(slotObject, 0.0, 0.0, 1.0),
         heading = heading,
         icon = Config.TargetIcons and Config.TargetIcons["slots"] or nil,
-        radius = 0.1,
+        radius = 0.5,
+        distance = 2.5,
     }, function(selected)
         local casino = Casinos[casinoId]
         if not casino then return end

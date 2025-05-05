@@ -248,28 +248,26 @@ function RenderRouletteEntity(casinoId, entityId)
         FreezeEntityPosition(playArea.surfaceObject, true)
         SetEntityHeading(playArea.surfaceObject, heading + seatOffset.rotation.z)
     end
-    for i,playArea in pairs(LocalRouletteTables[casinoId][entityId].playAreas) do
-        if i > 0 then
-            LocalRouletteTables[casinoId][entityId].interacts[#LocalRouletteTables[casinoId][entityId].interacts + 1] = CreateInteraction({
-                label = _L("interact_roulette") .. (casinoEntity.settings.vip and (" " .. _L("casino_vip_game")) or ""),
-                coords = GetOffsetFromEntityInWorldCoords(playArea.surfaceObject, 0.0, -0.8, 1.0),
-                icon = Config.TargetIcons and Config.TargetIcons["roulette"] or nil,
-                heading = heading,
-            }, function(selected)
-                local casino = Casinos[casinoId]
-                if not casino then return end
-                if not casino.settings.isOpen then
-                    return ShowNotification(_L("casino_closed"))
-                end
-                local casinoEntity = GetCasinoEntity(casinoId, entityId)
-                if casinoEntity.owner_info and LOCAL_IDENTIFIER == casinoEntity.owner_info.identifier and RequestCasinoEntityMenu(casinoId, entityId) then return end
-                ServerCallback("pickle_casinos:getVIPStatus", function(isVIP)
-                    if casinoEntity.settings.vip and not isVIP then return ShowNotification(_L("casino_vip_required")) end
-                    AttemptSeatAtRouletteEntity(casinoId, entityId)
-                end, casinoId, entityId)
-            end)
+    LocalRouletteTables[casinoId][entityId].interacts[1] = CreateInteraction({
+        label = _L("interact_roulette") .. (casinoEntity.settings.vip and (" " .. _L("casino_vip_game")) or ""),
+        coords = GetOffsetFromEntityInWorldCoords(surfaceObject, 0.0, 0.0, 1.0),
+        icon = Config.TargetIcons and Config.TargetIcons["roulette"] or nil,
+        radius = 2.5,
+        distance = 2.5,
+        heading = heading,
+    }, function(selected)
+        local casino = Casinos[casinoId]
+        if not casino then return end
+        if not casino.settings.isOpen then
+            return ShowNotification(_L("casino_closed"))
         end
-    end
+        local casinoEntity = GetCasinoEntity(casinoId, entityId)
+        if casinoEntity.owner_info and LOCAL_IDENTIFIER == casinoEntity.owner_info.identifier and RequestCasinoEntityMenu(casinoId, entityId) then return end
+        ServerCallback("pickle_casinos:getVIPStatus", function(isVIP)
+            if casinoEntity.settings.vip and not isVIP then return ShowNotification(_L("casino_vip_required")) end
+            AttemptSeatAtRouletteEntity(casinoId, entityId)
+        end, casinoId, entityId)
+    end)
     SetTimeout(1000, function()
         local casinoEntity = GetCasinoEntity(casinoId, entityId)
         local positions = GetRouletteConnectPositions()

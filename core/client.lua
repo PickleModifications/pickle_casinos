@@ -220,6 +220,7 @@ function CreateInteraction(data, selected)
         target = data.target,
         offset = data.offset,
         radius = data.radius or 1.0,
+        distance = data.distance or Config.InteractDistance,
         heading = data.heading,
         hiddenKeypress = data.hiddenKeypress
     }
@@ -227,7 +228,7 @@ function CreateInteraction(data, selected)
         if data.target then
             AddTargetModel(data.target, Interactions[index].radius, Interactions[index].options)
         else
-            Interactions[index].zone = AddTargetZone(Interactions[index].coords - vector3(0.0, 0.0, Interactions[index].zOffset), Interactions[index].radius, Interactions[index].options, Interactions[index].icon)
+            Interactions[index].zone = AddTargetZone(Interactions[index].coords - vector3(0.0, 0.0, Interactions[index].zOffset), Interactions[index].radius, Interactions[index].options, Interactions[index].icon, Interactions[index].distance)
         end
     end
     return index
@@ -282,7 +283,7 @@ CreateThread(function()
                     local offset = v.offset or vector3(0.0, 0.0, 0.0)
                     local coords = GetOffsetFromEntityInWorldCoords(entity, offset.x, offset.y, offset.z)
                     local dist = #(pcoords-coords)
-                    if dist < v.radius and (not closestInteraction.id or closestInteraction.dist > dist) then
+                    if dist < v.distance and (not closestInteraction.id or closestInteraction.dist > dist) then
                         closestInteraction.id = k
                         closestInteraction.dist = dist
                     end

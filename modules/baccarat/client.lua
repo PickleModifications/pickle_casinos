@@ -271,28 +271,26 @@ function RenderBaccaratEntity(casinoId, entityId)
         FreezeEntityPosition(playArea.surfaceObject, true)
         SetEntityHeading(playArea.surfaceObject, heading + cardOffset.rotation.z)
     end
-    for i,playArea in pairs(LocalBaccaratTables[casinoId][entityId].playAreas) do
-        if i > 0 then
-            LocalBaccaratTables[casinoId][entityId].interacts[#LocalBaccaratTables[casinoId][entityId].interacts + 1] = CreateInteraction({
-                label = _L("interact_baccarat") .. (casinoEntity.settings.vip and (" " .. _L("casino_vip_game")) or ""),
-                icon = Config.TargetIcons and Config.TargetIcons["baccarat"] or nil,
-                coords = GetOffsetFromEntityInWorldCoords(playArea.surfaceObject, 0.0, -0.8, 1.0),
-                heading = heading,
-            }, function(selected)
-                local casino = Casinos[casinoId]
-                if not casino then return end
-                if not casino.settings.isOpen then
-                    return ShowNotification(_L("casino_closed"))
-                end
-                local casinoEntity = GetCasinoEntity(casinoId, entityId)
-                if casinoEntity.owner_info and LOCAL_IDENTIFIER == casinoEntity.owner_info.identifier and RequestCasinoEntityMenu(casinoId, entityId) then return end
-                ServerCallback("pickle_casinos:getVIPStatus", function(isVIP)
-                    if casinoEntity.settings.vip and not isVIP then return ShowNotification(_L("casino_vip_required")) end
-                    AttemptSeatAtBaccaratEntity(casinoId, entityId)
-                end, casinoId, entityId)
-            end)
+    LocalBaccaratTables[casinoId][entityId].interacts[1] = CreateInteraction({
+        label = _L("interact_baccarat") .. (casinoEntity.settings.vip and (" " .. _L("casino_vip_game")) or ""),
+        icon = Config.TargetIcons and Config.TargetIcons["baccarat"] or nil,
+        coords = GetOffsetFromEntityInWorldCoords(surfaceObject, 0.0, 0.0, 1.0),
+        heading = heading,
+        distance = 2.5,
+        radius = 2.5
+    }, function(selected)
+        local casino = Casinos[casinoId]
+        if not casino then return end
+        if not casino.settings.isOpen then
+            return ShowNotification(_L("casino_closed"))
         end
-    end
+        local casinoEntity = GetCasinoEntity(casinoId, entityId)
+        if casinoEntity.owner_info and LOCAL_IDENTIFIER == casinoEntity.owner_info.identifier and RequestCasinoEntityMenu(casinoId, entityId) then return end
+        ServerCallback("pickle_casinos:getVIPStatus", function(isVIP)
+            if casinoEntity.settings.vip and not isVIP then return ShowNotification(_L("casino_vip_required")) end
+            AttemptSeatAtBaccaratEntity(casinoId, entityId)
+        end, casinoId, entityId)
+    end)
 end
 
 function UnrenderBaccaratEntity(casinoId, entityId)
