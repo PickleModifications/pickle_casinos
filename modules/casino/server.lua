@@ -342,7 +342,6 @@ function PerformCooldownProcess(source)
             ShowNotification(source, _L("cooldown_warning"))
         end
     end
-    print("COOLDOWN", PlayerCooldowns[source].cooldown, threshold)
     if newCooldown then
         SetTimeout(1000, function()
             if PlayerCooldowns[source] and PlayerCooldowns[source].cooldown >= threshold then
