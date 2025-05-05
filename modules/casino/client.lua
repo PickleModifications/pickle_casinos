@@ -377,48 +377,36 @@ function RequestCasinoEntityMenu(casinoId, entityId)
     return isEditing
 end
 
-function LoadCasinoAu()
-    local audioBanks = {
-        "DLC_VINEWOOD/CASINO_GENERAL",
-        "DLC_VINEWOOD/CASINO_SLOT_MACHINES_01",
-        "DLC_VINEWOOD/CASINO_SLOT_MACHINES_02",
-        "DLC_VINEWOOD/CASINO_SLOT_MACHINES_03",
-    }
-    for i=1, #audioBanks do
-        RequestScriptAudioBank(audioBanks[i], false)
-    end
-end
-
-CreateThread(function()
-    local audioBanks = {
-        "DLC_VINEWOOD/CASINO_GENERAL",
-        "DLC_VINEWOOD/CASINO_SLOT_MACHINES_01",
-        "DLC_VINEWOOD/CASINO_SLOT_MACHINES_02",
-        "DLC_VINEWOOD/CASINO_SLOT_MACHINES_03",
-    }
-    for i=1, #audioBanks do
-        while not RequestScriptAudioBank(audioBanks[i], false) do
-            Wait(0)
-        end
-    end
-    while true do
-        local ped = PlayerPedId()
-        local playerCoords = GetEntityCoords(ped)
-        for k,v in pairs(LocalCasinos) do 
-            print(k, v.location)
-            if v.location and #(playerCoords - v.location.coords) < 100.0 then
-                print("PLAY TIME!")
-                if not IsStreamPlaying() and LoadStream("pickle_casino_"..k, "DLC_VW_Casino_Interior_Sounds") then
-                    PlayStreamFromPosition(v.location.coords.x, v.location.coords.y, v.location.coords.z)
-                end
-                if IsStreamPlaying() and not IsAudioSceneActive("DLC_VW_Casino_General") then
-                    StartAudioScene("DLC_VW_Casino_General")
-                end
-            end
-        end
-        Wait(1500)
-    end
-end)
+-- CreateThread(function()
+--     local audioBanks = {
+--         "DLC_VINEWOOD/CASINO_GENERAL",
+--         "DLC_VINEWOOD/CASINO_SLOT_MACHINES_01",
+--         "DLC_VINEWOOD/CASINO_SLOT_MACHINES_02",
+--         "DLC_VINEWOOD/CASINO_SLOT_MACHINES_03",
+--     }
+--     for i=1, #audioBanks do
+--         while not RequestScriptAudioBank(audioBanks[i], false) do
+--             Wait(0)
+--         end
+--     end
+--     while true do
+--         local ped = PlayerPedId()
+--         local playerCoords = GetEntityCoords(ped)w
+--         for k,v in pairs(LocalCasinos) do 
+--             print(k, v.location)
+--             if v.location and #(playerCoords - v.location.coords) < 100.0 then
+--                 print("PLAY TIME!")
+--                 if not IsStreamPlaying() and LoadStream("casino_walla", "DLC_VW_Casino_Interior_Sounds") then
+--                     PlayStreamFromPosition(v.location.coords.x, v.location.coords.y, v.location.coords.z)
+--                 end
+--                 if IsStreamPlaying() and not IsAudioSceneActive("DLC_VW_Casino_General") then
+--                     StartAudioScene("DLC_VW_Casino_General")
+--                 end
+--             end
+--         end
+--         Wait(1500)
+--     end
+-- end)
 
 RegisterNUICallback("editPlayer", function(data, cb)
     cb("ok")
