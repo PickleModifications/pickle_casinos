@@ -168,11 +168,10 @@ function AttemptSeatAtPokerEntity(casinoId, entityId)
                     local netScene = NetworkCreateSynchronisedScene(coords, rotation, 2, 0, 1, 1065353216, 0, 1065353216)
                     NetworkAddPedToSynchronisedScene(playerPed, netScene, "anim_casino_b@amb@casino@games@shared@player@", "idle_cardgames", 2.0, -2.0, 13, 16, 2.0, 0)
                     NetworkStartSynchronisedScene(netScene)
-                    Wait(100)
                 end
                 -- SetFollowPedCamViewMode(3)
                 DisableIdleCamera(true)
-                Wait(0)
+                Wait(1500)
             end
         end)
         -- CreateThread(function()

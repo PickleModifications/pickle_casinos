@@ -85,6 +85,22 @@ function AttemptSeatAtSlotEntity(casinoId, entityId)
                     data = slotStructure
                 }
             })
+            local surfaceObject = LocalSlotMachines[CurrentSlotMachine.casinoId][CurrentSlotMachine.entityId].slotObject
+            local coords = GetOffsetFromEntityInWorldCoords(surfaceObject, 0.0, -0.75, 0.0275)
+            local rotation = GetEntityRotation(surfaceObject) + vector3(0.0, 0.0, 90.0)
+            CreateThread(function()
+                Wait(4000)
+                while CurrentSlotMachine do
+                    if not playingSlotAnimation and not IsEntityPlayingAnim(playerPed, "anim_casino_b@amb@casino@games@shared@player@", "idle_cardgames", 3) then
+                        local netScene = NetworkCreateSynchronisedScene(coords, rotation, 2, 0, 1, 1065353216, 0, 1065353216)
+                        NetworkAddPedToSynchronisedScene(playerPed, netScene, "anim_casino_b@amb@casino@games@shared@player@", "idle_cardgames", 2.0, -2.0, 13, 16, 2.0, 0)
+                        NetworkStartSynchronisedScene(netScene)
+                    end
+                    -- SetFollowPedCamViewMode(3)
+                    DisableIdleCamera(true)
+                    Wait(1500)
+                end
+            end)
         end)
     end, casinoId, entityId)
 end

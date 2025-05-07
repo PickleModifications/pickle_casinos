@@ -390,7 +390,11 @@ function StartPokerGame(casinoId, entityId)
         end
         local winners, results = GetPokerWinners(formattedPlayerCards, entity.dealerCards)
         debugPrint("Round Ended", json.encode(winners), json.encode(results))
-
+        if #winners <= 0 then
+            for k, v in pairs(formattedPlayerCards) do
+                table.insert(winners, k)
+            end
+        end
         local totalPot = entity.pot
         local winnings = {}
         local totalContributions = 0
