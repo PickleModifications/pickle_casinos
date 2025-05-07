@@ -1,11 +1,4 @@
-local horses = {}
-
 local CurrentCamera = nil
-local raceCenter = vector3(1158.0900, 258.6992, 80.8438)
-local heading = 147.9117
-local raceDistance = 171.15
-local winnerSpeed = -1
-local defaultSpeed = 0.0012
 
 local Tracks = {}
 local LocalHorseRacingMachines = {}
@@ -93,7 +86,12 @@ function RenderHorseRacingEntity(casinoId, entityId)
         if not casino.settings.isOpen then
             return ShowNotification(_L("casino_closed"))
         end
-        DisplayHorseRacingMenu(casinoId, entityId)
+        local casinoEntity = GetCasinoEntity(casinoId, entityId)
+        if casinoEntity.owner_info and LOCAL_IDENTIFIER == casinoEntity.owner_info.identifier and RequestCasinoEntityMenu(casinoId, entityId) then return end
+        ServerCallback("pickle_casinos:getVIPStatus", function(isVIP)
+            if casinoEntity.settings.vip and not isVIP then return ShowNotification(_L("casino_vip_required")) end
+            DisplayHorseRacingMenu(casinoId, entityId)
+        end, casinoId, entityId)
     end)
 end
 
@@ -342,8 +340,12 @@ function EnsureHorseRacingCamera()
 end
 
 function StartHorseRace(trackId, targetWinner)    
+    local horses = {}
+    local winnerSpeed = -1
+    local defaultSpeed = 0.0012
     local localTrack = LocalHorseRacingTracks[trackId]
     local track = Tracks[trackId]
+    local heading = track.heading
     if not track or not localTrack or not localTrack.visible then return end
     local raceDistance = track.distance
     for i=1, #localTrack.horses do 
@@ -367,7 +369,7 @@ function StartHorseRace(trackId, targetWinner)
         for i=1, #localTrack.horses do 
             local horse = localTrack.horses[i]
             if horse.progress == nil then
-                return
+                horse.progress = 0.0
             end
             if winnerSpeed < 0 and horse.progress > winProgress then
                 local targetHorse = localTrack.horses[targetWinner]
@@ -433,7 +435,9 @@ function StartHorseRace(trackId, targetWinner)
             SetEntityCoords(horse.surfaceObject, coords.x, coords.y, coords.z, false, false, false, false)
         end
         local camCoords = GetOffsetFromEntityInWorldCoords(localTrack.raceCenterObject, 11.0, raceDistance - closestDistance, 6.0)
-        -- DrawMarker(0, targetCoords.x, targetCoords.y, targetCoords.z + 1.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.5, 1.5, 1.5, 255, 0, 0, 255, false, true, false, false, false, false, false, false)
+        if Config.Debug and targetCoords then
+            DrawMarker(0, targetCoords.x, targetCoords.y, targetCoords.z + 1.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.5, 1.5, 1.5, 255, 0, 0, 255, false, true, false, false, false, false, false, false)
+        end
         if viewingHorseRacingMenu and CurrentTrack and CurrentTrack.id == trackId then
             SetFocusArea(camCoords)
             EnsureHorseRacingCamera()
