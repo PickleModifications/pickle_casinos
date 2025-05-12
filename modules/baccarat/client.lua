@@ -169,7 +169,7 @@ function AttemptSeatAtBaccaratEntity(casinoId, entityId)
         PlayBaccaratAnimation(playerPed, {dict = "anim_casino_b@amb@casino@games@shared@player@", name = "sit_enter_left"}, {time = 6000})
         CreateThread(function()
             while CurrentBaccaratTable do
-                if CurrentBaccaratTable.waitingTime > 1 and CurrentBaccaratTable.stage.type == "waiting" then
+                if CurrentBaccaratTable.stage.type == "waiting" and CurrentBaccaratTable.waitingTime and CurrentBaccaratTable.waitingTime > 1 then
                     CurrentBaccaratTable.waitingTime = CurrentBaccaratTable.waitingTime - 1
                     SendNUIMessage({
                         type = "updateBaccaratStage",

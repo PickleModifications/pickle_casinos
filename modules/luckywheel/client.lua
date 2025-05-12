@@ -164,6 +164,7 @@ function RenderLuckyWheelEntity(casinoId, entityId)
         local rewardCfg = Config.LuckyWheel.sections["vehicle"].rewards[1]
         local vehicle = CreateVeh(rewardCfg.model, coords, 0.0, false, false)
         FreezeEntityPosition(vehicle, true)
+        SetVehicleDoorsLocked(vehicle, 2)
         SetEntityHeading(vehicle, heading)
         if Config.LuckyWheel.rotateVehicle then
             CreateThread(function()

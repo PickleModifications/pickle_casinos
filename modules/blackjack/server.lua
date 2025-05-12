@@ -24,6 +24,7 @@ function JoinBlackjackEntity(source, casinoId, entityId, seatId)
         return
     end
     if entity.seats[seatId].source then
+        seatId = nil
         for i=1, #entity.seats do
             if entity.seats[i].source == nil then
                 seatId = i

@@ -509,19 +509,6 @@ function StartHorseRace(trackId, targetWinner)
     end
 end
 
-function DeleteHorseRace()
-    if raceCenterObject then
-        DeleteScriptObject(raceCenterObject)
-    end
-    if raceFinishObject then
-        DeleteScriptObject(raceFinishObject)
-    end
-    for _, horse in pairs(horses) do
-        DeleteScriptObject(horse.ped)
-        DeleteScriptObject(horse.surfaceObject)
-    end
-end
-
 function ExitHorseTrackView()
     if CurrentTrack then 
         TriggerServerEvent("pickle_casinos:horseracing:setWager", viewingHorseRacingMenu.casinoId, viewingHorseRacingMenu.entityId, CurrentTrack.id, "clear")
@@ -560,7 +547,6 @@ end)
 
 AddEventHandler("onResourceStop", function(resourceName)
     if resourceName == GetCurrentResourceName() then
-        DeleteHorseRace()
         for k,v in pairs(LocalHorseRacingMachines) do
             for k2,v2 in pairs(v) do
                 UnrenderHorseRacingEntity(k, k2)

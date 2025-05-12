@@ -178,9 +178,6 @@ RegisterCallback("pickle_casinos:luckywheel:requestSpin", function(source, cb, c
     local sectionId, sectionIndex = GenerateWinningSection()
     local sectionCfg = Config.LuckyWheel.sections[LuckyWheelSections[sectionIndex]]
     if not sectionCfg then print("^1ERROR: LUCKY WHEEL SECTION CONFIG UNDEFINED, ADD THIS SECTION IN CONFIG.LUCKYWHEEL.SECTIONS:^0", LuckyWheelSections[sectionIndex]) return cb(false) end
-    if spinPrice > 0 then
-        RemoveCasinoChips(source, casinoId, spinPrice)
-    end
     if (spinPrice > 0 and Config.LuckyWheel.paidCooldown) or (spinPrice == 0) then
         local playerInfo, playerIndex = GetPlayerCasinoInfo(source, casinoId)
         if playerInfo.spinStart then
@@ -193,6 +190,9 @@ RegisterCallback("pickle_casinos:luckywheel:requestSpin", function(source, cb, c
                 return cb(false)
             end
         end
+    end
+    if spinPrice > 0 then
+        RemoveCasinoChips(source, casinoId, spinPrice)
     end
     entity.spinner = source
     entity.sectionIndex = sectionIndex

@@ -25,6 +25,7 @@ function JoinBaccaratEntity(source, casinoId, entityId, seatId)
     end
     if seatId == 0 then seatId = 1 end
     if entity.seats[seatId].source then
+        seatId = nil
         for i=1, #entity.seats do
             if entity.seats[i].source == nil then
                 seatId = i
