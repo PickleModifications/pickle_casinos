@@ -635,6 +635,10 @@ RegisterNUICallback("createCasinoEntity", function(data, cb)
     cb("ok")
     local casino = Casinos[data.casinoId]
     if not casino then return end
+    if not data.settings.location or #(vector3(0, 0, 0) - vector3(data.settings.location.coords.x, data.settings.location.coords.y, data.settings.location.coords.z)) < 1.0 then
+        ShowNotification(_L("casino_entity_location_error"))
+        return
+    end
     TriggerServerEvent("pickle_casinos:createCasinoEntity", data.casinoId, data.type, data.settings)
 end)
 

@@ -273,7 +273,7 @@ function AddCasinoTransaction(source, casinoId, transactionType, amount)
     }
     table.insert(casino.transactions, 1, transaction)
     MySQL.Async.execute('UPDATE `pickle_casinos` SET transactions = ? WHERE id = ?', {json.encode(casino.transactions), casinoId})
-    TriggerClientEvent("pickle_casinos:updateCasinoTransactions", -1, casinoId, casino.transactions)
+    TriggerLatentClientEvent("pickle_casinos:updateCasinoTransactions", -1, Config.BytesPerSecond or 25000, casinoId, casino.transactions)
 end
 
 function GetCasinoChips(source, casinoId)

@@ -9,8 +9,8 @@ Config.MaximumChipPurchaseAmount = 1000000 -- Maximum amount of chips a player c
 Config.MaximumItemPurchaseAmount = 100 -- Maximum amount of items a player can purchase at once.
 Config.ImageDirectory = "nui://ox_inventory/web/images/" -- (QB: nui://qb-inventory/html/images/) This is the directory where the images are stored. It should be a relative path to the resource folder.
 Config.DisableIPIdentifier = true -- This disables the IP identifier from being sent to the logs.
-
 Config.DisplayCurrencyAsChips = false -- This shows bet amounts and winnings as a number without any currency - set as false to disable this.
+Config.BytesPerSecond = 25000 -- This is the amount of bytes per second that latent events will send when sending large events.
 
 Config.PlaceableEntities = { -- These are the entities that can be placed in the Personal Casinos update.
     ["blackjack"] = {item = "blackjack_table"},

@@ -255,4 +255,5 @@ Language["en"] = {
     personal_casinos_create_exit = "Cancel Creation",
     personal_casinos_dialog = "Manage casino entity?",
     personal_casinos_entity_exit = "Exit Casino Entity",
+    casino_entity_location_error = "You must set a location for the entity to create it.",
 }
