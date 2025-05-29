@@ -192,6 +192,9 @@ function EnsureGameSettings(entityType, settings)
     }
     if entityType == "blackjack" or entityType == "roulette" or entityType == "baccarat" or entityType == "slot" or entityType == "wheel" or entityType == "horseracing" then
         defaultSettings["maxWager"] = settings.maxWager or 1000
+        if Config.MaxWager and defaultSettings["maxWager"] > Config.MaxWager then
+            defaultSettings["maxWager"] = Config.MaxWager
+        end
     end
     if entityType == "blackjack" or entityType == "roulette" or entityType == "baccarat" or entityType == "poker" then
         defaultSettings["tableModel"] = settings.tableModel

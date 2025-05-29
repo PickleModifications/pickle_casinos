@@ -117,13 +117,13 @@ RegisterNetEvent("pickle_casinos:luckywheel:startSpin", function()
     local section = GetLuckyWheelSectionForDegrees(result)
     local spinPrice = entity.settings.spinPrice or 0
     entity.stage = {type = "spinning", degrees = result}
-    TriggerClientEvent("pickle_casinos:luckywheel:updateStage", -1, casinoId, entityId, entity.stage)
+    TriggerClientCasinoEvent("pickle_casinos:luckywheel:updateStage", -1, casinoId, entityId, entity.stage)
     CreateThread(function()
         Wait(15000)
         local casino = Casinos[casinoId]
         if not casino then return end
         entity.stage = {type = "winner", section = section}
-        TriggerClientEvent("pickle_casinos:luckywheel:updateStage", -1, casinoId, entityId, entity.stage)
+        TriggerClientCasinoEvent("pickle_casinos:luckywheel:updateStage", -1, casinoId, entityId, entity.stage)
         if sectionCfg.rewards and #sectionCfg.rewards > 0 then
             local rewards = {}
             if sectionCfg.chooseRandomReward then
@@ -158,7 +158,7 @@ RegisterNetEvent("pickle_casinos:luckywheel:startSpin", function()
         end
         entity.stage = {type = "waiting"}
         entity.spinner = nil
-        TriggerClientEvent("pickle_casinos:luckywheel:updateStage", -1, casinoId, entityId, entity.stage)
+        TriggerClientCasinoEvent("pickle_casinos:luckywheel:updateStage", -1, casinoId, entityId, entity.stage)
     end)
 end)
 

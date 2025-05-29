@@ -43,7 +43,7 @@ function JoinBaccaratEntity(source, casinoId, entityId, seatId)
         StartBaccaratLobby(casinoId, entityId)
     end
     SetTimeout(100 * 1, function()
-        TriggerClientEvent("pickle_casinos:baccarat:updateSeat", -1, casinoId, entityId, seatId, entity.seats[seatId])
+        TriggerClientCasinoEvent("pickle_casinos:baccarat:updateSeat", -1, casinoId, entityId, seatId, entity.seats[seatId])
     end)
     ShowNotification(source, _L("joined_seat", seatId))
     return seatId
@@ -57,8 +57,8 @@ function LeaveBaccaratEntity(source, casinoId, entityId, seatId)
     if entity.seats[seatId].source == source then
         entity.seats[seatId] = GenerateDefaultBaccaratSeat()
         SetTimeout(100 * 1, function()
-            TriggerClientEvent("pickle_casinos:baccarat:updateSeat", -1, casinoId, entityId, seatId, entity.seats[seatId])
-            TriggerClientEvent("pickle_casinos:baccarat:updateSeatWager", -1, casinoId, entityId, seatId, entity.seats[seatId].wagers)
+            TriggerClientCasinoEvent("pickle_casinos:baccarat:updateSeat", -1, casinoId, entityId, seatId, entity.seats[seatId])
+            TriggerClientCasinoEvent("pickle_casinos:baccarat:updateSeatWager", -1, casinoId, entityId, seatId, entity.seats[seatId].wagers)
         end)
         CurrentPlayers[source] = nil
         ShowNotification(source, _L("left_baccarat"))
@@ -104,7 +104,7 @@ function StartBaccaratGame(casinoId, entityId)
         if entity.seats[i].source then
             if not ProcessBaccaratWager(casinoId, entityId, i, 1) then
                 entity.seats[i].wagers = GenerateBaccaratDefaultWagers()
-                TriggerClientEvent("pickle_casinos:baccarat:updateSeat", -1, casinoId, entityId, i, entity.seats[i])
+                TriggerClientCasinoEvent("pickle_casinos:baccarat:updateSeat", -1, casinoId, entityId, i, entity.seats[i])
             end
         end
     end
@@ -117,13 +117,13 @@ function StartBaccaratGame(casinoId, entityId)
             for i=1, 2 do
                 entity.stage = {type = "dealing", side = sides[i], card = GenerateCard(), cardIndex = #entity.cards[sides[i]] + 1, isFirstCard = isFirstCard}
                 entity.cards[sides[i]][#entity.cards[sides[i]] + 1] = entity.stage.card
-                TriggerClientEvent("pickle_casinos:baccarat:updateStage", -1, casinoId, entityId, entity.stage)
+                TriggerClientCasinoEvent("pickle_casinos:baccarat:updateStage", -1, casinoId, entityId, entity.stage)
                 if isFirstCard then
                     Wait(3000)
                 end
                 isFirstCard = false
                 SetTimeout(1300, function()
-                    TriggerClientEvent("pickle_casinos:baccarat:updateCards", -1, casinoId, entityId, sides[i], entity.cards[sides[i]])
+                    TriggerClientCasinoEvent("pickle_casinos:baccarat:updateCards", -1, casinoId, entityId, sides[i], entity.cards[sides[i]])
                 end)
                 Wait(2000)
             end
@@ -139,9 +139,9 @@ function StartBaccaratGame(casinoId, entityId)
             playerThirdCard = GenerateCard()
             entity.stage = {type = "dealing", side = "player", card = GenerateCard(), cardIndex = #entity.cards.player + 1}
             entity.cards.player[#entity.cards.player + 1] = entity.stage.card
-            TriggerClientEvent("pickle_casinos:baccarat:updateStage", -1, casinoId, entityId, entity.stage)
+            TriggerClientCasinoEvent("pickle_casinos:baccarat:updateStage", -1, casinoId, entityId, entity.stage)
             SetTimeout(1300, function()
-                TriggerClientEvent("pickle_casinos:baccarat:updateCards", -1, casinoId, entityId, "player", entity.cards.player)
+                TriggerClientCasinoEvent("pickle_casinos:baccarat:updateCards", -1, casinoId, entityId, "player", entity.cards.player)
             end)
             Wait(2000)
         end
@@ -150,9 +150,9 @@ function StartBaccaratGame(casinoId, entityId)
                 if bankerValue <= 5 then
                     entity.stage = {type = "dealing", side = "banker", card = GenerateCard(), cardIndex = #entity.cards.banker + 1}
                     entity.cards.banker[#entity.cards.banker + 1] = entity.stage.card
-                    TriggerClientEvent("pickle_casinos:baccarat:updateStage", -1, casinoId, entityId, entity.stage)
+                    TriggerClientCasinoEvent("pickle_casinos:baccarat:updateStage", -1, casinoId, entityId, entity.stage)
                     SetTimeout(1300, function()
-                        TriggerClientEvent("pickle_casinos:baccarat:updateCards", -1, casinoId, entityId, "banker", entity.cards.banker)
+                        TriggerClientCasinoEvent("pickle_casinos:baccarat:updateCards", -1, casinoId, entityId, "banker", entity.cards.banker)
                     end)
                     Wait(2000)
                 end
@@ -160,17 +160,17 @@ function StartBaccaratGame(casinoId, entityId)
                 if (bankerValue <= 2) then
                     entity.stage = {type = "dealing", side = "banker", card = GenerateCard(), cardIndex = #entity.cards.banker + 1}
                     entity.cards.banker[#entity.cards.banker + 1] = entity.stage.card
-                    TriggerClientEvent("pickle_casinos:baccarat:updateStage", -1, casinoId, entityId, entity.stage)
+                    TriggerClientCasinoEvent("pickle_casinos:baccarat:updateStage", -1, casinoId, entityId, entity.stage)
                     SetTimeout(1300, function()
-                        TriggerClientEvent("pickle_casinos:baccarat:updateCards", -1, casinoId, entityId, "banker", entity.cards.banker)
+                        TriggerClientCasinoEvent("pickle_casinos:baccarat:updateCards", -1, casinoId, entityId, "banker", entity.cards.banker)
                     end)
                     Wait(2000)
                 elseif (playerThirdCard.value ~= 8 and (bankerValue >= 3 and bankerValue <= 6)) then
                     entity.stage = {type = "dealing", side = "banker", card = GenerateCard(), cardIndex = #entity.cards.banker + 1}
                     entity.cards.banker[#entity.cards.banker + 1] = entity.stage.card
-                    TriggerClientEvent("pickle_casinos:baccarat:updateStage", -1, casinoId, entityId, entity.stage)
+                    TriggerClientCasinoEvent("pickle_casinos:baccarat:updateStage", -1, casinoId, entityId, entity.stage)
                     SetTimeout(1300, function()
-                        TriggerClientEvent("pickle_casinos:baccarat:updateCards", -1, casinoId, entityId, "banker", entity.cards.banker)
+                        TriggerClientCasinoEvent("pickle_casinos:baccarat:updateCards", -1, casinoId, entityId, "banker", entity.cards.banker)
                     end)
                     Wait(2000)
                 end
@@ -251,19 +251,19 @@ function StartBaccaratGame(casinoId, entityId)
             end
         end
         Wait(750)
-        TriggerClientEvent("pickle_casinos:baccarat:updateResults", -1, casinoId, entityId, {
+        TriggerClientCasinoEvent("pickle_casinos:baccarat:updateResults", -1, casinoId, entityId, {
             type = "results", 
             winningWagers = winningWagers,
         }, seatResults)
         entity.cards = {player = {}, banker = {}}
         entity.stage = {type = "cleanup", seat = 0}
-        TriggerClientEvent("pickle_casinos:baccarat:updateStage", -1, casinoId, entityId, entity.stage)
+        TriggerClientCasinoEvent("pickle_casinos:baccarat:updateStage", -1, casinoId, entityId, entity.stage)
         Wait(2000)
-        TriggerClientEvent("pickle_casinos:baccarat:updateCards", -1, casinoId, entityId, "player", entity.cards["player"])
-        TriggerClientEvent("pickle_casinos:baccarat:updateCards", -1, casinoId, entityId, "banker", entity.cards["banker"])
+        TriggerClientCasinoEvent("pickle_casinos:baccarat:updateCards", -1, casinoId, entityId, "player", entity.cards["player"])
+        TriggerClientCasinoEvent("pickle_casinos:baccarat:updateCards", -1, casinoId, entityId, "banker", entity.cards["banker"])
         for k,v in pairs(entity.seats) do
             entity.seats[k].wagers = GenerateBaccaratDefaultWagers()
-            TriggerClientEvent("pickle_casinos:baccarat:updateSeatWager", -1, casinoId, entityId, k, entity.seats[k].wagers)
+            TriggerClientCasinoEvent("pickle_casinos:baccarat:updateSeatWager", -1, casinoId, entityId, k, entity.seats[k].wagers)
         end
         StartBaccaratLobby(casinoId, entityId)
     end)
@@ -290,7 +290,7 @@ function StartBaccaratLobby(casinoId, entityId)
         BaccaratLobbies[casinoId][entityId] = true
     end
     entity.stage = {type = "waiting", time = GetWaitingTime("baccarat")}
-    TriggerClientEvent("pickle_casinos:baccarat:updateStage", -1, casinoId, entityId, entity.stage)
+    TriggerClientCasinoEvent("pickle_casinos:baccarat:updateStage", -1, casinoId, entityId, entity.stage)
     CreateThread(function()
         while entity.stage.type == "waiting" and entity.stage.time > 1 do
             entity.stage.time = entity.stage.time - 1
@@ -412,7 +412,7 @@ RegisterNetEvent("pickle_casinos:baccarat:setWager", function(wager)
     if totalWager <= entity.betRange[2] then
         entity.seats[info.seatId].wagers = newWagers
     end
-    TriggerClientEvent("pickle_casinos:baccarat:updateSeatWager", -1, info.casinoId, info.entityId, info.seatId, entity.seats[info.seatId].wagers)
+    TriggerClientCasinoEvent("pickle_casinos:baccarat:updateSeatWager", -1, info.casinoId, info.entityId, info.seatId, entity.seats[info.seatId].wagers)
 end)
 
 RegisterNetEvent("pickle_casinos:baccarat:repeatWager", function()
@@ -428,7 +428,7 @@ RegisterNetEvent("pickle_casinos:baccarat:repeatWager", function()
     if totalWager <= entity.betRange[2] then
         entity.seats[info.seatId].wagers = newWagers
     end
-    TriggerClientEvent("pickle_casinos:baccarat:updateSeatWager", -1, info.casinoId, info.entityId, info.seatId, entity.seats[info.seatId].wagers)
+    TriggerClientCasinoEvent("pickle_casinos:baccarat:updateSeatWager", -1, info.casinoId, info.entityId, info.seatId, entity.seats[info.seatId].wagers)
 end)
 
 AddEventHandler('playerDropped', function()

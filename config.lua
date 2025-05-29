@@ -11,7 +11,7 @@ Config.ImageDirectory = "nui://ox_inventory/web/images/" -- (QB: nui://qb-invent
 Config.DisableIPIdentifier = true -- This disables the IP identifier from being sent to the logs.
 Config.DisplayCurrencyAsChips = false -- This shows bet amounts and winnings as a number without any currency - set as false to disable this.
 Config.BytesPerSecond = 25000 -- This is the amount of bytes per second that latent events will send when sending large events.
-
+Config.MaxWager = 1000000 
 Config.PlaceableEntities = { -- These are the entities that can be placed in the Personal Casinos update.
     ["blackjack"] = {item = "blackjack_table"},
     ["baccarat"] = {item = "baccarat_table"},

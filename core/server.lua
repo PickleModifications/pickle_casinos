@@ -43,3 +43,11 @@ function GetPlayerPrefixIdentifier(source)
         end
     end  
 end
+
+function TriggerClientCasinoEvent(eventName, target, casinoId, entityId, ...)
+    local casinoEntity = GetCasinoEntity(casinoId, entityId)
+    if not casinoEntity then return end
+    local coords = casinoEntity.settings.location.coords
+    -- HANDLE GRID COORDS HERE IF SUPER COOL AND AWESOME
+    TriggerClientEvent(eventName, target, casinoId, entityId, ...)
+end

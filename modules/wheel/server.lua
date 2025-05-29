@@ -62,7 +62,7 @@ function StartWheelGame(casinoId, entityId)
     local result = GetSafeDegrees(math.random(0, 360))
     local section = GetSectionForDegrees(result)
     entity.stage = {type = "spinning", degrees = result}
-    TriggerClientEvent("pickle_casinos:wheel:updateStage", -1, casinoId, entityId, entity.stage)
+    TriggerClientCasinoEvent("pickle_casinos:wheel:updateStage", -1, casinoId, entityId, entity.stage)
     CreateThread(function()
         Wait(15000)
         local multiplier = 1
@@ -70,7 +70,7 @@ function StartWheelGame(casinoId, entityId)
             local bonusIndex, bonusMultiplier = GetRandomMultiplier()
             multiplier = bonusMultiplier
             entity.stage = {type = "bonus", prizeId = "bonus_" .. bonusIndex}
-            TriggerClientEvent("pickle_casinos:wheel:updateStage", -1, casinoId, entityId, entity.stage)
+            TriggerClientCasinoEvent("pickle_casinos:wheel:updateStage", -1, casinoId, entityId, entity.stage)
             Wait(8000)
         end
         for k, v in pairs(entity.players) do
@@ -89,13 +89,13 @@ function StartWheelGame(casinoId, entityId)
             end
         end
         entity.stage = {type = "winner", section = section, multiplier = section == "bonus" and multiplier or nil}
-        TriggerClientEvent("pickle_casinos:wheel:updateStage", -1, casinoId, entityId, entity.stage)
+        TriggerClientCasinoEvent("pickle_casinos:wheel:updateStage", -1, casinoId, entityId, entity.stage)
         Wait(5000)
         table.insert(entity.history, 1, {section = section, multiplier = section == "bonus" and multiplier or nil})
         if #entity.history > 30 then
             table.remove(entity.history, #entity.history)
         end
-        TriggerClientEvent("pickle_casinos:wheel:updateHistory", -1, casinoId, entityId, entity.history)
+        TriggerClientCasinoEvent("pickle_casinos:wheel:updateHistory", -1, casinoId, entityId, entity.history)
         for k,v in pairs(entity.players) do
             UpdatePlayerBalance(k, casinoId)
             entity.players[k].wagers = GenerateDefaultWheelWagers()
@@ -131,7 +131,7 @@ function StartWheelLobby(casinoId, entityId)
         WheelLobbies[casinoId][entityId] = true
     end
     entity.stage = {type = "waiting", time = GetWaitingTime("wheel")}
-    TriggerClientEvent("pickle_casinos:wheel:updateStage", -1, casinoId, entityId, entity.stage)
+    TriggerClientCasinoEvent("pickle_casinos:wheel:updateStage", -1, casinoId, entityId, entity.stage)
     CreateThread(function()
         for k,v in pairs(entity.players) do
             if v.left then

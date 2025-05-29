@@ -60,7 +60,7 @@ function JoinPokerEntity(source, casinoId, entityId, seatId)
         StartPokerLobby(casinoId, entityId)
     end
     SetTimeout(100 * 1, function()
-        TriggerClientEvent("pickle_casinos:poker:updateSeat", -1, casinoId, entityId, seatId, entity.seats[seatId])
+        TriggerClientCasinoEvent("pickle_casinos:poker:updateSeat", -1, casinoId, entityId, seatId, entity.seats[seatId])
     end)
     ShowNotification(source, _L("joined_seat", seatId))
     return seatId
@@ -184,8 +184,8 @@ function StartPokerGame(casinoId, entityId)
     entity.seats[bigBlindIndex].totalWager = (entity.seats[bigBlindIndex].totalWager or 0) + bigBlind
     -- debugPrint("Small Blind: " .. smallBlindIndex .. " Big Blind: " .. bigBlindIndex)
     entity.pot = smallBlind + bigBlind
-    TriggerClientEvent("pickle_casinos:poker:updateSeats", -1, casinoId, entityId, entity.seats)
-    TriggerClientEvent("pickle_casinos:poker:updatePot", -1, casinoId, entityId, entity.pot)
+    TriggerClientCasinoEvent("pickle_casinos:poker:updateSeats", -1, casinoId, entityId, entity.seats)
+    TriggerClientCasinoEvent("pickle_casinos:poker:updatePot", -1, casinoId, entityId, entity.pot)
     local seatOrder = {}
     local currentSeat = bigBlindIndex
     entity.stage = {type = "dealing", time = 0, seat = bigBlindIndex, minimumBet = 0}
@@ -258,9 +258,9 @@ function StartPokerGame(casinoId, entityId)
                         deck = updatedDeck
                         entity.dealerCards[index] = card
                         entity.stage = {type = "dealerDealing", index = index, card = entity.dealerCards[index]}
-                        TriggerClientEvent("pickle_casinos:poker:updateStage", -1, casinoId, entityId, entity.stage)
+                        TriggerClientCasinoEvent("pickle_casinos:poker:updateStage", -1, casinoId, entityId, entity.stage)
                         SetTimeout(1400, function()
-                            TriggerClientEvent("pickle_casinos:poker:updateDealerCards", -1, casinoId, entityId, entity.dealerCards)
+                            TriggerClientCasinoEvent("pickle_casinos:poker:updateDealerCards", -1, casinoId, entityId, entity.dealerCards)
                         end)
                         Wait(1500)
                     end
@@ -295,9 +295,9 @@ function StartPokerGame(casinoId, entityId)
                             if minimumBet < 0 then minimumBet = 0 end
                             debugPrint("Minimum Bet: " .. minimumBet, "Highest Bet: " .. currentRound.highestBet, "SEAT INFO:", currentSeat, currentRound.seatBets[currentSeat])
                             entity.seats[currentSeat].action = nil
-                            TriggerClientEvent("pickle_casinos:poker:updateSeatAction", -1, casinoId, entityId, currentSeat, entity.seats[currentSeat].action)
+                            TriggerClientCasinoEvent("pickle_casinos:poker:updateSeatAction", -1, casinoId, entityId, currentSeat, entity.seats[currentSeat].action)
                             entity.stage = {type = "seatTurn", time = GetSeatTurnTime("poker"), seat = currentSeat, minimumBet = minimumBet}
-                            TriggerClientEvent("pickle_casinos:poker:updateStage", -1, casinoId, entityId, entity.stage)
+                            TriggerClientCasinoEvent("pickle_casinos:poker:updateStage", -1, casinoId, entityId, entity.stage)
                             for i=1, GetSeatTurnTime("poker") + 1 do 
                                 if entity.seats[currentSeat].action then break end
                                 Wait(1000)
@@ -358,8 +358,8 @@ function StartPokerGame(casinoId, entityId)
                             end
                             -- TriggerClientEvent("pickle_casinos:poker:updateSeat", -1, casinoId, entityId, currentSeat, GetObfuscuatedSeat(entity.seats[currentSeat]))
                             debugPrint(currentSeat, json.encode(entity.seats[currentSeat].action))
-                            TriggerClientEvent("pickle_casinos:poker:updateSeatAction", -1, casinoId, entityId, currentSeat, entity.seats[currentSeat].action, entity.seats[currentSeat].balance)
-                            TriggerClientEvent("pickle_casinos:poker:updatePot", -1, casinoId, entityId, entity.pot)
+                            TriggerClientCasinoEvent("pickle_casinos:poker:updateSeatAction", -1, casinoId, entityId, currentSeat, entity.seats[currentSeat].action, entity.seats[currentSeat].balance)
+                            TriggerClientCasinoEvent("pickle_casinos:poker:updatePot", -1, casinoId, entityId, entity.pot)
                         
                         end
                     end
@@ -424,7 +424,7 @@ function StartPokerGame(casinoId, entityId)
                 local seats = GetObfuscuatedSeats(entity.seats, winners)
                 seats[i].cards = entity.seats[i].cards
                 entity.stage = {type = "results", winnings = winnings, seats = seats}
-                TriggerClientEvent("pickle_casinos:poker:updateStage", -1, casinoId, entityId, entity.stage)
+                TriggerClientCasinoEvent("pickle_casinos:poker:updateStage", -1, casinoId, entityId, entity.stage)
             end
         end
 
@@ -455,9 +455,9 @@ function StartPokerGame(casinoId, entityId)
         end
         entity.dealerCards = {}
         Wait(5000)
-        TriggerClientEvent("pickle_casinos:poker:updateSeats", -1, casinoId, entityId, entity.seats)
-        TriggerClientEvent("pickle_casinos:poker:updateDealerCards", -1, casinoId, entityId, entity.dealerCards)
-        TriggerClientEvent("pickle_casinos:poker:updatePot", -1, casinoId, entityId, entity.pot)
+        TriggerClientCasinoEvent("pickle_casinos:poker:updateSeats", -1, casinoId, entityId, entity.seats)
+        TriggerClientCasinoEvent("pickle_casinos:poker:updateDealerCards", -1, casinoId, entityId, entity.dealerCards)
+        TriggerClientCasinoEvent("pickle_casinos:poker:updatePot", -1, casinoId, entityId, entity.pot)
         -- Start a new poker lobby
         StartPokerLobby(casinoId, entityId)
     end)
@@ -472,7 +472,7 @@ function LeavePokerEntity(source, casinoId, entityId, seatId)
     end
     entity.seats[seatId] = GenerateDefaultPokerSeat()
     CurrentPlayers[source] = nil
-    TriggerClientEvent("pickle_casinos:poker:updateSeat", -1, casinoId, entityId, seatId, entity.seats[seatId])
+    TriggerClientCasinoEvent("pickle_casinos:poker:updateSeat", -1, casinoId, entityId, seatId, entity.seats[seatId])
 end
 
 function StartPokerLobby(casinoId, entityId)
@@ -500,7 +500,7 @@ function StartPokerLobby(casinoId, entityId)
         PokerLobbies[casinoId][entityId] = true
     end
     entity.stage = {type = "waiting", time = GetWaitingTime("poker")}
-    TriggerClientEvent("pickle_casinos:poker:updateStage", -1, casinoId, entityId, entity.stage)
+    TriggerClientCasinoEvent("pickle_casinos:poker:updateStage", -1, casinoId, entityId, entity.stage)
     CreateThread(function()
         while entity.stage.type == "waiting" and entity.stage.time > 1 do
             entity.stage.time = entity.stage.time - 1
