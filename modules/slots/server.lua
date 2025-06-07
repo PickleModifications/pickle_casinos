@@ -152,13 +152,14 @@ RegisterNetEvent("pickle_casinos:slots:redeemSpin", function(id, spinIndex)
     local spin = slotSpin.spins[spinIndex]
     if not spin or spin.redeemed then return end
     debugPrint("Redeeming spin", id, spinIndex, slotSpin.bet)
-    local calculatedWin = GetSpinCalculatedWin(slotSpin.gameId, spin, slotSpin.bet)
+    local calculatedWin = GetSpinCalculatedWin(slotSpin.gameId, spin, slotSpin.bet) 
     local playerMoney = GetCasinoChips(source, slotSpin.casinoId)
     if calculatedWin > 0 then
         playerMoney = playerMoney + calculatedWin
         AddCasinoChips(source, slotSpin.casinoId, calculatedWin)
         ShowNotification(source, _L("spin_won", GetCurrencyString(calculatedWin)))
     end
+    EndCasinoGameplayTransaction(slotSpin.transaction, source, slotSpin.casinoId, slotSpin.entityId, "slots", calculatedWin)  
     TriggerClientEvent("pickle_casinos:updateBalance", source, playerMoney)
     spin.redeemed = true
     if spinIndex >= #slotSpin.spins then
@@ -215,11 +216,14 @@ RegisterCallback("pickle_casinos:slots:spinSlot", function(source, cb, betIndex)
     RemoveCasinoChips(source, casinoId, bet)
     local spinId = GenerateSpinId()
     local spin = GenerateSpin(Config.Slots[entity.settings.game])
+
     spin.casinoId = casinoId
+    spin.entityId = entityId
     spin.gameId = entity.settings.game
     spin.id = spinId
     spin.source = source
     spin.bet = bet
+    spin.transaction = StartCasinoGameplayTransaction(source, casinoId, entityId, "slots", bet)
     PendingSpins[spinId] = spin
     cb(spin, playerMoney)
 end)

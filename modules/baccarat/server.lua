@@ -99,12 +99,15 @@ function StartBaccaratGame(casinoId, entityId)
     local entity = GetCasinoEntity(casinoId, entityId)
     if not entity then return end
     if entity.stage.type ~= "waiting" then return end
+    local transactions = {}
     local hiddenCard = GenerateCard()
     for i=1, 4 do
         if entity.seats[i].source then
             if not ProcessBaccaratWager(casinoId, entityId, i, 1) then
                 entity.seats[i].wagers = GenerateBaccaratDefaultWagers()
                 TriggerClientCasinoEvent("pickle_casinos:baccarat:updateSeat", -1, casinoId, entityId, i, entity.seats[i])
+            else
+                transactions[entity.seats[i].source] = StartCasinoGameplayTransaction(entity.seats[i].source, casinoId, entityId, "baccarat", GetBaccaratTotalWager(entity.seats[i].wagers))
             end
         end
     end
@@ -246,6 +249,9 @@ function StartBaccaratGame(casinoId, entityId)
                 seatResults[i].money = GetCasinoChips(entity.seats[i].source, casinoId) + seatResults[i].won
                 if seatResults[i].won > 0 then
                     AddCasinoChips(entity.seats[i].source, casinoId, seatResults[i].won)
+                end
+                if transactions[entity.seats[i].source] then
+                    EndCasinoGameplayTransaction(transactions[entity.seats[i].source], entity.seats[i].source, casinoId, entityId, "baccarat", seatResults[i].won)
                 end
                 UpdatePlayerBalance(entity.seats[i].source, casinoId)
             end

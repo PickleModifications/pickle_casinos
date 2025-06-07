@@ -1,6 +1,12 @@
 CurrentPlayers = {}
 PlayerCooldowns = {}
 
+function GetCasino(casinoId)
+    return Casinos[casinoId]
+end
+
+exports("GetCasino", GetCasino)
+
 function IsCasinoOwned(casinoId)
     local casino = Casinos[casinoId]
     if not casino then return false end
@@ -160,6 +166,8 @@ function GetCasinoEntity(casinoId, entityId)
         end
     end
 end
+
+exports("GetCasinoEntity", GetCasinoEntity)
 
 function SendCasinoEntityUpdate(casinoId, entityId)
     local casino = Casinos[casinoId]

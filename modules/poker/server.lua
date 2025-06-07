@@ -1,4 +1,5 @@
 local PokerLobbies = {}
+local PokerTransactions = {}
 
 function DoesPokerLobbyExist(casinoId, entityId)
     if not casinoId or not entityId then return end
@@ -55,6 +56,7 @@ function JoinPokerEntity(source, casinoId, entityId, seatId)
     end
     entity.seats[seatId] = newSeat
     RemoveCasinoChips(source, casinoId, entity.seats[seatId].balance)
+    PokerTransactions[source] = StartCasinoGameplayTransaction(source, casinoId, entityId, "poker", entity.seats[seatId].balance)
     CurrentPlayers[source] = {casinoId = casinoId, entityId = entityId, seatId = seatId}
     if not DoesPokerLobbyExist(casinoId, entityId) then
         StartPokerLobby(casinoId, entityId)
@@ -469,6 +471,10 @@ function LeavePokerEntity(source, casinoId, entityId, seatId)
     local source = entity.seats[seatId].source
     if entity.seats[seatId].balance > 0 then
         AddCasinoChips(source, casinoId, entity.seats[seatId].balance)
+    end
+    if PokerTransactions[source] then
+        EndCasinoGameplayTransaction(PokerTransactions[source], source, casinoId, entityId, "poker", entity.seats[seatId].balance)
+        PokerTransactions[source] = nil
     end
     entity.seats[seatId] = GenerateDefaultPokerSeat()
     CurrentPlayers[source] = nil

@@ -192,6 +192,7 @@ function StartBlackjackGame(casinoId, entityId)
     local entity = GetCasinoEntity(casinoId, entityId)
     if not entity then return end
     if entity.stage.type ~= "waiting" then return end
+    local transactions = {}
     local hiddenCard = GenerateCard()
     entity.seats[0] = {source = 0, hands = {{}, {}}}
     for i=1, 4 do
@@ -201,6 +202,7 @@ function StartBlackjackGame(casinoId, entityId)
                 entity.seats[i].hands = {{}, {}}
                 TriggerClientCasinoEvent("pickle_casinos:blackjack:updateSeat", -1, casinoId, entityId, i, entity.seats[i])
             else
+                transactions[entity.seats[i].source] = StartCasinoGameplayTransaction(entity.seats[i].source, casinoId, entityId, "blackjack", entity.seats[i].wagers[1])
                 LastWagers[entity.seats[i].source] = entity.seats[i].wagers
             end
         end
@@ -310,6 +312,9 @@ function StartBlackjackGame(casinoId, entityId)
                 seatResults[i].money = GetCasinoChips(entity.seats[i].source, casinoId) + seatResults[i].won
                 if entity.seats[i].wagers[1] > 0 and seatResults[i].won > 0 then
                     AddCasinoChips(entity.seats[i].source, casinoId, seatResults[i].won)
+                end
+                if transactions[entity.seats[i].source] then
+                    EndCasinoGameplayTransaction(transactions[entity.seats[i].source], entity.seats[i].source, casinoId, entityId, "blackjack", seatResults[i].won)
                 end
             end
         end

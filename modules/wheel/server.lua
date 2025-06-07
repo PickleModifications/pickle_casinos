@@ -38,6 +38,7 @@ function StartWheelGame(casinoId, entityId)
     if not entity then return end
     if entity.stage.type ~= "waiting" then return end
     local hasSuccessWager = false
+    local transactions = {}
     for k,v in pairs(entity.players) do
         local total = 0
         for a, b in pairs(v.wagers) do
@@ -48,6 +49,7 @@ function StartWheelGame(casinoId, entityId)
             LastWagers[k] = v.wagers
             RemoveCasinoChips(k, casinoId, total)
             hasSuccessWager = true
+            transactions[k] = StartCasinoGameplayTransaction(k, casinoId, entityId, "wheel", total)
         else
             entity.players[k].wagers = GenerateDefaultWheelWagers()
             LastWagers[k] = entity.players[k].wagers
@@ -86,6 +88,10 @@ function StartWheelGame(casinoId, entityId)
                 money = money + payout
                 AddCasinoChips(k, casinoId, payout)
                 TriggerClientEvent("pickle_casinos:displayResults", k, payout, money)
+                if transactions[k] then
+                    EndCasinoGameplayTransaction(transactions[k], k, casinoId, entityId, "wheel", payout)
+                    transactions[k] = nil
+                end
             end
         end
         entity.stage = {type = "winner", section = section, multiplier = section == "bonus" and multiplier or nil}

@@ -114,12 +114,14 @@ function StartRouletteGame(casinoId, entityId)
     if not entity then return end
     if entity.stage.type ~= "waiting" then return end
     local hasAcceptedWager = false
+    local transactions = {}
     for i=1, #entity.seats do
         local totalWager = GetRouletteTotalWager(entity.seats[i].connects)
         if not ProcessRouletteWager(casinoId, entityId, i) then
             entity.seats[i].connects = GenerateRouletteDefaultWagers()
             TriggerClientCasinoEvent("pickle_casinos:roulette:updateSeatWager", -1, casinoId, entityId, i, entity.seats[i].connects)
         else
+            transactions[entity.seats[i].source] = StartCasinoGameplayTransaction(entity.seats[i].source, casinoId, entityId, "roulette", totalWager)
             LastWagers[entity.seats[i].source] = {connects = entity.seats[i].connects, wager = totalWager}
             hasAcceptedWager = true
         end
@@ -160,6 +162,9 @@ function StartRouletteGame(casinoId, entityId)
             seats[i] = { totalWin = totalWin }
             if totalWin > 0 then
                 AddCasinoChips(seat.source, casinoId, totalWin)
+            end
+            if transactions[seat.source] then
+                EndCasinoGameplayTransaction(transactions[seat.source], seat.source, casinoId, entityId, "roulette", totalWin)
             end
         end
         entity.stage = {type = "winningNumber", winningNumber = winningNumber, seats = seats}

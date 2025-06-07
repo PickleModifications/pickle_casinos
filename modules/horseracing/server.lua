@@ -53,6 +53,7 @@ end
 function StartHorseRacingTrackRace(trackId)
     local track = Tracks[trackId]
     if not track then return end
+    local transactions = {}
     for source,player in pairs(track.players) do 
         local totalWager = 0
         for a,b in pairs(player.wagers) do 
@@ -66,6 +67,7 @@ function StartHorseRacingTrackRace(trackId)
             else
                 LastWagers[source] = track.players[source].wagers
                 RemoveCasinoChips(source, track.players[source].casinoId, totalWager)
+                transactions[source] = StartCasinoGameplayTransaction(source, track.players[source].casinoId, track.players[source].entityId, "horseracing", totalWager)
             end
         end
     end
@@ -78,6 +80,9 @@ function StartHorseRacingTrackRace(trackId)
         if winnings > 0 then
             AddCasinoChips(source, player.casinoId, player.wagers[track.stage.winner] + winnings)
             TriggerClientEvent("pickle_casinos:displayResults", source, player.wagers[track.stage.winner] + winnings, GetCasinoChips(source, player.casinoId))
+        end
+        if transactions[source] then
+            EndCasinoGameplayTransaction(transactions[source], source, player.casinoId, player.entityId, "horseracing", player.wagers[track.stage.winner] + winnings)
         end
     end
     Wait(7000)
@@ -188,7 +193,7 @@ RegisterNetEvent("pickle_casinos:horseracing:setWager", function(casinoId, entit
     else
         wagers = GetDefaultWager()
     end
-    track.players[source] = {casinoId = casinoId, wagers = wagers}
+    track.players[source] = {casinoId = casinoId, entityId = entityId, wagers = wagers}
     TriggerClientEvent("pickle_casinos:horseracing:updateWager", source, casinoId, trackId, track.players[source].wagers)
 end)
 

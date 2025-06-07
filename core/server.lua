@@ -51,3 +51,13 @@ function TriggerClientCasinoEvent(eventName, target, casinoId, entityId, ...)
     -- HANDLE GRID COORDS HERE IF SUPER COOL AND AWESOME
     TriggerClientEvent(eventName, target, casinoId, entityId, ...)
 end
+
+function StartCasinoGameplayTransaction(source, casinoId, entityId, gameType, wagerAmount)
+    local id = os.time() .. "_" .. source
+    TriggerEvent("pickle_casinos:gameplay:startTransaction", id, source, casinoId, entityId, gameType, wagerAmount)
+    return id
+end
+
+function EndCasinoGameplayTransaction(id, source, casinoId, entityId, gameType, winAmount)
+    TriggerEvent("pickle_casinos:gameplay:endTransaction", id, source, casinoId, entityId, gameType, winAmount)
+end
