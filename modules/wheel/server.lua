@@ -37,6 +37,7 @@ function StartWheelGame(casinoId, entityId)
     local entity = GetCasinoEntity(casinoId, entityId)
     if not entity then return end
     if entity.stage.type ~= "waiting" then return end
+    entity.stage = {type = "starting"}
     local hasSuccessWager = false
     local transactions = {}
     for k,v in pairs(entity.players) do
@@ -231,7 +232,7 @@ RegisterNetEvent("pickle_casinos:wheel:setWager", function(wagers)
     if not info then return end
     local entity = GetCasinoEntity(info.casinoId, info.entityId)
     if not entity then return end
-    if not entity.stage.type == "waiting" then return end
+    if entity.stage.type ~= "waiting" then return end
     local player = entity.players[source]
     if not player then return end
     local newWagers = {
@@ -267,7 +268,7 @@ RegisterNetEvent("pickle_casinos:wheel:repeatWager", function()
     if not info then return end
     local entity = GetCasinoEntity(info.casinoId, info.entityId)
     if not entity then return end
-    if not entity.stage.type == "waiting" then return end
+    if entity.stage.type ~= "waiting" then return end
     local player = entity.players[source]
     if not player then return end
     local newWagers = LastWagers[source] or GenerateDefaultWheelWagers()

@@ -99,6 +99,7 @@ function StartBaccaratGame(casinoId, entityId)
     local entity = GetCasinoEntity(casinoId, entityId)
     if not entity then return end
     if entity.stage.type ~= "waiting" then return end
+    entity.stage = {type = "starting"}
     local transactions = {}
     local hiddenCard = GenerateCard()
     for i=1, 4 do
@@ -404,7 +405,7 @@ RegisterNetEvent("pickle_casinos:baccarat:setWager", function(wager)
     if not info then return end
     local entity = GetCasinoEntity(info.casinoId, info.entityId)
     if not entity then return end
-    if not entity.stage.type == "waiting" then return end
+    if entity.stage.type ~= "waiting" then return end
     local newWagers = {
         player = wager.player or 0,
         banker = wager.banker or 0,
@@ -428,7 +429,7 @@ RegisterNetEvent("pickle_casinos:baccarat:repeatWager", function()
     if not info then return end
     local entity = GetCasinoEntity(info.casinoId, info.entityId)
     if not entity then return end
-    if not entity.stage.type == "waiting" then return end
+    if entity.stage.type ~= "waiting" then return end
     local newWagers = LastWagers[source] or GenerateBaccaratDefaultWagers()
     local totalWager = GetBaccaratTotalWager(newWagers)
     if totalWager <= entity.betRange[2] then

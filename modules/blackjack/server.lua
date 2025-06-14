@@ -192,6 +192,7 @@ function StartBlackjackGame(casinoId, entityId)
     local entity = GetCasinoEntity(casinoId, entityId)
     if not entity then return end
     if entity.stage.type ~= "waiting" then return end
+    entity.stage = {type = "starting"}
     local transactions = {}
     local hiddenCard = GenerateCard()
     entity.seats[0] = {source = 0, hands = {{}, {}}}
@@ -470,7 +471,7 @@ RegisterNetEvent("pickle_casinos:blackjack:setWager", function(wager)
     if not info then return end
     local entity = GetCasinoEntity(info.casinoId, info.entityId)
     if not entity then return end
-    if not entity.stage.type == "waiting" then return end
+    if entity.stage.type ~= "waiting" then return end
     entity.seats[info.seatId].wagers[1] = wager
     TriggerClientCasinoEvent("pickle_casinos:blackjack:updateSeatWager", -1, info.casinoId, info.entityId, info.seatId, 1, wager)
 end)
@@ -482,7 +483,7 @@ RegisterNetEvent("pickle_casinos:blackjack:repeatWager", function()
     if not info then return end
     local entity = GetCasinoEntity(info.casinoId, info.entityId)
     if not entity then return end
-    if not entity.stage.type == "waiting" then return end
+    if entity.stage.type ~= "waiting" then return end
     if not LastWagers[source] then return end
     if LastWagers[source][1] > entity.betRange[2] then
         LastWagers[source][1] = entity.betRange[2]

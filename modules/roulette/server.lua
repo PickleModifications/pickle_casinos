@@ -113,6 +113,7 @@ function StartRouletteGame(casinoId, entityId)
     local entity = GetCasinoEntity(casinoId, entityId)
     if not entity then return end
     if entity.stage.type ~= "waiting" then return end
+    entity.stage = {type = "starting"}
     local hasAcceptedWager = false
     local transactions = {}
     for i=1, #entity.seats do
@@ -374,7 +375,7 @@ RegisterNetEvent("pickle_casinos:roulette:updateRouletteWagers", function(connec
     if not info then return end
     local entity = GetCasinoEntity(info.casinoId, info.entityId)
     if not entity then return end
-    if not entity.stage.type == "waiting" then return end
+    if entity.stage.type ~= "waiting" then return end
     local data = GetDefaultRouletteConnections()
     local totalWager = 0
     for i=1, #data do 

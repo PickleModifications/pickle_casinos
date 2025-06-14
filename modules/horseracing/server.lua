@@ -54,6 +54,7 @@ function StartHorseRacingTrackRace(trackId)
     local track = Tracks[trackId]
     if not track then return end
     local transactions = {}
+    track.stage = {type = "racing", winner = GenerateWinningHorse(track.horses)}
     for source,player in pairs(track.players) do 
         local totalWager = 0
         for a,b in pairs(player.wagers) do 
@@ -71,7 +72,6 @@ function StartHorseRacingTrackRace(trackId)
             end
         end
     end
-    track.stage = {type = "racing", winner = GenerateWinningHorse(track.horses)}
     TriggerClientEvent("pickle_casinos:horseracing:updateTrackStage", -1, trackId, track.stage)
     Wait(18000)
     local multiplier = Config.HorseRacing.odds[track.horses[track.stage.winner].oddsIndex].multiplier
