@@ -265,7 +265,7 @@ function RenderPokerEntity(casinoId, entityId)
     -- end
     for i=1, #POKER_SEATS do
         local seatOffset = POKER_SEATS[i]
-        local playSurface = CreateTennisBall(GetOffsetFromEntityInWorldCoords(surfaceObject, seatOffset.coords - vector3(0.0, 0.0, 1.0)), false, false, false)
+        local playSurface = CreateTennisBall(GetOffsetFromEntityInWorldCoords(surfaceObject, seatOffset.coords - vector3(0.0, 0.0, 0.970)), false, false, false)
         FreezeEntityPosition(playSurface, true)
         SetEntityHeading(playSurface, heading + seatOffset.rotation.z)
         local cards = {}
@@ -472,7 +472,7 @@ RegisterNetEvent("pickle_casinos:poker:updateDealerCards", function(casinoId, en
     end
     localPokerTable.dealerCards = {}
     for i=1, #cards do 
-        local card = CreateProp(GetCardModel(cards[i].class, cards[i].value), GetOffsetFromEntityInWorldCoords(localPokerTable.surfaceObject, -0.115 + ((i - 1) * 0.075), -0.16, -0.925), false, false, false)
+        local card = CreateProp(GetCardModel(cards[i].class, cards[i].value), GetOffsetFromEntityInWorldCoords(localPokerTable.surfaceObject, -0.115 + ((i - 1) * 0.075), -0.16, -0.91), false, false, false)
         SetEntityRotation(card, 0.0, 0.0, localPokerTable.heading + 180.0, 2, true)
         table.insert(localPokerTable.dealerCards, card)
     end

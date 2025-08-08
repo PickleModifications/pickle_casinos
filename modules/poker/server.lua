@@ -186,6 +186,12 @@ function StartPokerGame(casinoId, entityId)
     entity.seats[bigBlindIndex].totalWager = (entity.seats[bigBlindIndex].totalWager or 0) + bigBlind
     -- debugPrint("Small Blind: " .. smallBlindIndex .. " Big Blind: " .. bigBlindIndex)
     entity.pot = smallBlind + bigBlind
+    -- Determine dealer (button) seat: seat immediately to the right of the small blind
+    local dealerIndex = smallBlindIndex
+    repeat
+        dealerIndex = dealerIndex - 1
+        if dealerIndex < 1 then dealerIndex = #entity.seats end
+    until entity.seats[dealerIndex].source
     TriggerClientCasinoEvent("pickle_casinos:poker:updateSeats", -1, casinoId, entityId, entity.seats)
     TriggerClientCasinoEvent("pickle_casinos:poker:updatePot", -1, casinoId, entityId, entity.pot)
     local seatOrder = {}
@@ -345,9 +351,12 @@ function StartPokerGame(casinoId, entityId)
                             end
                             if entity.seats[currentSeat].action.type == "all" then
                                 currentRound.actionSeat = currentSeat
-                                entity.pot = entity.pot + entity.seats[currentSeat].balance
+                                -- Move all remaining balance to pot and correctly track total wager
+                                local remainingBalance = entity.seats[currentSeat].balance
+                                entity.pot = entity.pot + remainingBalance
                                 entity.seats[currentSeat].all = true
-                                entity.seats[currentSeat].action.amount = (entity.seats[currentSeat].totalWager or 0) + entity.seats[currentSeat].balance
+                                entity.seats[currentSeat].action.amount = (entity.seats[currentSeat].totalWager or 0) + remainingBalance
+                                entity.seats[currentSeat].totalWager = (entity.seats[currentSeat].totalWager or 0) + remainingBalance
                                 entity.seats[currentSeat].balance = 0
                                 if entity.seats[currentSeat].action.amount > currentRound.highestBet then
                                     currentRound.highestBet = entity.seats[currentSeat].action.amount
@@ -382,47 +391,142 @@ function StartPokerGame(casinoId, entityId)
             end
         until currentRound.section == "end"
         local formattedPlayerCards = {}
+        local activePlayers = {}
         for i=1, #entity.seats do
             if entity.seats[i].source and not entity.seats[i].fold then
                 formattedPlayerCards[i] = {}
                 for j=1, #entity.seats[i].cards do
                     formattedPlayerCards[i][j] = { class = entity.seats[i].cards[j].class, value = entity.seats[i].cards[j].value }
                 end
+                table.insert(activePlayers, i)
             end
         end
-        local winners, results = GetPokerWinners(formattedPlayerCards, entity.dealerCards)
-        debugPrint("Round Ended", json.encode(winners), json.encode(results))
-        if #winners <= 0 then
-            for k, v in pairs(formattedPlayerCards) do
-                table.insert(winners, k)
-            end
-        end
-        local totalPot = entity.pot
+
+        -- Prepare winnings table
         local winnings = {}
-        local totalContributions = 0
+        for i=1, #entity.seats do winnings[i] = 0 end
 
-        -- Calculate total contributions of winners
-        for _, seatId in ipairs(winners) do
-            totalContributions = totalContributions + (entity.seats[seatId].totalWager or 0)
+        -- If only one active player remains, award the full pot to that player
+        local winners = {}
+        local results = {}
+        if #activePlayers == 1 then
+            local soleWinner = activePlayers[1]
+            winnings[soleWinner] = winnings[soleWinner] + entity.pot
+            winners = { soleWinner }
+        else
+            -- Build contribution map from totalWager (includes blinds/raises/calls/all-ins)
+            local contributions = {}
+            local contributors = {}
+            for i=1, #entity.seats do
+                if entity.seats[i].source then
+                    local contributed = entity.seats[i].totalWager or 0
+                    if contributed > 0 then
+                        contributions[i] = contributed
+                        table.insert(contributors, i)
+                    end
+                end
+            end
+
+            -- Create unique sorted contribution levels
+            local uniqueLevelsMap = {}
+            for _, seatId in ipairs(contributors) do
+                uniqueLevelsMap[contributions[seatId]] = true
+            end
+            local levels = {}
+            for level,_ in pairs(uniqueLevelsMap) do table.insert(levels, level) end
+            table.sort(levels, function(a,b) return a < b end)
+
+            -- Helper to determine clockwise order from left of dealer for odd-chip distribution
+            local function sortWinnersForOddChip(allWinners)
+                local ordered = {}
+                local idx = dealerIndex
+                for _=1, #entity.seats do
+                    idx = idx + 1
+                    if idx > #entity.seats then idx = 1 end
+                    for _, w in ipairs(allWinners) do
+                        if w == idx then table.insert(ordered, w) end
+                    end
+                    if #ordered == #allWinners then break end
+                end
+                return ordered
+            end
+
+            -- Compute each pot in sequence and award to eligible winners
+            local prev = 0
+            local winnersSet = {}
+            for li=1, #levels do
+                local level = levels[li]
+                local numEligibleContributors = 0
+                local eligibleForThisLevel = {}
+                for _, seatId in ipairs(contributors) do
+                    if contributions[seatId] >= level then
+                        numEligibleContributors = numEligibleContributors + 1
+                        table.insert(eligibleForThisLevel, seatId)
+                    end
+                end
+                local potAmount = (level - prev) * numEligibleContributors
+                if potAmount > 0 then
+                    if numEligibleContributors == 1 then
+                        -- Uncalled overage: refund to the sole contributor regardless of fold status
+                        local onlySeat = eligibleForThisLevel[1]
+                        winnings[onlySeat] = (winnings[onlySeat] or 0) + potAmount
+                    else
+                        -- Determine eligible non-folded players for this pot
+                        local eligibleActive = {}
+                        for _, seatId in ipairs(eligibleForThisLevel) do
+                            if not entity.seats[seatId].fold then
+                                eligibleActive[seatId] = true
+                            end
+                        end
+                        -- Collect cards only for eligible active players
+                        local potPlayersCards = {}
+                        for seatId,_ in pairs(eligibleActive) do
+                            potPlayersCards[seatId] = formattedPlayerCards[seatId]
+                        end
+                        local potWinners = {}
+                        if next(potPlayersCards) ~= nil then
+                            local potWinnersList, potResults = GetPokerWinners(potPlayersCards, entity.dealerCards)
+                            -- Copy to array
+                            for _, w in ipairs(potWinnersList) do table.insert(potWinners, w); winnersSet[w] = true end
+                            results = potResults -- last assignment is fine; client only needs overall for debugging
+                        end
+                        if #potWinners > 0 then
+                            local base = math.floor(potAmount / #potWinners)
+                            local remainder = potAmount - (base * #potWinners)
+                            for _, w in ipairs(potWinners) do
+                                winnings[w] = (winnings[w] or 0) + base
+                            end
+                            if remainder > 0 then
+                                local ordered = sortWinnersForOddChip(potWinners)
+                                local ri = 1
+                                while remainder > 0 do
+                                    local w = ordered[ri]
+                                    winnings[w] = (winnings[w] or 0) + 1
+                                    remainder = remainder - 1
+                                    ri = ri + 1
+                                    if ri > #ordered then ri = 1 end
+                                end
+                            end
+                        end
+                    end
+                end
+                prev = level
+            end
+
+            -- Build winners list for display
+            for seatId,_ in pairs(winnersSet) do table.insert(winners, seatId) end
         end
 
-        -- Distribute winnings proportionally based on contributions
-        for _, seatId in ipairs(winners) do
-            local contribution = entity.seats[seatId].totalWager or 0
-            local share = (contribution / totalContributions) * totalPot
-            winnings[seatId] = share
-            entity.seats[seatId].balance = entity.seats[seatId].balance + share
-            debugPrint(string.format("Player %d won: %.2f (Contribution: %.2f, Total Pot: %.2f, New Balance: %.2f)",
-                seatId, share, contribution, totalPot, entity.seats[seatId].balance))
+        -- Apply winnings to seat balances
+        for i=1, #entity.seats do
+            if winnings[i] and winnings[i] > 0 then
+                entity.seats[i].balance = entity.seats[i].balance + winnings[i]
+            end
         end
+
+        debugPrint("Round Ended", json.encode(winners), json.encode(results))
         for i=1, #entity.seats do
             if entity.seats[i].source then
-                local visibleSeats = { i }
-                for j=1, #winners do
-                    if winners[j] ~= i then
-                        visibleSeats[#visibleSeats + 1] = winners[j]
-                    end 
-                end
                 local seats = GetObfuscuatedSeats(entity.seats, winners)
                 seats[i].cards = entity.seats[i].cards
                 entity.stage = {type = "results", winnings = winnings, seats = seats}

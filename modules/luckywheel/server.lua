@@ -124,6 +124,11 @@ RegisterNetEvent("pickle_casinos:luckywheel:startSpin", function()
         if not casino then return end
         entity.stage = {type = "winner", section = section}
         TriggerClientCasinoEvent("pickle_casinos:luckywheel:updateStage", -1, casinoId, entityId, entity.stage)
+        SetTimeout(3000, function()
+            entity.stage = {type = "waiting"}
+            entity.spinner = nil
+            TriggerClientCasinoEvent("pickle_casinos:luckywheel:updateStage", -1, casinoId, entityId, entity.stage)
+        end)
         if sectionCfg.rewards and #sectionCfg.rewards > 0 then
             local rewards = {}
             if sectionCfg.chooseRandomReward then
@@ -156,9 +161,6 @@ RegisterNetEvent("pickle_casinos:luckywheel:startSpin", function()
         else
             ShowNotification(source, _L("luckywheel_no_reward"))
         end
-        entity.stage = {type = "waiting"}
-        entity.spinner = nil
-        TriggerClientCasinoEvent("pickle_casinos:luckywheel:updateStage", -1, casinoId, entityId, entity.stage)
     end)
 end)
 
