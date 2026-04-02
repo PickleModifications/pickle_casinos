@@ -65,5 +65,4 @@ escrow_ignore {
 	"bridge/**/*.*",
     "locales/locale.lua",
     "locales/translations/*.lua",
-    "modules/audiozones/*.*",
 }
