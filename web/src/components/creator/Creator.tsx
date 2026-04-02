@@ -1,7 +1,7 @@
 import { Translate } from "@/providers/locale/Locale"
 import { useEffect, useState } from "react"
 import { Button } from "../ui/button"
-import { Edit, Plus, Save } from "lucide-react"
+import { Edit, MapPin, Plus, Save, Trash2, Volume2 } from "lucide-react"
 import { CasinoControls, DisplayCurrency } from "../casino/Casino"
 import { useNuiEvent } from "@/providers/nui/useNui"
 import { fetchNui } from "@/providers/nui/fetchNui"
@@ -55,9 +55,15 @@ type CasinoEntity = {
     },
 }
 
+type AudioZone = {
+    id: number,
+    preset: string,
+    points: vector3[],
+}
+
 type Casino = {
     id: number,
-    settings: CasinoSettings,
+    settings: CasinoSettings & { audio_zones?: AudioZone[] },
     transactions: any[],
     entities: CasinoEntity[],
     owner_info?: Player | null,
@@ -434,10 +440,32 @@ function CasinoDisplay({ isManager, isCreatingEntity, defaultEntityType, entityI
     const [currentEntityId, setCurrentEntityId] = useState<string | null>(entityId || null)
     const [creatingEntity, setCreatingEntity] = useState(isCreatingEntity || false)
     const currentEntity = casinoState?.entities.find(entity => entity.id === currentEntityId) || null
+    const [audioZones, setAudioZones] = useState<AudioZone[]>(casino?.settings.audio_zones || [])
+    const [creatingAudioZone, setCreatingAudioZone] = useState(false)
+    const [editingAudioZoneId, setEditingAudioZoneId] = useState<number | null>(null)
+    const [newAudioZone, setNewAudioZone] = useState<{ preset: string, points: vector3[] }>({ preset: "", points: [] })
+    const editingAudioZone = audioZones.find(z => z.id === editingAudioZoneId) || null
+    const sendPreview = (points: vector3[]) => { fetchNui("startAudioZonePreview", { points }) }
+    const stopPreview = () => { fetchNui("stopAudioZonePreview", {}) }
+    const addPointToPreview = async (points: vector3[]) => {
+        const pos: vector3 = await fetchNui("getPlayerPosition", {})
+        const updated = [...points, pos]
+        return updated
+    }
     const startExit = () => {
+        stopPreview()
         fetchNui("highlightCasinoEntity", {})
         onExit()
     }
+    useNuiEvent("updateAudioZones", (data: any) => {
+        if (!casinoState || data.casinoId !== casinoState.id) return;
+        const zones: AudioZone[] = data.audioZones || [];
+        setAudioZones(zones);
+        if (editingAudioZoneId) {
+            const edited = zones.find((z: AudioZone) => z.id === editingAudioZoneId);
+            if (edited) sendPreview(edited.points || []);
+        }
+    });
     useEffect(() => {
         setLabel(settings.label || "")
         setChipItem(settings.chipItem || "")
@@ -696,6 +724,148 @@ function CasinoDisplay({ isManager, isCreatingEntity, defaultEntityType, entityI
                                         ))}
                                     </div>
                                 </div>
+                                {(settings.label !== config.personalCasinosLabel) && config.audioPresets && config.audioPresets.length > 0 && (
+                                <div className="flex flex-col w-full justify-between">
+                                    <div className="text-md font-bold flex flex-row items-center gap-1"><Volume2 size={16}/>Ambient Audio Zones</div>
+                                    <div className="flex flex-col w-full max-h-[300px] overflow-auto gap-2 justify-between bg-background/50 p-2 mt-2">
+                                        {!editingAudioZone && !creatingAudioZone && (
+                                            <>
+                                                <Button variant="secondary" className="w-full hover:scale-95 transition-all duration-200" onClick={() => {
+                                                    setCreatingAudioZone(true)
+                                                    setNewAudioZone({ preset: config.audioPresets![0]?.value || "", points: [] })
+                                                    sendPreview([])
+                                                }}>
+                                                    <Plus size={16} />
+                                                    Add Audio Zone
+                                                </Button>
+                                                {audioZones.map((zone) => {
+                                                    const presetLabel = config.audioPresets!.find(p => p.value === zone.preset)?.label || zone.preset;
+                                                    return (
+                                                        <div key={zone.id} className="flex flex-row items-center justify-between w-full p-2 bg-secondary/50 rounded-md cursor-pointer hover:scale-95 transition-all duration-200" onClick={() => {
+                                                            setEditingAudioZoneId(zone.id)
+                                                            sendPreview(zone.points || [])
+                                                        }}>
+                                                            <div className="flex flex-col">
+                                                                <div className="text-sm font-bold">{presetLabel}</div>
+                                                                <div className="text-xs text-zinc-400">{zone.points?.length || 0} point{(zone.points?.length || 0) !== 1 ? "s" : ""}</div>
+                                                            </div>
+                                                            <Edit size={14} className="text-zinc-400"/>
+                                                        </div>
+                                                    )
+                                                })}
+                                            </>
+                                        )}
+                                        {creatingAudioZone && (
+                                            <div className="flex flex-col gap-2">
+                                                <div className="flex flex-row w-full items-center justify-between">
+                                                    <div className="text-sm font-bold">Audio Type</div>
+                                                    <select className="bg-background/50 text-sm text-right rounded-md px-2 py-1" value={newAudioZone.preset} onChange={(e) => setNewAudioZone({...newAudioZone, preset: e.target.value})}>
+                                                        {config.audioPresets!.map((preset, i) => (
+                                                            <option key={i} value={preset.value}>{preset.label}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                {newAudioZone.points.length < 3 && (
+                                                    <div className="text-xs text-yellow-400">Needs at least 3 points to activate</div>
+                                                )}
+                                                <Button variant="secondary" className="w-full hover:scale-95 transition-all duration-200" onClick={async () => {
+                                                    const updated = await addPointToPreview(newAudioZone.points)
+                                                    setNewAudioZone({ ...newAudioZone, points: updated })
+                                                    sendPreview(updated)
+                                                }}>
+                                                    <MapPin size={16} />
+                                                    Add Point at Current Position
+                                                </Button>
+                                                {newAudioZone.points.map((point, index) => (
+                                                    <div key={index} className="flex flex-row items-center justify-between w-full p-2 bg-secondary/50 rounded-md">
+                                                        <div className="text-xs text-zinc-400">
+                                                            #{index + 1} — {point.x.toFixed(2)}, {point.y.toFixed(2)}, {point.z.toFixed(2)}
+                                                        </div>
+                                                        <Trash2 size={14} className="cursor-pointer hover:text-red-500 transition-colors" onClick={() => {
+                                                            const updated = newAudioZone.points.filter((_, i) => i !== index)
+                                                            setNewAudioZone({ ...newAudioZone, points: updated })
+                                                            sendPreview(updated)
+                                                        }}/>
+                                                    </div>
+                                                ))}
+                                                <div className="flex flex-row gap-2">
+                                                    <Button variant="default" className="w-full" onClick={() => {
+                                                        fetchNui("addAudioZone", {
+                                                            casinoId: casinoState.id,
+                                                            preset: newAudioZone.preset,
+                                                            points: newAudioZone.points,
+                                                        })
+                                                        setCreatingAudioZone(false)
+                                                        stopPreview()
+                                                    }}>
+                                                        <Save size={16}/>
+                                                        Save
+                                                    </Button>
+                                                    <Button variant="secondary" className="w-full" onClick={() => {
+                                                        setCreatingAudioZone(false)
+                                                        stopPreview()
+                                                    }}>
+                                                        Cancel
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {editingAudioZone && (
+                                            <div className="flex flex-col gap-2">
+                                                <div className="flex flex-row items-center justify-between">
+                                                    <div className="text-sm font-bold">{config.audioPresets!.find(p => p.value === editingAudioZone.preset)?.label || editingAudioZone.preset}</div>
+                                                    <div className="text-xs text-zinc-400">ID: {editingAudioZone.id}</div>
+                                                </div>
+                                                {(editingAudioZone.points?.length || 0) < 3 && (
+                                                    <div className="text-xs text-yellow-400">Needs at least 3 points to activate</div>
+                                                )}
+                                                <Button variant="secondary" className="w-full hover:scale-95 transition-all duration-200" onClick={() => {
+                                                    fetchNui("addAudioZonePoint", {
+                                                        casinoId: casinoState.id,
+                                                        zoneId: editingAudioZone.id,
+                                                    })
+                                                }}>
+                                                    <MapPin size={16} />
+                                                    Add Point at Current Position
+                                                </Button>
+                                                {editingAudioZone.points?.map((point, index) => (
+                                                    <div key={index} className="flex flex-row items-center justify-between w-full p-2 bg-secondary/50 rounded-md">
+                                                        <div className="text-xs text-zinc-400">
+                                                            #{index + 1} — {point.x.toFixed(2)}, {point.y.toFixed(2)}, {point.z.toFixed(2)}
+                                                        </div>
+                                                        <Trash2 size={14} className="cursor-pointer hover:text-red-500 transition-colors" onClick={() => {
+                                                            fetchNui("deleteAudioZonePoint", {
+                                                                casinoId: casinoState.id,
+                                                                zoneId: editingAudioZone.id,
+                                                                pointIndex: index + 1,
+                                                            })
+                                                        }}/>
+                                                    </div>
+                                                ))}
+                                                <div className="flex flex-row gap-2">
+                                                    <Button variant="secondary" className="w-full" onClick={() => {
+                                                        setEditingAudioZoneId(null)
+                                                        stopPreview()
+                                                    }}>
+                                                        Back
+                                                    </Button>
+                                                    <Button variant="destructive" className="w-full" onClick={() => {
+                                                        fetchNui("deleteAudioZone", {
+                                                            casinoId: casinoState.id,
+                                                            zoneId: editingAudioZone.id,
+                                                        })
+                                                        setEditingAudioZoneId(null)
+                                                        stopPreview()
+                                                    }}>
+                                                        <Trash2 size={16}/>
+                                                        Delete Zone
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                )}
                                 {(settings.label !== config.personalCasinosLabel) && (<Button variant="secondary" className="w-full" onClick={() => {
                                     fetchNui("teleportToCasino", {
                                         casinoId: casinoState.id,
@@ -881,6 +1051,7 @@ export default function CreatorDisplay() {
             if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
             if (!visible) return;
             if (event.key === "Escape" || event.key === "Backspace") {
+                fetchNui("stopAudioZonePreview", {});
                 fetchNui("exitCasinoEditor", {});
             }
             if (event.key === "g") {
@@ -911,6 +1082,7 @@ export default function CreatorDisplay() {
         }, 50)
     });
     useNuiEvent("closeCasinoEditor", () => {
+        fetchNui("stopAudioZonePreview", {})
         setHidden(true)
         setFocus(false)
         setTimeout(() => {

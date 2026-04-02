@@ -120,6 +120,21 @@ Config.TargetedModels = { -- These are the models that when scanning with /mapob
     `vw_prop_vw_luckywheel_02a`,
 }
 
+Config.AmbientAudio = {
+    ["casino_ambient"] = {
+        label = "Casino Ambient",
+        audioBanks = {
+            "DLC_VINEWOOD/CASINO_GENERAL",
+            "DLC_VINEWOOD/CASINO_SLOT_MACHINES_01",
+            "DLC_VINEWOOD/CASINO_SLOT_MACHINES_02",
+            "DLC_VINEWOOD/CASINO_SLOT_MACHINES_03",
+        },
+        stream = "casino_walla",
+        streamRef = "DLC_VW_Casino_Interior_Sounds",
+        audioScene = "DLC_VW_Casino_General",
+    },
+}
+
 Config.FrameworkSettings = {
     -- Note to framework creators: stop breaking your frameworks by moving / removing stuff in big 2025, if it continues I'm making pickle core
     society = "qb-management", -- This is the society that the casinos will use to pay taxes. (qb-management or qb-banking, if using ESX don't worry it's automatic)

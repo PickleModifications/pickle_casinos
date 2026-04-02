@@ -2,7 +2,7 @@ fx_version "cerulean"
 game "gta5"
 author "Pickle Mods"
 description "The best system for player-owned casinos."
-version "v1.3.9"
+version "v1.4.0"
 
 ui_page "nui/index.html"
 
@@ -65,4 +65,5 @@ escrow_ignore {
 	"bridge/**/*.*",
     "locales/locale.lua",
     "locales/translations/*.lua",
+    "modules/audiozones/*.*",
 }

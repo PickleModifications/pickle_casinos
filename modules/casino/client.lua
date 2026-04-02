@@ -505,6 +505,7 @@ RegisterNUICallback("pageLoaded", function(data, cb)
             countryCode = Currency.countryCode,
             bonusWheelMultipliers = GenerateWheelBonusConfig(),
             gameSettings = GenerateGameSettingsUI(),
+            audioPresets = GetAudioPresetOptions(),
             locale = Language[Config.Language],
             templates = GenerateTemplates(),
         }

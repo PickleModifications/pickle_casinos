@@ -3,6 +3,11 @@ import { useNuiEvent } from './nui/useNui';
 import { Chip } from '@/components/casino/Casino';
 import { GameSettingsType } from '@/components/creator/Creator';
 
+export type AudioPreset = {
+    label: string;
+    value: string;
+}
+
 export type Config = {
     bonusWheelMultipliers: {
         id: string;
@@ -15,6 +20,7 @@ export type Config = {
     currency?: string;
     chips?: Chip[];
     gameSettings?: GameSettingsType;
+    audioPresets?: AudioPreset[];
     templates: {label: string, value: string}[];
     displayCurrencyAsChips: boolean;
     personalCasinosLabel: string;
@@ -48,6 +54,7 @@ export const ConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         ],
         bonusWheelMultipliers: [],
         gameSettings: {},
+        audioPresets: [],
         templates: [],
         displayCurrencyAsChips: false,
     });
