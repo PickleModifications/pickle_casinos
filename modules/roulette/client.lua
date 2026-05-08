@@ -79,8 +79,14 @@ function AttemptSeatAtRouletteEntity(casinoId, entityId)
         end
     end
     ServerCallback("pickle_casinos:roulette:requestSeat", function(seatId, entityInfo)
-        if not seatId then 
-            return 
+        if not seatId then
+            return
+        end
+        if entityInfo and entityInfo.seats then
+            for i, seat in pairs(entityInfo.seats) do
+                seat.connects = ApplyRouletteWagers(seat.wagers)
+                seat.wagers = nil
+            end
         end
         CurrentRouletteTable = {
             casinoId = casinoId,
@@ -366,16 +372,20 @@ CreateThread(function()
 end)
 
 RegisterNUICallback("updateRouletteWagers", function(data, cb)
-    TriggerServerEvent("pickle_casinos:roulette:updateRouletteWagers", data.data.connects)
+    TriggerServerEvent("pickle_casinos:roulette:updateRouletteWagers", GetRouletteWagersOnly(data.data.connects))
     cb("ok")
 end)
 
-RegisterNUICallback("repeatWager", function(data, cb)
+RegisterNUICallback("repeatRouletteWager", function(data, cb)
     if not CurrentRouletteTable then return end
     ServerCallback("pickle_casinos:repeatRouletteWager", function(data)
+        local connects = ApplyRouletteWagers(data and data.wagers)
         SendNUIMessage({
             type = "updateRouletteWagers",
-            data = data,
+            data = {
+                connects = connects,
+                wager = (data and data.wager) or GetRouletteTotalWager(connects),
+            },
         })
     end)
     cb("ok")
@@ -419,8 +429,13 @@ RegisterNetEvent("pickle_casinos:updateBalance", function(balance)
     })
 end)
 
-RegisterNetEvent("pickle_casinos:roulette:updateSeatWager", function(casinoId, entityId, seatId, connects)
+RegisterNetEvent("pickle_casinos:roulette:updateSeatWager", function(casinoId, entityId, seatId, wagers)
     if not DoesRouletteEntityExist(casinoId, entityId) then return end
+    local connects = ApplyRouletteWagers(wagers)
+    local casinoEntity = GetCasinoEntity(casinoId, entityId)
+    if casinoEntity and casinoEntity.seats and casinoEntity.seats[seatId] then
+        casinoEntity.seats[seatId].connects = connects
+    end
     if CurrentRouletteTable and CurrentRouletteTable.casinoId == casinoId and CurrentRouletteTable.entityId == entityId then
         CurrentRouletteTable.seats[seatId].connects = connects
         SendNUIMessage({
@@ -448,6 +463,14 @@ end)
 
 RegisterNetEvent("pickle_casinos:roulette:updateSeat", function(casinoId, entityId, seatId, seatData)
     if not DoesRouletteEntityExist(casinoId, entityId) then return end
+    if seatData then
+        seatData.connects = ApplyRouletteWagers(seatData.wagers)
+        seatData.wagers = nil
+    end
+    local casinoEntity = GetCasinoEntity(casinoId, entityId)
+    if casinoEntity and casinoEntity.seats then
+        casinoEntity.seats[seatId] = seatData
+    end
     if CurrentRouletteTable and CurrentRouletteTable.casinoId == casinoId and CurrentRouletteTable.entityId == entityId then
         SendNUIMessage({
             type = "updateRouletteSeats",

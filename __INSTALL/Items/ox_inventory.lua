@@ -26,6 +26,13 @@
     close = true,
     description = nil
 },
+['thunder_roulette_table'] = {
+    label = 'Thunder Roulette Table',
+    weight = 1,
+    stack = true,
+    close = true,
+    description = nil
+},
 ['wheel_machine'] = {
     label = 'Wheel',
     weight = 1,

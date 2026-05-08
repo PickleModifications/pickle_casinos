@@ -36,6 +36,8 @@ function InitializeCasinoEntity(casinoId, entity, dataOnly)
         entity = InitializeBlackjackEntity(casinoId, entity, dataOnly)
     elseif entity.type == "roulette" then
         entity = InitializeRouletteEntity(casinoId, entity, dataOnly)
+    elseif entity.type == "thunder_roulette" then
+        entity = InitializeThunderRouletteEntity(casinoId, entity, dataOnly)
     elseif entity.type == "baccarat" then
         entity = InitializeBaccaratEntity(casinoId, entity, dataOnly)
     elseif entity.type == "slot" then
@@ -198,13 +200,13 @@ function EnsureGameSettings(entityType, settings)
         },
         vip = settings.vip and true or false,
     }
-    if entityType == "blackjack" or entityType == "roulette" or entityType == "baccarat" or entityType == "slot" or entityType == "wheel" or entityType == "horseracing" then
+    if entityType == "blackjack" or entityType == "roulette" or entityType == "thunder_roulette" or entityType == "baccarat" or entityType == "slot" or entityType == "wheel" or entityType == "horseracing" then
         defaultSettings["maxWager"] = settings.maxWager or 1000
         if Config.MaxWager and defaultSettings["maxWager"] > Config.MaxWager then
             defaultSettings["maxWager"] = Config.MaxWager
         end
     end
-    if entityType == "blackjack" or entityType == "roulette" or entityType == "baccarat" or entityType == "poker" then
+    if entityType == "blackjack" or entityType == "roulette" or entityType == "thunder_roulette" or entityType == "baccarat" or entityType == "poker" then
         defaultSettings["tableModel"] = settings.tableModel
         defaultSettings["dealerModel"] = settings.dealerModel
     end

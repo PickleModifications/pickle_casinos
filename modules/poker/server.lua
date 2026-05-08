@@ -162,20 +162,20 @@ function StartPokerGame(casinoId, entityId)
     local bigBlind = entity.settings.bigBlind or 2
     entity.pot = 0
     entity.dealerCards = {}
-    local lastButtonIndex = #entity.seats
+    local lastButtonIndex = 1
     local smallBlindIndex = lastButtonIndex
     local deck = GenerateDeck()
-    repeat 
-        smallBlindIndex = smallBlindIndex + 1
-        if smallBlindIndex > #entity.seats then
-            smallBlindIndex = 1
+    repeat
+        smallBlindIndex = smallBlindIndex - 1
+        if smallBlindIndex < 1 then
+            smallBlindIndex = #entity.seats
         end
     until entity.seats[smallBlindIndex].source
     local bigBlindIndex = smallBlindIndex
-    repeat 
-        bigBlindIndex = bigBlindIndex + 1
-        if bigBlindIndex > #entity.seats then
-            bigBlindIndex = 1
+    repeat
+        bigBlindIndex = bigBlindIndex - 1
+        if bigBlindIndex < 1 then
+            bigBlindIndex = #entity.seats
         end
     until entity.seats[bigBlindIndex].source and bigBlindIndex ~= smallBlindIndex
     entity.seats[smallBlindIndex].blind = "small"
@@ -189,8 +189,8 @@ function StartPokerGame(casinoId, entityId)
     -- Determine dealer (button) seat: seat immediately to the right of the small blind
     local dealerIndex = smallBlindIndex
     repeat
-        dealerIndex = dealerIndex - 1
-        if dealerIndex < 1 then dealerIndex = #entity.seats end
+        dealerIndex = dealerIndex + 1
+        if dealerIndex > #entity.seats then dealerIndex = 1 end
     until entity.seats[dealerIndex].source
     TriggerClientCasinoEvent("pickle_casinos:poker:updateSeats", -1, casinoId, entityId, entity.seats)
     TriggerClientCasinoEvent("pickle_casinos:poker:updatePot", -1, casinoId, entityId, entity.pot)
@@ -202,9 +202,9 @@ function StartPokerGame(casinoId, entityId)
             entity.seats[currentSeat].playing = true
             seatOrder[#seatOrder + 1] = currentSeat
         end
-        currentSeat = currentSeat + 1
-        if currentSeat > #entity.seats then
-            currentSeat = 1
+        currentSeat = currentSeat - 1
+        if currentSeat < 1 then
+            currentSeat = #entity.seats
         end
     until currentSeat == bigBlindIndex
     CreateThread(function()
@@ -239,7 +239,7 @@ function StartPokerGame(casinoId, entityId)
             for i=1, #seatOrder do
                 local seatId = seatOrder[i]
                 local seat = entity.seats[seatId]
-                if not (entity.seats[currentSeat].all or entity.seats[currentSeat].fold) then
+                if not (seat.all or seat.fold) then
                     totalSeats = totalSeats + 1
                 end
                 if not (seat.fold) then
@@ -441,8 +441,8 @@ function StartPokerGame(casinoId, entityId)
                 local ordered = {}
                 local idx = dealerIndex
                 for _=1, #entity.seats do
-                    idx = idx + 1
-                    if idx > #entity.seats then idx = 1 end
+                    idx = idx - 1
+                    if idx < 1 then idx = #entity.seats end
                     for _, w in ipairs(allWinners) do
                         if w == idx then table.insert(ordered, w) end
                     end

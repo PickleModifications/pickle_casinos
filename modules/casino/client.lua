@@ -23,6 +23,8 @@ function CreateCasinoEntity(casinoId, entityId)
         CreateBlackjackEntity(casinoId, entityId)
     elseif casinoEntity.type == "roulette" then
         CreateRouletteEntity(casinoId, entityId)
+    elseif casinoEntity.type == "thunder_roulette" then
+        CreateThunderRouletteEntity(casinoId, entityId)
     elseif casinoEntity.type == "baccarat" then
         CreateBaccaratEntity(casinoId, entityId)
     elseif casinoEntity.type == "slot" then
@@ -161,6 +163,11 @@ function GenerateGameSettingsUI()
         ["roulette"] = {
             {variable = "dealerModel", type = "dropdown", label = _L("dealer_model"), default = 1, options = modelToOptions(Config.CreatorOptions.dealerModels, true)},
             {variable = "tableModel", type = "dropdown", label = _L("table_model"), default = Config.CreatorOptions.roulette.tableModels[1].model, options = modelToOptions(Config.CreatorOptions.roulette.tableModels)},
+            {variable = "maxWager", type = "money", default = 100, min = 100, label = _L("max_wager")},
+        },
+        ["thunder_roulette"] = {
+            {variable = "dealerModel", type = "dropdown", label = _L("dealer_model"), default = 1, options = modelToOptions(Config.CreatorOptions.dealerModels, true)},
+            {variable = "tableModel", type = "dropdown", label = _L("table_model"), default = Config.CreatorOptions.thunder_roulette.tableModels[1].model, options = modelToOptions(Config.CreatorOptions.thunder_roulette.tableModels)},
             {variable = "maxWager", type = "money", default = 100, min = 100, label = _L("max_wager")},
         },
         ["baccarat"] = {
@@ -833,6 +840,8 @@ RegisterNetEvent("pickle_casinos:deleteCasino", function(casinoId)
             DeleteBlackjackEntity(casinoId, entity.id)
         elseif entity.type == "roulette" then
             DeleteRouletteEntity(casinoId, entity.id)
+        elseif entity.type == "thunder_roulette" then
+            DeleteThunderRouletteEntity(casinoId, entity.id)
         elseif entity.type == "baccarat" then
             DeleteBaccaratEntity(casinoId, entity.id)
         elseif entity.type == "slot" then

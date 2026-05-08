@@ -16,6 +16,7 @@ Config.PlaceableEntities = { -- These are the entities that can be placed in the
     ["blackjack"] = {item = "blackjack_table"},
     ["baccarat"] = {item = "baccarat_table"},
     ["roulette"] = {item = "roulette_table"},
+    ["thunder_roulette"] = {item = "thunder_roulette_table"},
     ["poker"] = {item = "poker_table"},
     ["wheel"] = {item = "wheel_machine"},
     ["horseracing"] = {item = "horseracing_machine"},
@@ -34,6 +35,7 @@ Config.GameTimes = { -- seatTurnTime is each person's time they get to decide an
     ["blackjack"] = {seatTurnTime = 15, waitingTime = 15},
     ["baccarat"] = {seatTurnTime = 15, waitingTime = 15},
     ["roulette"] = {seatTurnTime = 15, waitingTime = 15},
+    ["thunder_roulette"] = {seatTurnTime = 15, waitingTime = 15},
     ["poker"] = {seatTurnTime = 15, waitingTime = 15},
     ["wheel"] = {seatTurnTime = 15, waitingTime = 15},
     ["horseracing"] = {seatTurnTime = 15, waitingTime = 15},
@@ -56,6 +58,7 @@ Config.TargetIcons = {
     management = "fa-solid fa-gear",
     blackjack = "fa-solid fa-play",
     roulette = "fa-solid fa-play",
+    thunder_roulette = "fa-solid fa-bolt",
     baccarat = "fa-solid fa-play",
     poker = "fa-solid fa-play",
     wheel = "fa-solid fa-play",
@@ -106,6 +109,7 @@ Config.TargetedModels = { -- These are the models that when scanning with /mapob
     -- ROULETTE TABLES
     `vw_prop_casino_roulette_01`,
     `vw_prop_casino_roulette_01b`,
+    -- THUNDER ROULETTE TABLES (reuse roulette props by default)
     -- THREE CARD POKER TABLES
     `vw_prop_casino_3cardpoker_01`,
     `h4_prop_casino_3cardpoker_01c`,
@@ -303,6 +307,12 @@ Config.CreatorOptions = {
             {label = "Table #2", model = `vw_prop_casino_roulette_01b`},
         }
     },
+    thunder_roulette = {
+        tableModels = {
+            {label = "Table #1", model = `vw_prop_casino_roulette_01`},
+            {label = "Table #2", model = `vw_prop_casino_roulette_01b`},
+        }
+    },
     baccarat = {
         tableModels = {
             {label = "Table #1", model = `fury_p_baccarat`},
@@ -330,6 +340,39 @@ Config.CreatorOptions = {
 
 Config.Poker = {
     buttonModel = `vw_prop_vw_colle_imporage`, -- This prop indicates who is the dealer.
+}
+
+Config.Roulette = {
+    StraightPayout = 36, -- Multiplier paid on a winning single-number (straight) bet. Standard roulette is 36x.
+}
+
+-- Thunder Roulette: each round picks N "thunder" numbers from the wheel and assigns
+-- each a multiplier. If the ball lands on a thunder number, straight-number bets on
+-- that number pay `wager * multiplier` instead of the normal 36x.
+--
+-- RTP note: with the defaults below, mean count ~= 1.83, mean multiplier ~= 67,
+-- giving an expected straight-bet RTP near ~98.7% (slightly below 100%, keeping a
+-- small house edge while feeling generous). Tighten by lowering the rare-tier
+-- multiplier weights; loosen by raising them.
+Config.ThunderRoulette = {
+    StraightPayout = 29, -- Multiplier paid on a non-thunder straight (single-number) win. Thunder strikes use their own per-number multiplier instead.
+    SpinDuration = 10000, -- ms; matches base roulette spin timing.
+    -- Weighted distribution for how many thunder numbers per round.
+    NumberCounts = {
+        { value = 1, weight = 50 },
+        { value = 2, weight = 25 },
+        { value = 3, weight = 15 },
+        { value = 4, weight = 7 },
+        { value = 5, weight = 3 },
+    },
+    -- Weighted multiplier values awarded per thunder number.
+    Multipliers = {
+        { value = 50,  weight = 60 },
+        { value = 75,  weight = 25 },
+        { value = 100, weight = 10 },
+        { value = 150, weight = 4 },
+        { value = 250, weight = 1 },
+    },
 }
 
 Config.WheelMultiplier = {

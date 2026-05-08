@@ -416,10 +416,32 @@ function CreateEmptyRouletteConnections()
     return data
 end
 
-function GetRouletteTotalWager(connects) 
+function GetRouletteTotalWager(connects)
     local totalWager = 0
     for i=1, #connects do
         totalWager = totalWager + connects[i].wager
     end
     return totalWager
+end
+
+-- Compress connects into just the wager values (static layout is rebuilt locally).
+function GetRouletteWagersOnly(connects)
+    local wagers = {}
+    if not connects then return wagers end
+    for i=1, #connects do
+        wagers[i] = connects[i].wager or 0
+    end
+    return wagers
+end
+
+-- Rebuild a full connects table from a wagers-only array using the default layout.
+function ApplyRouletteWagers(wagers)
+    local connects = GetDefaultRouletteConnections()
+    if wagers then
+        for i=1, #connects do
+            local w = tonumber(wagers[i])
+            connects[i].wager = (w and w > 0) and w or 0
+        end
+    end
+    return connects
 end
