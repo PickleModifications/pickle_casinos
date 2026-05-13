@@ -7,10 +7,21 @@ end
 
 exports("GetCasino", GetCasino)
 
+function EnsureOwnerInfo(owner_info)
+    if not owner_info then return nil end
+    if owner_info.identifier and not owner_info.type then
+        owner_info.type = "player"
+    end
+    return owner_info
+end
+
 function IsCasinoOwned(casinoId)
     local casino = Casinos[casinoId]
     if not casino then return false end
-    if casino.owner_info and casino.owner_info.identifier ~= "none" then return true end
+    local oi = casino.owner_info
+    if not oi then return false end
+    if oi.type == "job" and oi.job then return true end
+    if oi.identifier and oi.identifier ~= "none" then return true end
     return false
 end
 
@@ -26,7 +37,14 @@ function CanManageCasino(source, casinoId)
     if not casinoId then return false end
     local casino = Casinos[casinoId]
     if not casino then return false end
-    if casino.owner_info and casino.owner_info.identifier == GetIdentifier(source) then return true end
+    local oi = casino.owner_info
+    if not oi then return false end
+    if oi.type == "job" then
+        if not oi.job then return false end
+        if type(IsPlayerJobBoss) ~= "function" then return false end
+        return IsPlayerJobBoss(source, oi.job) and true or false
+    end
+    if oi.identifier and oi.identifier == GetIdentifier(source) then return true end
     return false
 end
 
@@ -104,7 +122,7 @@ function RegisterCasino(id, data, dontSync)
         id = id,
         balance = data.balance or 0,
         marked_balance = data.marked_balance or 0,
-        owner_info = data.owner_info or nil,
+        owner_info = EnsureOwnerInfo(data.owner_info) or nil,
         vip_players = data.vip_players or {},
         transactions = EnsureCasinoTransactions(data.transactions or {}),
         settings = EnsureCasinoSettings(data.settings),
@@ -216,6 +234,7 @@ function EnsureGameSettings(entityType, settings)
     if entityType == "luckywheel" then
         defaultSettings["wheelModel"] = settings.wheelModel
         defaultSettings["spinPrice"] = settings.spinPrice or 0
+        defaultSettings["costsTickets"] = settings.costsTickets and true or false
         defaultSettings["vehicleLocation"] = settings.vehicleLocation and {
             coords = vector3(settings.vehicleLocation.coords.x, settings.vehicleLocation.coords.y, settings.vehicleLocation.coords.z) or vector3(0, 0, 0),
             rotation = vector3(settings.vehicleLocation.rotation.x, settings.vehicleLocation.rotation.y, settings.vehicleLocation.rotation.z) or vector3(0, 0, 0)
@@ -495,12 +514,32 @@ RegisterNetEvent("pickle_casinos:updateCasinoOwner", function(casinoId, newOwner
     if not IsPlayerAdmin(source) then return ShowNotification(source, _L("no_permission")) end
     local casino = Casinos[casinoId]
     if not casino then return end
-    if newOwner.identifier == "none" then
+    newOwner = newOwner or {}
+    local ownerType = newOwner.type
+    -- Backwards compatibility: legacy payload sent only {identifier, name}
+    if not ownerType then
+        if newOwner.identifier and newOwner.identifier ~= "none" then
+            ownerType = "player"
+        else
+            ownerType = "none"
+        end
+    end
+    if ownerType == "none" or newOwner.identifier == "none" then
         casino.owner_info = nil
+    elseif ownerType == "job" then
+        if not newOwner.job or newOwner.job == "" then
+            return ShowNotification(source, _L("no_permission"))
+        end
+        casino.owner_info = {
+            type = "job",
+            job = tostring(newOwner.job),
+            name = newOwner.name or tostring(newOwner.job),
+        }
     else
         casino.owner_info = {
+            type = "player",
             identifier = newOwner.identifier,
-            name = newOwner.name
+            name = newOwner.name,
         }
     end
     MySQL.Async.execute('UPDATE `pickle_casinos` SET owner_info = ? WHERE id = ?', {json.encode(casino.owner_info), casinoId})
@@ -641,6 +680,14 @@ CreateThread(function()
             TriggerClientEvent("pickle_casinos:createPlacedEntity", source, k)
         end)
     end
+    MySQL.Async.execute([[
+        CREATE TABLE IF NOT EXISTS `pickle_casino_ticket_progress` (
+            `identifier` VARCHAR(255) NOT NULL PRIMARY KEY,
+            `wager_total` BIGINT NOT NULL DEFAULT 0,
+            `tickets_earned` INT NOT NULL DEFAULT 0,
+            `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )
+    ]], {})
     MySQL.Async.execute([[
         CREATE TABLE IF NOT EXISTS `pickle_casinos` (
             `id` int(11) NOT NULL AUTO_INCREMENT,

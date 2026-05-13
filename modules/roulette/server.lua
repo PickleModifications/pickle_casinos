@@ -122,6 +122,7 @@ function ProcessRouletteWager(casinoId, entityId, seat)
         return false
     end
     RemoveCasinoChips(entity.seats[seat].source, casinoId, wager)
+    RegisterLuckyTicketWager(entity.seats[seat].source, "roulette", wager)
     return true
 end
 

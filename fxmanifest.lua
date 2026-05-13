@@ -2,7 +2,7 @@ fx_version "cerulean"
 game "gta5"
 author "Pickle Mods"
 description "The best system for player-owned casinos."
-version "v1.5.0"
+version "v1.5.1"
 
 ui_page "nui/index.html"
 
@@ -30,6 +30,7 @@ shared_scripts {
 client_scripts {
 	"bridge/**/**/client.lua",
 	"modules/**/client.lua",
+	"modules/casino/employees_client.lua",
     "core/client.lua"
 }
 
@@ -37,6 +38,7 @@ server_scripts {
 	"@mysql-async/lib/MySQL.lua",
 	"bridge/**/**/server.lua",
 	"modules/**/server.lua",
+	"modules/casino/employees_server.lua",
     "core/server.lua",
 	"config_sv.lua",
 }

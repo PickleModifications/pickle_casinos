@@ -68,6 +68,7 @@ function StartHorseRacingTrackRace(trackId)
             else
                 LastWagers[source] = track.players[source].wagers
                 RemoveCasinoChips(source, track.players[source].casinoId, totalWager)
+                RegisterLuckyTicketWager(source, "horseracing", totalWager)
                 transactions[source] = StartCasinoGameplayTransaction(source, track.players[source].casinoId, track.players[source].entityId, "horseracing", totalWager)
             end
         end

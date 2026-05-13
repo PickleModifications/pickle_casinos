@@ -56,6 +56,7 @@ function JoinPokerEntity(source, casinoId, entityId, seatId)
     end
     entity.seats[seatId] = newSeat
     RemoveCasinoChips(source, casinoId, entity.seats[seatId].balance)
+    RegisterLuckyTicketWager(source, "poker", entity.seats[seatId].balance)
     PokerTransactions[source] = StartCasinoGameplayTransaction(source, casinoId, entityId, "poker", entity.seats[seatId].balance)
     CurrentPlayers[source] = {casinoId = casinoId, entityId = entityId, seatId = seatId}
     if not DoesPokerLobbyExist(casinoId, entityId) then
@@ -551,9 +552,11 @@ function StartPokerGame(casinoId, entityId)
                 if casinoBalance >= 0 then
                     if casinoBalance >= replenishAmount then
                         RemoveCasinoChips(entity.seats[i].source, casinoId, replenishAmount)
+                        RegisterLuckyTicketWager(entity.seats[i].source, "poker", replenishAmount)
                         entity.seats[i].balance = entity.seats[i].balance + replenishAmount
                     else
                         RemoveCasinoChips(entity.seats[i].source, casinoId, casinoBalance)
+                        RegisterLuckyTicketWager(entity.seats[i].source, "poker", casinoBalance)
                         entity.seats[i].balance = entity.seats[i].balance + casinoBalance
                     end
                 end

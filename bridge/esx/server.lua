@@ -126,10 +126,64 @@ function GetPlayerJob(source)
     return {label = xPlayer.job.label, rank_label = xPlayer.job.grade_label}
 end
 
+function GetPlayerJobName(source)
+    local xPlayer = ESX.GetPlayerFromId(tonumber(source))
+    if not xPlayer or not xPlayer.job then return nil end
+    return xPlayer.job.name
+end
+
 function SetPlayerJob(source, job, grade)
     local xPlayer = ESX.GetPlayerFromId(tonumber(source))
     if not xPlayer then return end
     xPlayer.setJob(job, grade)
+end
+
+function IsPlayerJobBoss(source, jobName)
+    if not jobName then return false end
+    local xPlayer = ESX.GetPlayerFromId(tonumber(source))
+    if not xPlayer or not xPlayer.job then return false end
+    if xPlayer.job.name ~= jobName then return false end
+    if xPlayer.job.grade_name == "boss" then return true end
+    local jobs = ESX.GetJobs and ESX.GetJobs() or nil
+    if jobs and jobs[jobName] and jobs[jobName].grades then
+        local maxGrade = -1
+        for _, g in pairs(jobs[jobName].grades) do
+            local lvl = tonumber(g.grade) or -1
+            if lvl > maxGrade then maxGrade = lvl end
+        end
+        if maxGrade >= 0 and tonumber(xPlayer.job.grade) == maxGrade then return true end
+    end
+    return false
+end
+
+function GetEmployees(jobName, cb)
+    local employees = {}
+    local xPlayers = ESX.GetExtendedPlayers("job", jobName)
+    for _, xPlayer in pairs(xPlayers) do
+        employees[#employees + 1] = {
+            source = xPlayer.source,
+            name = xPlayer.getName(),
+            grade = xPlayer.job.grade,
+            gradeLabel = xPlayer.job.grade_label or ("Grade " .. xPlayer.job.grade),
+            online = true,
+        }
+    end
+    if type(cb) == "function" then cb(employees) end
+    return employees
+end
+
+function GetJobGrades(jobName)
+    local job = ESX.GetJobs()
+    if not job or not job[jobName] or not job[jobName].grades then return {} end
+    local grades = {}
+    for _, grade in pairs(job[jobName].grades) do
+        grades[#grades + 1] = {
+            level = grade.grade,
+            label = grade.label or ("Grade " .. grade.grade),
+        }
+    end
+    table.sort(grades, function(a, b) return a.level < b.level end)
+    return grades
 end
 
 function IsPlayerAdmin(source)

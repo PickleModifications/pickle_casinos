@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -92,5 +94,354 @@ html {
 
   ::-webkit-scrollbar-track {
     background-color: transparent;
+  }
+}
+
+/* =================================================================
+   Casino Management UI — SCOPED redesign.
+   All rules below ONLY apply inside .salon-root, so other casino
+   surfaces (creator, blackjack, etc.) are unaffected.
+   ================================================================= */
+@layer components {
+  .salon-root {
+    /* Local design tokens — do not leak. */
+    --salon-bg: 24 18% 4%;
+    --salon-surface: 24 16% 7%;
+    --salon-surface-2: 26 14% 11%;
+    --salon-text: 38 38% 90%;
+    --salon-muted: 36 16% 60%;
+    --salon-border: 30 18% 16%;
+    --salon-gold: 41 55% 53%;
+    --salon-gold-bright: 41 70% 70%;
+    --salon-positive: 90 35% 65%;
+    --salon-negative: 0 55% 65%;
+    --salon-danger: 0 50% 38%;
+
+    font-family: 'Outfit', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    color: hsl(var(--salon-text));
+  }
+
+  .salon-root .font-display {
+    font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+    font-feature-settings: 'liga', 'dlig';
+  }
+  .salon-root .font-numeric {
+    font-family: 'Outfit', system-ui, sans-serif;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+  }
+
+  /* Scoped scrollbar */
+  .salon-root *::-webkit-scrollbar { width: 4px; height: 4px; }
+  .salon-root *::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--salon-gold) / 0.4);
+    border-radius: 2px;
+  }
+  .salon-root *::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--salon-gold) / 0.7);
+  }
+  .salon-root *::-webkit-scrollbar-track { background-color: transparent; }
+
+  /* The signature label — small, uppercase, wide-tracked, gold */
+  .salon-root .eyebrow {
+    font-family: 'Outfit', sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: hsl(var(--salon-gold) / 0.78);
+  }
+  .salon-root .eyebrow-muted {
+    font-family: 'Outfit', sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: hsl(var(--salon-muted));
+  }
+
+  /* The refined card. Top edge gold highlight, subtle inner glow. */
+  .salon-root .salon-card {
+    position: relative;
+    background:
+      radial-gradient(120% 80% at 0% 0%, hsl(var(--salon-gold) / 0.04) 0%, transparent 50%),
+      linear-gradient(180deg, hsl(26 16% 9%) 0%, hsl(24 18% 6%) 100%);
+    border: 1px solid hsl(var(--salon-border));
+    border-radius: 4px;
+    box-shadow:
+      inset 0 1px 0 0 hsl(var(--salon-gold) / 0.08),
+      0 1px 0 0 hsl(0 0% 0% / 0.4),
+      0 12px 32px -8px hsl(0 0% 0% / 0.6);
+  }
+  .salon-root .salon-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 12%;
+    right: 12%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, hsl(var(--salon-gold) / 0.5) 50%, transparent 100%);
+    pointer-events: none;
+  }
+
+  /* Hairline divider */
+  .salon-root .hairline {
+    background: linear-gradient(90deg,
+      transparent 0%,
+      hsl(var(--salon-border)) 15%,
+      hsl(var(--salon-gold) / 0.3) 50%,
+      hsl(var(--salon-border)) 85%,
+      transparent 100%);
+    height: 1px;
+    width: 100%;
+  }
+
+  .salon-root .diamond-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: hsl(var(--salon-gold) / 0.6);
+  }
+  .salon-root .diamond-divider::before,
+  .salon-root .diamond-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, hsl(var(--salon-border)), transparent);
+  }
+
+  /* Primary action: hot-stamped gold */
+  .salon-root .btn-gold {
+    position: relative;
+    font-family: 'Outfit', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: hsl(24 25% 6%);
+    background: linear-gradient(180deg, #E8C77E 0%, #C9A14A 50%, #A88332 100%);
+    border: 1px solid hsl(41 55% 35%);
+    border-radius: 3px;
+    padding: 10px 18px;
+    transition: filter 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+    box-shadow:
+      inset 0 1px 0 hsl(41 80% 80%),
+      inset 0 -1px 0 hsl(41 60% 30%),
+      0 1px 0 hsl(0 0% 0% / 0.6);
+    cursor: pointer;
+  }
+  .salon-root .btn-gold:hover:not(:disabled) {
+    filter: brightness(1.08);
+    box-shadow:
+      inset 0 1px 0 hsl(41 80% 85%),
+      inset 0 -1px 0 hsl(41 60% 30%),
+      0 0 18px hsl(var(--salon-gold) / 0.35),
+      0 1px 0 hsl(0 0% 0% / 0.6);
+  }
+  .salon-root .btn-gold:active:not(:disabled) { transform: translateY(1px); }
+  .salon-root .btn-gold:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .salon-root .btn-ghost {
+    font-family: 'Outfit', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: hsl(var(--salon-gold));
+    background: transparent;
+    border: 1px solid hsl(var(--salon-gold) / 0.4);
+    border-radius: 3px;
+    padding: 8px 14px;
+    transition: all 180ms ease;
+    cursor: pointer;
+  }
+  .salon-root .btn-ghost:hover:not(:disabled) {
+    background: hsl(var(--salon-gold) / 0.08);
+    border-color: hsl(var(--salon-gold) / 0.7);
+  }
+  .salon-root .btn-ghost:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .salon-root .btn-danger {
+    font-family: 'Outfit', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: hsl(0 35% 88%);
+    background: linear-gradient(180deg, hsl(0 45% 32%) 0%, hsl(0 50% 22%) 100%);
+    border: 1px solid hsl(0 50% 18%);
+    border-radius: 3px;
+    padding: 6px 12px;
+    transition: filter 180ms ease;
+    cursor: pointer;
+  }
+  .salon-root .btn-danger:hover:not(:disabled) { filter: brightness(1.18); }
+
+  .salon-root .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 2px;
+    border: 1px solid hsl(var(--salon-border));
+    background: hsl(var(--salon-surface-2) / 0.6);
+    color: hsl(var(--salon-muted));
+  }
+  .salon-root .chip-gold {
+    border-color: hsl(var(--salon-gold) / 0.35);
+    background: hsl(var(--salon-gold) / 0.08);
+    color: hsl(var(--salon-gold));
+  }
+
+  .salon-root .tab-btn {
+    position: relative;
+    font-family: 'Outfit', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: hsl(var(--salon-muted));
+    padding: 14px 4px 12px;
+    cursor: pointer;
+    transition: color 200ms ease;
+    background: transparent;
+    border: none;
+  }
+  .salon-root .tab-btn:hover { color: hsl(var(--salon-text)); }
+  .salon-root .tab-btn[data-active="true"] { color: hsl(var(--salon-gold)); }
+  .salon-root .tab-btn[data-active="true"]::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, hsl(var(--salon-gold)) 50%, transparent);
+  }
+  .salon-root .tab-btn[data-active="true"]::before {
+    content: '◆';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 6px;
+    color: hsl(var(--salon-gold));
+  }
+
+  .salon-root .field {
+    font-family: 'Outfit', sans-serif;
+    background: hsl(24 16% 5%);
+    border: 1px solid hsl(var(--salon-border));
+    border-radius: 3px;
+    color: hsl(var(--salon-text));
+    padding: 9px 12px;
+    font-size: 13px;
+    transition: border-color 180ms ease, box-shadow 180ms ease;
+  }
+  .salon-root .field:focus {
+    outline: none;
+    border-color: hsl(var(--salon-gold) / 0.5);
+    box-shadow: 0 0 0 3px hsl(var(--salon-gold) / 0.1);
+  }
+
+  .salon-root .gold-slider {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 2px;
+    background: hsl(var(--salon-border));
+    border-radius: 1px;
+    outline: none;
+  }
+  .salon-root .gold-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: linear-gradient(180deg, #E8C77E, #A88332);
+    border: 1px solid hsl(41 55% 35%);
+    box-shadow: 0 0 0 4px hsl(var(--salon-gold) / 0.0), 0 1px 0 hsl(0 0% 0% / 0.4);
+    cursor: pointer;
+    transition: box-shadow 180ms ease;
+  }
+  .salon-root .gold-slider::-webkit-slider-thumb:hover {
+    box-shadow: 0 0 0 6px hsl(var(--salon-gold) / 0.18), 0 1px 0 hsl(0 0% 0% / 0.4);
+  }
+
+  .salon-root .corner-ornament {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border-color: hsl(var(--salon-gold) / 0.6);
+    border-style: solid;
+    border-width: 0;
+    pointer-events: none;
+  }
+  .salon-root .corner-ornament.tl { top: 8px; left: 8px; border-top-width: 1px; border-left-width: 1px; }
+  .salon-root .corner-ornament.tr { top: 8px; right: 8px; border-top-width: 1px; border-right-width: 1px; }
+  .salon-root .corner-ornament.bl { bottom: 8px; left: 8px; border-bottom-width: 1px; border-left-width: 1px; }
+  .salon-root .corner-ornament.br { bottom: 8px; right: 8px; border-bottom-width: 1px; border-right-width: 1px; }
+
+  .salon-root .salon-bg {
+    background:
+      radial-gradient(ellipse 80% 60% at 50% 0%, hsl(var(--salon-gold) / 0.06), transparent 60%),
+      radial-gradient(ellipse 100% 80% at 50% 100%, hsl(0 50% 30% / 0.05), transparent 60%),
+      linear-gradient(180deg, hsl(24 22% 5% / 0.97), hsl(24 18% 3% / 0.98));
+  }
+
+  .salon-root .grain::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.035;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.9'/></svg>");
+  }
+
+  @keyframes salonRise {
+    from { opacity: 0; transform: translate(-50%, -48%); }
+    to   { opacity: 1; transform: translate(-50%, -50%); }
+  }
+  .salon-root.salon-rise { animation: salonRise 380ms cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+
+  @keyframes salonFadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .salon-root .fade-in { animation: salonFadeIn 320ms ease both; }
+  .salon-root .stagger-1 { animation-delay: 60ms; }
+  .salon-root .stagger-2 { animation-delay: 120ms; }
+  .salon-root .stagger-3 { animation-delay: 180ms; }
+  .salon-root .stagger-4 { animation-delay: 240ms; }
+
+  .salon-root .tx-row {
+    position: relative;
+    padding: 12px 14px;
+    border-radius: 3px;
+    transition: background 180ms ease;
+    border-left: 1px solid transparent;
+  }
+  .salon-root .tx-row:hover {
+    background: hsl(var(--salon-gold) / 0.04);
+    border-left-color: hsl(var(--salon-gold) / 0.5);
+  }
+
+  .salon-root .employee-card {
+    position: relative;
+    background: linear-gradient(180deg, hsl(26 14% 9%) 0%, hsl(24 16% 6%) 100%);
+    border: 1px solid hsl(var(--salon-border));
+    border-radius: 3px;
+    padding: 14px;
+    transition: border-color 200ms ease, box-shadow 200ms ease;
+  }
+  .salon-root .employee-card:hover {
+    border-color: hsl(var(--salon-gold) / 0.3);
+    box-shadow: 0 0 0 1px hsl(var(--salon-gold) / 0.06), inset 0 1px 0 hsl(var(--salon-gold) / 0.08);
   }
 }

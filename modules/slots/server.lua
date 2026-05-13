@@ -214,6 +214,7 @@ RegisterCallback("pickle_casinos:slots:spinSlot", function(source, cb, betIndex)
     end
     playerMoney = playerMoney - bet
     RemoveCasinoChips(source, casinoId, bet)
+    RegisterLuckyTicketWager(source, "slots", bet)
     local spinId = GenerateSpinId()
     local spin = GenerateSpin(Config.Slots[entity.settings.game])
 

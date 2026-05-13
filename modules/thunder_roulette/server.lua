@@ -122,6 +122,7 @@ function ProcessThunderRouletteWager(casinoId, entityId, seat)
         return false
     end
     RemoveCasinoChips(entity.seats[seat].source, casinoId, wager)
+    RegisterLuckyTicketWager(entity.seats[seat].source, "thunder_roulette", wager)
     return true
 end
 

@@ -104,6 +104,7 @@ function StartBlackjackTurn(casinoId, entityId, seat, handId, splitAllowed)
                 action = "hit"
             else
                 RemoveCasinoChips(entity.seats[seat].source, casinoId, entity.seats[seat].wagers[handId])
+                RegisterLuckyTicketWager(entity.seats[seat].source, "blackjack", entity.seats[seat].wagers[handId])
                 entity.seats[seat].wagers[handId] = entity.seats[seat].wagers[handId] * 2
                 TriggerClientCasinoEvent("pickle_casinos:blackjack:updateSeatWager", -1, casinoId, entityId, seat, handId, entity.seats[seat].wagers[handId])
                 entity.stage = {type = "dealing", seat = seat, handId = handId, isDouble = true, card = GenerateCard() }
@@ -135,6 +136,7 @@ function StartBlackjackTurn(casinoId, entityId, seat, handId, splitAllowed)
                 ShowNotification(entity.seats[seat].source, _L("insufficient_chips"))
             else
                 RemoveCasinoChips(entity.seats[seat].source, casinoId, entity.seats[seat].wagers[1])
+                RegisterLuckyTicketWager(entity.seats[seat].source, "blackjack", entity.seats[seat].wagers[1])
                 entity.seats[seat].hands = {
                     [1] = {entity.seats[seat].hands[entity.stage.handId][1]},
                     [2] = {entity.seats[seat].hands[entity.stage.handId][2]}
@@ -183,6 +185,7 @@ function ProcessBlackjackWager(casinoId, entityId, seat, handId)
         return false
     end
     RemoveCasinoChips(entity.seats[seat].source, casinoId, wager)
+    RegisterLuckyTicketWager(entity.seats[seat].source, "blackjack", wager)
     return true
 end
 

@@ -173,9 +173,16 @@ RegisterCallback("pickle_casinos:luckywheel:requestSpin", function(source, cb, c
     local spinPrice = entity.settings.spinPrice or 0
     local balance = GetCasinoChips(source, casinoId)
     if not Config.LuckyWheel then print("^1ERROR: LUCKY WHEEL CONFIG UNDEFINED, CHECK LAST UPDATE FOR CONFIG.LUCKYWHEEL AND COPY IT TO YOURS.^0") return cb(false) end
-    if isSpinning or balance < spinPrice then 
+    if isSpinning or balance < spinPrice then
         ShowNotification(source, (isSpinning and _L("luckywheel_spin_in_progress") or _L("insufficient_chips")))
-        return cb(false) 
+        return cb(false)
+    end
+    local needsTicket = entity.settings and entity.settings.costsTickets == true
+    if needsTicket then
+        if not HasLuckyTicket or not HasLuckyTicket(source) then
+            ShowNotification(source, _L("luckywheel_insufficient_tickets"))
+            return cb(false)
+        end
     end
     local sectionId, sectionIndex = GenerateWinningSection()
     local sectionCfg = Config.LuckyWheel.sections[LuckyWheelSections[sectionIndex]]
@@ -192,6 +199,14 @@ RegisterCallback("pickle_casinos:luckywheel:requestSpin", function(source, cb, c
                 return cb(false)
             end
         end
+    end
+    if needsTicket then
+        local consumed = ConsumeLuckyTicket and ConsumeLuckyTicket(source) or false
+        if not consumed then
+            ShowNotification(source, _L("luckywheel_insufficient_tickets"))
+            return cb(false)
+        end
+        ShowNotification(source, _L("luckywheel_ticket_consumed"))
     end
     if spinPrice > 0 then
         RemoveCasinoChips(source, casinoId, spinPrice)

@@ -142,9 +142,57 @@ function GetPlayerJob(source)
     return {label = xPlayer.PlayerData.job.label, rank_label = xPlayer.PlayerData.job.grade.name}
 end
 
+function GetPlayerJobName(source)
+    local xPlayer = QBCore.Functions.GetPlayer(tonumber(source))
+    if not xPlayer or not xPlayer.PlayerData or not xPlayer.PlayerData.job then return nil end
+    return xPlayer.PlayerData.job.name
+end
+
 function SetPlayerJob(source, job, grade)
     local xPlayer = QBCore.Functions.GetPlayer(tonumber(source))
     xPlayer.Functions.SetJob(job, grade)
+end
+
+function IsPlayerJobBoss(source, jobName)
+    if not jobName then return false end
+    local player = QBCore.Functions.GetPlayer(tonumber(source))
+    if not player or not player.PlayerData or not player.PlayerData.job then return false end
+    if player.PlayerData.job.name ~= jobName then return false end
+    if player.PlayerData.job.isboss == true then return true end
+    if player.PlayerData.job.grade and player.PlayerData.job.grade.isboss == true then return true end
+    return false
+end
+
+function GetEmployees(jobName, cb)
+    local employees = {}
+    local players = QBCore.Functions.GetQBPlayers()
+    for _, player in pairs(players) do
+        if player and player.PlayerData and player.PlayerData.job and player.PlayerData.job.name == jobName then
+            employees[#employees + 1] = {
+                source = player.PlayerData.source,
+                name = player.PlayerData.charinfo.firstname .. " " .. player.PlayerData.charinfo.lastname,
+                grade = player.PlayerData.job.grade.level,
+                gradeLabel = player.PlayerData.job.grade.name,
+                online = true,
+            }
+        end
+    end
+    if type(cb) == "function" then cb(employees) end
+    return employees
+end
+
+function GetJobGrades(jobName)
+    local job = QBCore.Shared.Jobs[jobName]
+    if not job or not job.grades then return {} end
+    local grades = {}
+    for level, grade in pairs(job.grades) do
+        grades[#grades + 1] = {
+            level = tonumber(level),
+            label = grade.name or ("Grade " .. level),
+        }
+    end
+    table.sort(grades, function(a, b) return a.level < b.level end)
+    return grades
 end
 
 function IsPlayerAdmin(source)

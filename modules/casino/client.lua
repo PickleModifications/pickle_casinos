@@ -312,6 +312,7 @@ function StartCasinoManagement(casinoId)
             marked_balance = casino.marked_balance,
             transactions = casino.transactions,
             settings = casino.settings,
+            owner_info = casino.owner_info,
         }
     })
     SetNuiFocus(true, true)
@@ -423,7 +424,15 @@ RegisterNUICallback("editPlayer", function(data, cb)
     })
     SetEditorFocus(false)
     ServerCallback("pickle_casinos:getPlayers", function(players)
-        local options = {}
+        local existing = data and data.player or {}
+        local existingType = existing.type or (existing.identifier and existing.identifier ~= "none" and "player") or "none"
+
+        local typeOptions = {
+            { label = _L("none"), value = "none" },
+            { label = "Player", value = "player" },
+            { label = "Job", value = "job" },
+        }
+
         local playerOptions = {
             {label = _L("none"), value = "none"},
         }
@@ -433,25 +442,47 @@ RegisterNUICallback("editPlayer", function(data, cb)
                 value = players[i].identifier,
             }
         end
-        options[#options + 1] = {required = true, type = 'select', label = _L("casino_owner_select"), default = (data.player and data.player.identifier or "none"), options = playerOptions}
+
+        local options = {
+            { required = true, type = "select", label = "Owner Type", default = existingType, options = typeOptions },
+            { type = "select", label = _L("casino_owner_select"), default = (existing.identifier or "none"), options = playerOptions },
+            { type = "input", label = "Job Name", description = "Job that owns this casino (boss-grade members manage it)", default = existing.job or "" },
+            { type = "input", label = "Job Display Name", description = "Optional display name shown in management UI", default = existing.name or "" },
+        }
         local input = lib.inputDialog(_L("casino_owner"), options)
-        if input and input[1] then 
-            local player
-            for i=1, #players do
-                if players[i].identifier == input[1] then
-                    player = players[i]
-                    break
+        if input then
+            local selectedType = input[1] or "none"
+            local newOwner
+            if selectedType == "none" then
+                newOwner = { type = "none", name = _L("none"), identifier = "none" }
+            elseif selectedType == "job" then
+                local jobName = (input[3] or ""):gsub("^%s+", ""):gsub("%s+$", "")
+                if jobName == "" then
+                    SendNUIMessage({ type = "setEditorHidden", hidden = false })
+                    SetEditorFocus(true)
+                    return
                 end
-            end
-            if not player or input[1] == "none" then 
-                player = {
-                    name = _L("none"),
-                    identifier = "none",
-                }
+                local displayName = input[4] and input[4] ~= "" and input[4] or jobName
+                newOwner = { type = "job", job = jobName, name = displayName }
+            else -- player
+                local identifier = input[2]
+                if not identifier or identifier == "none" then
+                    newOwner = { type = "none", name = _L("none"), identifier = "none" }
+                else
+                    local picked
+                    for i=1, #players do
+                        if players[i].identifier == identifier then picked = players[i]; break end
+                    end
+                    if picked then
+                        newOwner = { type = "player", identifier = picked.identifier, name = picked.name }
+                    else
+                        newOwner = { type = "player", identifier = identifier, name = input[4] or identifier }
+                    end
+                end
             end
             SendNUIMessage({
                 type = "setPlayer",
-                player = player,
+                player = newOwner,
             })
         end
         SendNUIMessage({
