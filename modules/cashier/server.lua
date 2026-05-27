@@ -113,11 +113,14 @@ RegisterNetEvent("pickle_casinos:purchaseVIP", function(casinoId, entityId)
     local identifier = GetIdentifier(source)
     local casino = Casinos[casinoId]
     if not casino then return end
-    local vipPrice = casino.settings.vipPrice or 0
-    local money = GetMoney(source)
-    if money < vipPrice then
-        ShowNotification(source, _L("insufficient_funds"))
-        return
+    local vipPrice = math.max(0, tonumber(casino.settings.vipPrice) or 0)
+    local isFree = vipPrice <= 0
+    if not isFree then
+        local money = GetMoney(source)
+        if money < vipPrice then
+            ShowNotification(source, _L("insufficient_funds"))
+            return
+        end
     end
     local playerInfo, playerIndex = GetPlayerCasinoInfo(source, casinoId)
     if playerInfo.startTime then
@@ -129,13 +132,17 @@ RegisterNetEvent("pickle_casinos:purchaseVIP", function(casinoId, entityId)
     else
         table.insert(casino.vip_players, { identifier = identifier, name = GetPlayerCharacterName(source), startTime = os.time() })
     end
-    ShowNotification(source, _L("cashier_vip_bought", NumberWithCommas(vipPrice)))
-    RemoveMoney(source, vipPrice)
+    if isFree then
+        ShowNotification(source, _L("cashier_vip_bought_free"))
+    else
+        ShowNotification(source, _L("cashier_vip_bought", NumberWithCommas(vipPrice)))
+        RemoveMoney(source, vipPrice)
+    end
     MySQL.Async.execute('UPDATE `pickle_casinos` SET vip_players = ? WHERE id = ?', {
         json.encode(casino.vip_players),
         casinoId
     })
-    if IsCasinoOwned(casinoId) then 
+    if not isFree and IsCasinoOwned(casinoId) then
         casino.balance = (casino.balance or 0) + vipPrice
         MySQL.Async.execute('UPDATE `pickle_casinos` SET balance = ? WHERE id = ?', {
             casino.balance,
@@ -143,6 +150,10 @@ RegisterNetEvent("pickle_casinos:purchaseVIP", function(casinoId, entityId)
         })
         TriggerClientEvent("pickle_casinos:updateCasinoBalance", -1, casinoId, casino.balance, casino.marked_balance)
     end
-    AddCasinoTransaction(source, casinoId, "vip", vipPrice)
+    if not isFree then
+        -- Free VIP doesn't represent a cash movement, so skip the log to
+        -- avoid littering the management view with $0 rows.
+        AddCasinoTransaction(source, casinoId, "vip", vipPrice)
+    end
     TriggerClientEvent("pickle_casinos:updateCasinoVIP", -1, casinoId, casino.vip_players)
 end)

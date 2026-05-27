@@ -304,13 +304,17 @@ function StartCasinoManagement(casinoId)
     local casino = Casinos[casinoId]
     if not casino then return end
     CurrentCasinoManagement = {casinoId = casinoId}
+    -- Tell the server we're viewing so it can push new-transaction events
+    -- to us instead of broadcasting the full list to everyone.
+    TriggerServerEvent("pickle_casinos:enterManagement", casinoId)
     SendNUIMessage({
         type = "setManagementInfo",
         info = {
             casinoId = casinoId,
             balance = casino.balance,
             marked_balance = casino.marked_balance,
-            transactions = casino.transactions,
+            -- transactions list is no longer pushed up-front; the UI fetches
+            -- a page at a time via the getCasinoTransactions NUI callback.
             settings = casino.settings,
             owner_info = casino.owner_info,
         }
@@ -319,8 +323,12 @@ function StartCasinoManagement(casinoId)
 end
 
 function ExitCasinoManagement()
+    local prev = CurrentCasinoManagement
     CurrentCasinoManagement = nil
     SetNuiFocus(false, false)
+    if prev and prev.casinoId then
+        TriggerServerEvent("pickle_casinos:exitManagement", prev.casinoId)
+    end
     SendNUIMessage({
         type = "setManagementInfo",
         info = nil,
@@ -516,6 +524,30 @@ end)
 RegisterNUICallback("exitManagement", function(data, cb)
     ExitCasinoManagement()
     cb("ok")
+end)
+
+RegisterNUICallback("getCasinoTransactions", function(data, cb)
+    local casinoId = CurrentCasinoManagement and CurrentCasinoManagement.casinoId
+    if not casinoId then return cb({ rows = {}, total = 0 }) end
+    local result = lib.callback.await("pickle_casinos:getCasinoTransactions", false, {
+        casinoId = casinoId,
+        offset   = data.offset,
+        limit    = data.limit,
+        search   = data.search,
+        type     = data.type,
+        sortBy   = data.sortBy,
+        sortDir  = data.sortDir,
+    })
+    cb(result or { rows = {}, total = 0 })
+end)
+
+RegisterNUICallback("getCasinoWeeklyProfit", function(data, cb)
+    local casinoId = CurrentCasinoManagement and CurrentCasinoManagement.casinoId
+    if not casinoId then return cb({}) end
+    local result = lib.callback.await("pickle_casinos:getCasinoWeeklyProfit", false, {
+        casinoId = casinoId,
+    })
+    cb(result or {})
 end)
 
 RegisterNUICallback("exitCasinoEditor", function(data, cb)
@@ -746,14 +778,14 @@ RegisterNetEvent("pickle_casinos:updateCasinoOwner", function(casinoId, owner_in
     })
 end)
 
-RegisterNetEvent("pickle_casinos:updateCasinoTransactions", function(casinoId, transactions)
-    local casino = Casinos[casinoId]
-    if not casino then return end
-    casino.transactions = transactions
+-- Targeted single-row push from the server when a new transaction lands and
+-- this client is currently viewing the management UI for that casino.
+RegisterNetEvent("pickle_casinos:newCasinoTransaction", function(casinoId, transaction)
+    if not CurrentCasinoManagement or CurrentCasinoManagement.casinoId ~= casinoId then return end
     SendNUIMessage({
-        type = "updateCasinoTransactions",
+        type = "newCasinoTransaction",
         casinoId = casinoId,
-        transactions = transactions,
+        transaction = transaction,
     })
 end)
 

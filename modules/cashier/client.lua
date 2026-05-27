@@ -121,8 +121,11 @@ function OpenCashierMenu(casinoId, entityId)
             end
         }
         if not isVIP then
+            local vipTitle = (vipPrice <= 0)
+                and _L("cashier_vip_free")
+                or _L("cashier_vip", NumberWithCommas(vipPrice))
             options[#options + 1] = {
-                title = _L("cashier_vip", NumberWithCommas(vipPrice)),
+                title = vipTitle,
                 description = _L("cashier_vip_desc"),
                 icon = 'star',
                 onSelect = function()

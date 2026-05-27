@@ -291,6 +291,98 @@ function IsPlayerCasinoVIP(source, casinoId)
     return player.startTime ~= nil
 end
 
+-- Sources currently viewing a casino's management UI, keyed by casinoId.
+-- We push new-transaction events only to these, instead of broadcasting the
+-- full history to every connected player like the old flow did.
+ManagementViewers = ManagementViewers or {}
+
+local function GetManagementViewers(casinoId)
+    return ManagementViewers[casinoId] or {}
+end
+
+function RegisterManagementViewer(source, casinoId)
+    if not casinoId then return end
+    ManagementViewers[casinoId] = ManagementViewers[casinoId] or {}
+    ManagementViewers[casinoId][source] = true
+end
+
+function UnregisterManagementViewer(source, casinoId)
+    if casinoId then
+        if ManagementViewers[casinoId] then
+            ManagementViewers[casinoId][source] = nil
+        end
+        return
+    end
+    -- No casino specified — sweep the player out of every casino (used on
+    -- disconnect so we don't leak dangling sources).
+    for cid, viewers in pairs(ManagementViewers) do
+        viewers[source] = nil
+    end
+end
+
+AddEventHandler("playerDropped", function()
+    UnregisterManagementViewer(source)
+end)
+
+-- Internal helper: persist `casino.balance` and notify clients. Used by the
+-- gameplay handlers below — kept tight so the slots-spin code path isn't
+-- doing more than one query per round.
+local function ApplyCasinoBalanceDelta(casinoId, delta)
+    if not delta or delta == 0 then return end
+    local casino = Casinos[casinoId]
+    if not casino then return end
+    casino.balance = (casino.balance or 0) + delta
+    MySQL.Async.execute(
+        'UPDATE `pickle_casinos` SET balance = ? WHERE id = ?',
+        { casino.balance, casinoId }
+    )
+    TriggerClientEvent(
+        "pickle_casinos:updateCasinoBalance", -1,
+        casinoId, casino.balance, casino.marked_balance or 0
+    )
+end
+
+-- Gameplay rounds (slots/blackjack/poker/etc) fire Start/EndCasinoGameplayTransaction
+-- via core/server.lua. The previous build TriggerEvent'd those names but had no
+-- listener, so the casino balance never moved and nothing got logged when a
+-- player won or lost — which is exactly the bug reported. Track each round
+-- between start and end so we can compute the net P/L for the house in one
+-- log entry.
+local PendingGameplayTransactions = {}
+
+AddEventHandler("pickle_casinos:gameplay:startTransaction", function(id, source, casinoId, _entityId, gameType, wagerAmount)
+    wagerAmount = tonumber(wagerAmount) or 0
+    if wagerAmount <= 0 then return end
+    PendingGameplayTransactions[id] = {
+        source     = source,
+        casinoId   = casinoId,
+        gameType   = gameType,
+        wagerAmount = wagerAmount,
+    }
+    -- Chips entered the house — credit balance immediately so the management
+    -- view reflects activity in real time (matters for long sessions like poker).
+    ApplyCasinoBalanceDelta(casinoId, wagerAmount)
+end)
+
+AddEventHandler("pickle_casinos:gameplay:endTransaction", function(id, source, casinoId, _entityId, gameType, winAmount)
+    winAmount = tonumber(winAmount) or 0
+    local pending = PendingGameplayTransactions[id]
+    PendingGameplayTransactions[id] = nil
+    local wager = (pending and pending.wagerAmount) or 0
+    if winAmount > 0 then
+        -- Chips paid back to the player — debit the house.
+        ApplyCasinoBalanceDelta(casinoId, -winAmount)
+    end
+    -- Net P/L for the house from this round. One log row, not two, so high-
+    -- volume games (slots) don't flood the transactions list.
+    local net = wager - winAmount
+    if net > 0 then
+        AddCasinoTransaction(source, casinoId, gameType .. "_deposit", net)
+    elseif net < 0 then
+        AddCasinoTransaction(source, casinoId, gameType .. "_withdraw", -net)
+    end
+end)
+
 function AddCasinoTransaction(source, casinoId, transactionType, amount)
     local casino = Casinos[casinoId]
     if not casino then return end
@@ -303,9 +395,24 @@ function AddCasinoTransaction(source, casinoId, transactionType, amount)
         amount = amount,
         datetime = os.time(),
     }
-    table.insert(casino.transactions, 1, transaction)
-    MySQL.Async.execute('UPDATE `pickle_casinos` SET transactions = ? WHERE id = ?', {json.encode(casino.transactions), casinoId})
-    TriggerLatentClientEvent("pickle_casinos:updateCasinoTransactions", -1, Config.BytesPerSecond or 25000, casinoId, casino.transactions)
+    local insertedId = MySQL.insert.await(
+        "INSERT INTO `pickle_casino_transactions` (`casino_id`, `identifier`, `name`, `type`, `amount`, `datetime`) VALUES (?, ?, ?, ?, ?, ?)",
+        {
+            casinoId,
+            transaction.origin.identifier or "",
+            transaction.origin.name or "",
+            transaction.type,
+            transaction.amount,
+            transaction.datetime,
+        }
+    )
+    transaction.id = insertedId
+    -- Targeted push: only sources currently in the management UI for this
+    -- casino need to know. Everyone else doesn't care and shouldn't pay the
+    -- bandwidth.
+    for src, _ in pairs(GetManagementViewers(casinoId)) do
+        TriggerClientEvent("pickle_casinos:newCasinoTransaction", src, casinoId, transaction)
+    end
 end
 
 function GetCasinoChips(source, casinoId)
@@ -416,6 +523,136 @@ RegisterCallback("pickle_casinos:getVIPStatus", function(source, cb, casinoId)
     return cb(true, {
         timeLeft = Config.Casinos.vipExpireTime > 0 and ((vipStartTime + Config.Casinos.vipExpireTime) - os.time()) or nil,
     })
+end)
+
+-- Whitelist of sortable columns so callers can't pass arbitrary SQL into
+-- ORDER BY. Same shape as the indexed columns on pickle_casino_transactions.
+local TRANSACTION_SORT_COLUMNS = {
+    datetime   = "datetime",
+    amount     = "amount",
+    type       = "type",
+    name       = "name",
+}
+
+local function escapeLike(s)
+    if type(s) ~= "string" then return "" end
+    return s:gsub("\\", "\\\\"):gsub("%%", "\\%%"):gsub("_", "\\_")
+end
+
+--- Paged, searchable, sortable transaction fetch. Replaces shipping the full
+--- list in setManagementInfo. Caller gets back { rows, total } so the UI can
+--- show a "loaded N of M" counter and stop scrolling when total is reached.
+lib.callback.register("pickle_casinos:getCasinoTransactions", function(source, data)
+    local casinoId = tonumber(data and data.casinoId)
+    if not casinoId or not CanManageCasino(source, casinoId) then
+        return { rows = {}, total = 0 }
+    end
+
+    local offset    = math.max(0, tonumber(data.offset) or 0)
+    local limit     = math.max(1, math.min(200, tonumber(data.limit) or 50))
+    local search    = type(data.search) == "string" and data.search or ""
+    local typeFilter = type(data.type) == "string" and data.type or ""
+    local sortBy    = TRANSACTION_SORT_COLUMNS[data.sortBy] or "datetime"
+    local sortDir   = (type(data.sortDir) == "string" and data.sortDir:lower() == "asc") and "ASC" or "DESC"
+
+    local where = { "`casino_id` = ?" }
+    local params = { casinoId }
+
+    if search ~= "" then
+        table.insert(where, "(`name` LIKE ? ESCAPE '\\\\' OR `type` LIKE ? ESCAPE '\\\\')")
+        local needle = "%" .. escapeLike(search) .. "%"
+        table.insert(params, needle)
+        table.insert(params, needle)
+    end
+    if typeFilter ~= "" then
+        table.insert(where, "`type` = ?")
+        table.insert(params, typeFilter)
+    end
+
+    local whereClause = table.concat(where, " AND ")
+
+    local total = MySQL.scalar.await(
+        "SELECT COUNT(*) FROM `pickle_casino_transactions` WHERE " .. whereClause,
+        params
+    ) or 0
+
+    local pageParams = {}
+    for i = 1, #params do pageParams[i] = params[i] end
+    table.insert(pageParams, limit)
+    table.insert(pageParams, offset)
+
+    local rows = MySQL.query.await(
+        ("SELECT `id`, `identifier`, `name`, `type`, `amount`, `datetime` FROM `pickle_casino_transactions` WHERE %s ORDER BY `%s` %s, `id` %s LIMIT ? OFFSET ?")
+            :format(whereClause, sortBy, sortDir, sortDir),
+        pageParams
+    ) or {}
+
+    -- Reshape to the {origin = { identifier, name }, ...} shape the existing
+    -- client code consumed, so the chart helpers / row renderer don't need to
+    -- learn a new schema.
+    local out = {}
+    for i = 1, #rows do
+        local r = rows[i]
+        out[i] = {
+            id = r.id,
+            origin = { identifier = r.identifier, name = r.name },
+            type = r.type,
+            amount = tonumber(r.amount) or 0,
+            datetime = tonumber(r.datetime) or 0,
+        }
+    end
+    return { rows = out, total = total }
+end)
+
+--- Server-side weekly profit so the chart doesn't need the full transaction
+--- history client-side. Returns 7 buckets (oldest → newest, today inclusive),
+--- each `{ date = 'YYYY-MM-DD', profit = number }`.
+lib.callback.register("pickle_casinos:getCasinoWeeklyProfit", function(source, data)
+    local casinoId = tonumber(data and data.casinoId)
+    if not casinoId or not CanManageCasino(source, casinoId) then
+        return {}
+    end
+    local startTs = os.time() - (86400 * 7)
+    local rows = MySQL.query.await(
+        "SELECT `type`, `amount`, `datetime` FROM `pickle_casino_transactions` WHERE `casino_id` = ? AND `datetime` >= ?",
+        { casinoId, startTs }
+    ) or {}
+
+    -- Build seven daily buckets keyed by YYYY-MM-DD in server-local time so
+    -- the labels line up with what the client sees in toLocaleDateString.
+    local buckets = {}
+    local order = {}
+    for i = 6, 0, -1 do
+        local ts = os.time() - (86400 * i)
+        local key = os.date("%Y-%m-%d", ts)
+        buckets[key] = { date = key, profit = 0 }
+        order[#order + 1] = key
+    end
+    for _, r in ipairs(rows) do
+        local key = os.date("%Y-%m-%d", tonumber(r.datetime) or 0)
+        local b = buckets[key]
+        if b then
+            local amt = tonumber(r.amount) or 0
+            if type(r.type) == "string" and r.type:find("withdraw") then
+                b.profit = b.profit - amt
+            else
+                b.profit = b.profit + amt
+            end
+        end
+    end
+    local out = {}
+    for i, key in ipairs(order) do out[i] = buckets[key] end
+    return out
+end)
+
+RegisterNetEvent("pickle_casinos:enterManagement", function(casinoId)
+    local src = source
+    if not CanManageCasino(src, casinoId) then return end
+    RegisterManagementViewer(src, casinoId)
+end)
+
+RegisterNetEvent("pickle_casinos:exitManagement", function(casinoId)
+    UnregisterManagementViewer(source, casinoId)
 end)
 
 RegisterNetEvent("pickle_casinos:initializePlayer", function()
@@ -700,19 +937,75 @@ CreateThread(function()
             `entities` longtext NOT NULL,
             PRIMARY KEY (`id`)
         )
+    ]], {})
+
+    -- Per-row transaction store. Replaces the JSON blob on pickle_casinos.transactions
+    -- so the management UI can paginate / search / sort / aggregate server-side
+    -- without ever loading the full history. The legacy `transactions` column on
+    -- pickle_casinos is preserved (unread by the management flow) so a rollback
+    -- of this resource still has the historical data to fall back on.
+    MySQL.Async.execute([[
+        CREATE TABLE IF NOT EXISTS `pickle_casino_transactions` (
+            `id`         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            `casino_id`  INT UNSIGNED    NOT NULL,
+            `identifier` VARCHAR(64)     NOT NULL DEFAULT '',
+            `name`       VARCHAR(128)    NOT NULL DEFAULT '',
+            `type`       VARCHAR(64)     NOT NULL DEFAULT '',
+            `amount`     BIGINT          NOT NULL DEFAULT 0,
+            `datetime`   INT UNSIGNED    NOT NULL,
+            PRIMARY KEY (`id`),
+            KEY `idx_casino_datetime` (`casino_id`, `datetime`),
+            KEY `idx_casino_type`     (`casino_id`, `type`),
+            KEY `idx_casino_name`     (`casino_id`, `name`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ]], {}, function()
+        -- 7-day retention parity with EnsureCasinoTransactions. Prune on boot
+        -- so the table doesn't grow unbounded across restarts.
+        MySQL.Async.execute(
+            "DELETE FROM `pickle_casino_transactions` WHERE `datetime` < ?",
+            { os.time() - (86400 * 7) }
+        )
+
         MySQL.Async.fetchAll("SELECT * FROM `pickle_casinos`", {}, function(results)
             local personalCasinoFound = false
             for i=1, #results do
                 local result = results[i]
                 local settings = json.decode(result.settings) or {}
                 local entities = json.decode(result.entities) or {}
-                local transactions = json.decode(result.transactions) or {}
+                local legacyTransactions = json.decode(result.transactions) or {}
                 local vip_players = json.decode(result.vip_players) or {}
                 local owner_info = json.decode(result.owner_info) or nil
                 if settings and settings.label == PERSONAL_CASINOS_LABEL then
                     personalCasinoFound = true
                 end
+
+                -- One-time backfill from the legacy JSON blob into the new
+                -- per-row table. Only runs when no rows exist for the casino,
+                -- so subsequent restarts are no-ops. We apply the same 7-day
+                -- retention EnsureCasinoTransactions used before.
+                local existing = MySQL.scalar.await(
+                    "SELECT COUNT(*) FROM `pickle_casino_transactions` WHERE `casino_id` = ?",
+                    { result.id }
+                ) or 0
+                if existing == 0 and #legacyTransactions > 0 then
+                    local cutoff = os.time() - (86400 * 7)
+                    for _, tx in ipairs(legacyTransactions) do
+                        if tx and tx.datetime and tx.datetime > cutoff then
+                            MySQL.insert.await(
+                                "INSERT INTO `pickle_casino_transactions` (`casino_id`, `identifier`, `name`, `type`, `amount`, `datetime`) VALUES (?, ?, ?, ?, ?, ?)",
+                                {
+                                    result.id,
+                                    (tx.origin and tx.origin.identifier) or "",
+                                    (tx.origin and tx.origin.name) or "",
+                                    tx.type or "",
+                                    tonumber(tx.amount) or 0,
+                                    tonumber(tx.datetime) or 0,
+                                }
+                            )
+                        end
+                    end
+                end
+
                 RegisterCasino(result.id, {
                     id = result.id,
                     balance = result.balance,
@@ -720,7 +1013,7 @@ CreateThread(function()
                     owner_info = owner_info,
                     settings = settings,
                     entities = entities,
-                    transactions = transactions,
+                    transactions = {}, -- transactions now live in pickle_casino_transactions
                     vip_players = vip_players,
                 }, true)
             end
