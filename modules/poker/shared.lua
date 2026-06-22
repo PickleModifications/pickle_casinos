@@ -141,12 +141,18 @@ function EvaluatePokerHand(hand, community)
         end
     end
 
+    -- Sort each group descending by rank so index [1] is always the highest rank,
+    -- regardless of the non-deterministic iteration order of pairs() over rankCounts.
+    table.sort(fourOfKind,   function(a, b) return getCardRank({ value = a }) > getCardRank({ value = b }) end)
+    table.sort(threeOfKind,  function(a, b) return getCardRank({ value = a }) > getCardRank({ value = b }) end)
+    table.sort(cardPairs,    function(a, b) return getCardRank({ value = a }) > getCardRank({ value = b }) end)
+
     -- Check for flush (now that straight flush is checked)
 
 
     if #fourOfKind > 0 then
         return "four_of_a_kind", { getCardRank({ value = fourOfKind[1] }) }
-    elseif #threeOfKind > 0 and #cardPairs > 0 then
+    elseif #threeOfKind > 0 and #cardPairs > 0 and not isFlush(allCards) then
         return "full_house", { getCardRank({ value = threeOfKind[1] }), getCardRank({ value = cardPairs[1] }) }
     elseif isFlush(allCards) then
         local highCards = {}
