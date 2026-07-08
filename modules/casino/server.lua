@@ -324,24 +324,6 @@ AddEventHandler("playerDropped", function()
     UnregisterManagementViewer(source)
 end)
 
--- Internal helper: persist `casino.balance` and notify clients. Used by the
--- gameplay handlers below — kept tight so the slots-spin code path isn't
--- doing more than one query per round.
-local function ApplyCasinoBalanceDelta(casinoId, delta)
-    if not delta or delta == 0 then return end
-    local casino = Casinos[casinoId]
-    if not casino then return end
-    casino.balance = (casino.balance or 0) + delta
-    MySQL.Async.execute(
-        'UPDATE `pickle_casinos` SET balance = ? WHERE id = ?',
-        { casino.balance, casinoId }
-    )
-    TriggerClientEvent(
-        "pickle_casinos:updateCasinoBalance", -1,
-        casinoId, casino.balance, casino.marked_balance or 0
-    )
-end
-
 -- Gameplay rounds (slots/blackjack/poker/etc) fire Start/EndCasinoGameplayTransaction
 -- via core/server.lua. The previous build TriggerEvent'd those names but had no
 -- listener, so the casino balance never moved and nothing got logged when a
@@ -359,9 +341,10 @@ AddEventHandler("pickle_casinos:gameplay:startTransaction", function(id, source,
         gameType   = gameType,
         wagerAmount = wagerAmount,
     }
-    -- Chips entered the house — credit balance immediately so the management
-    -- view reflects activity in real time (matters for long sessions like poker).
-    ApplyCasinoBalanceDelta(casinoId, wagerAmount)
+    -- NOTE: We intentionally do NOT touch casino.balance here. The real-money
+    -- inflow was already accounted for when the player purchased chips at the
+    -- cashier (buy handler). Crediting the balance again here would double-count
+    -- the revenue before any actual cash has moved.
 end)
 
 AddEventHandler("pickle_casinos:gameplay:endTransaction", function(id, source, casinoId, _entityId, gameType, winAmount)
@@ -369,10 +352,12 @@ AddEventHandler("pickle_casinos:gameplay:endTransaction", function(id, source, c
     local pending = PendingGameplayTransactions[id]
     PendingGameplayTransactions[id] = nil
     local wager = (pending and pending.wagerAmount) or 0
-    if winAmount > 0 then
-        -- Chips paid back to the player — debit the house.
-        ApplyCasinoBalanceDelta(casinoId, -winAmount)
-    end
+    -- NOTE: We intentionally do NOT touch casino.balance here. The real-money
+    -- outflow is accounted for when the player redeems chips at the cashier
+    -- (sell handler). Debiting the balance here would cause a double-debit:
+    -- once when winning chips are issued, and again when those chips are cashed
+    -- out — which is exactly the bug this fix resolves.
+    --
     -- Net P/L for the house from this round. One log row, not two, so high-
     -- volume games (slots) don't flood the transactions list.
     local net = wager - winAmount
