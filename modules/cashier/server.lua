@@ -155,5 +155,4 @@ RegisterNetEvent("pickle_casinos:purchaseVIP", function(casinoId, entityId)
         -- avoid littering the management view with $0 rows.
         AddCasinoTransaction(source, casinoId, "vip", vipPrice)
     end
-    TriggerClientEvent("pickle_casinos:updateCasinoVIP", -1, casinoId, casino.vip_players)
 end)
