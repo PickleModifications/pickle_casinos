@@ -1,5 +1,5 @@
 local classes = {"spd", "club", "dia", "hrt"}
-local values = {"ace", "02", "03", "04", "05", "06", "07", "08", "09", "10", "jack", "queen", "king"}
+local values = {"02", "03", "04", "05", "06", "07", "08", "09", "10", "jack", "queen", "king", "ace"}
 
 function EvaluatePokerHand(hand, community)
     local allCards = {}
@@ -86,7 +86,7 @@ function EvaluatePokerHand(hand, community)
         for _, rank in ipairs(ranks) do
             uniqueRanksSet[rank] = true
         end
-        if uniqueRanksSet[1] and uniqueRanksSet[2] and uniqueRanksSet[3] and uniqueRanksSet[4] and uniqueRanksSet[14] then -- Assuming Ace has rank 1 or 14
+        if uniqueRanksSet[13] and uniqueRanksSet[1] and uniqueRanksSet[2] and uniqueRanksSet[3] and uniqueRanksSet[4] then -- Ace (rank 13) used as low card in A-2-3-4-5
             hasAceLowStraight = true
         end
     
