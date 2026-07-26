@@ -73,7 +73,7 @@ function StartHorseRacingTrackRace(trackId)
             end
         end
     end
-    TriggerClientEvent("pickle_casinos:horseracing:updateTrackStage", -1, trackId, track.stage)
+    TriggerHorseRacingUpdateForNearbyPlayers(trackId, trackId, track.stage)
     Wait(18000)
     local multiplier = Config.HorseRacing.odds[track.horses[track.stage.winner].oddsIndex].multiplier
     for source,player in pairs(track.players) do
@@ -100,7 +100,7 @@ function StartHorseRacingTrackLobby(trackId)
     if not track then return end
     track.horses = GenerateHorses()
     track.stage = {type = "waiting", time = GetWaitingTime("horseracing")}
-    TriggerClientEvent("pickle_casinos:horseracing:updateTrackStage", -1, trackId, track.stage, track.horses)
+    TriggerHorseRacingUpdateForNearbyPlayers(trackId, trackId, track.stage, track.horses)
     CreateThread(function()
         while track.stage.type == "waiting" and track.stage.time > 1 do
             track.stage.time = track.stage.time - 1
@@ -151,6 +151,29 @@ end
 
 function UpdateHorseTracks(source)
     TriggerClientEvent("pickle_casinos:horseracing:updateTracks", source, Tracks)
+end
+
+-- Send a track-stage update only to players who are within the track's renderDistance.
+-- This prevents the race loop from being triggered on clients that are far away from
+-- the track and would never meaningfully interact with it.
+function TriggerHorseRacingUpdateForNearbyPlayers(trackId, ...)
+    local track = Tracks[trackId]
+    if not track then return end
+    local trackCoords = track.coords
+    local renderDistance = track.renderDistance
+    local args = {...}
+    for _, playerId in ipairs(GetPlayers()) do
+        local source = tonumber(playerId)
+        if source then
+            local ped = GetPlayerPed(source)
+            if ped and ped ~= 0 then
+                local playerCoords = GetEntityCoords(ped)
+                if #(playerCoords - trackCoords) <= renderDistance then
+                    TriggerClientEvent("pickle_casinos:horseracing:updateTrackStage", source, table.unpack(args))
+                end
+            end
+        end
+    end
 end
 
 RegisterNetEvent("pickle_casinos:horseracing:setWager", function(casinoId, entityId, trackId, wager)
