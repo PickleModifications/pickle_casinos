@@ -187,12 +187,16 @@ function GetJobGrades(jobName)
 end
 
 function IsPlayerAdmin(source)
+    local source = tonumber(source)
     local xPlayer = ESX.GetPlayerFromId(source)
     if not xPlayer then return false end
     local group = xPlayer.getGroup()
     for i=1, #Config.AdminGroups do 
         if group == Config.AdminGroups[i] then
             return true 
+        end
+        if IsPlayerAceAllowed(source, Config.AdminGroups[i]) then
+            return true
         end
     end
     return false
