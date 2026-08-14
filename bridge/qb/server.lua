@@ -2,8 +2,15 @@ if GetResourceState('qb-core') ~= 'started' then return end
 
 QBCore = exports['qb-core']:GetCoreObject()
 
+-- Route all server callbacks through ox_lib regardless of framework, keeping the
+-- existing (source, cb, ...) handler contract the modules rely on. See the ESX
+-- bridge for the full rationale.
 function RegisterCallback(name, cb)
-    QBCore.Functions.CreateCallback(name, cb)
+    lib.callback.register(name, function(source, ...)
+        local results
+        cb(source, function(...) results = table.pack(...) end, ...)
+        if results then return table.unpack(results, 1, results.n) end
+    end)
 end
 
 function RegisterUsableItem(...)
