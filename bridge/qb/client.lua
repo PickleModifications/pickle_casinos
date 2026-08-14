@@ -2,8 +2,11 @@ if GetResourceState('qb-core') ~= 'started' then return end
 
 QBCore = exports['qb-core']:GetCoreObject()
 
+-- Route all client callbacks through ox_lib regardless of framework, keeping the
+-- (name, cb, ...) signature so no call site needs to change. See the ESX bridge
+-- for the full rationale.
 function ServerCallback(name, cb, ...)
-    QBCore.Functions.TriggerCallback(name, cb,  ...)
+    lib.callback(name, false, cb, ...)
 end
 
 function ShowNotification(text)

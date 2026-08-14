@@ -6,8 +6,12 @@ function ShowNotification(text)
 	ESX.ShowNotification(text)
 end
 
+-- Route all client callbacks through ox_lib regardless of framework. Newer ESX
+-- Legacy versions changed the ESX.TriggerServerCallback signature; lib.callback
+-- is version-independent. Signature is kept as (name, cb, ...) so no call site
+-- needs to change.
 function ServerCallback(name, cb, ...)
-    ESX.TriggerServerCallback(name, cb,  ...)
+    lib.callback(name, false, cb, ...)
 end
 
 function CanAccessGroup(data)

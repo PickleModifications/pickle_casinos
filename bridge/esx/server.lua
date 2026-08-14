@@ -2,8 +2,18 @@ if GetResourceState('es_extended') ~= 'started' then return end
 
 ESX = exports.es_extended:getSharedObject()
 
+-- Route all server callbacks through ox_lib regardless of framework. Newer ESX
+-- Legacy versions changed the ESX.RegisterServerCallback signature, which broke
+-- every callback registered through it. lib.callback is version-independent.
+-- The wrapper preserves the existing (source, cb, ...) handler contract used by
+-- the modules: handlers still receive a `cb` they call synchronously, and we
+-- forward those returned values back through lib.callback.
 function RegisterCallback(name, cb)
-    ESX.RegisterServerCallback(name, cb)
+    lib.callback.register(name, function(source, ...)
+        local results
+        cb(source, function(...) results = table.pack(...) end, ...)
+        if results then return table.unpack(results, 1, results.n) end
+    end)
 end
 
 function RegisterUsableItem(...)
