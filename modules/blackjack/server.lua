@@ -1,6 +1,52 @@
 local BlackjackLobbies = {}
 local LastWagers = {}
 
+local CardClasses = {"spd", "club", "dia", "hrt"}
+local CardValues = {"ace", "02", "03", "04", "05", "06", "07", "08", "09", "10", "jack", "queen", "king"}
+local TenValues = {"10", "jack", "queen", "king"}
+
+function RollBlackjackOdds(key)
+    local odds = Config.BlackjackOdds
+    if not odds then return false end
+    local chance = tonumber(odds[key])
+    if not chance or chance <= 0 then return false end
+    return math.random(100) <= chance
+end
+
+function GenerateBlackjackCard(value)
+    return { class = CardClasses[math.random(1, #CardClasses)], value = value }
+end
+
+-- Returns the two cards making up a natural blackjack, in a random order so the
+-- ace isn't always the hole card.
+function GenerateDealerBlackjackHand()
+    local ace = GenerateBlackjackCard("ace")
+    local ten = GenerateBlackjackCard(TenValues[math.random(1, #TenValues)])
+    if math.random(2) == 1 then
+        return ace, ten
+    end
+    return ten, ace
+end
+
+-- Returns a card that brings `cards` to exactly 21, or nil if no such card exists.
+function GenerateDealerTwentyOneCard(cards)
+    local candidates = {}
+    for i=1, #CardValues do
+        local card = GenerateBlackjackCard(CardValues[i])
+        local hand = {}
+        for j=1, #cards do
+            hand[j] = cards[j]
+        end
+        hand[#hand + 1] = card
+        local value, secondaryValue = GetValueOfCards(hand)
+        if value == 21 or secondaryValue == 21 then
+            candidates[#candidates + 1] = card
+        end
+    end
+    if #candidates < 1 then return end
+    return candidates[math.random(1, #candidates)]
+end
+
 function DoesBlackjackLobbyExist(casinoId, entityId)
     if not BlackjackLobbies[casinoId] then return false end
     if not BlackjackLobbies[casinoId][entityId] then return false end
@@ -198,6 +244,10 @@ function StartBlackjackGame(casinoId, entityId)
     entity.stage = {type = "starting"}
     local transactions = {}
     local hiddenCard = GenerateCard()
+    local dealerUpCard = nil
+    if RollBlackjackOdds("BlackjackPossibility") then
+        hiddenCard, dealerUpCard = GenerateDealerBlackjackHand()
+    end
     entity.seats[0] = {source = 0, hands = {{}, {}}}
     for i=1, 4 do
         if entity.seats[i].source then
@@ -231,7 +281,7 @@ function StartBlackjackGame(casinoId, entityId)
                     Wait(2000)
                 end
             end
-            entity.stage = {type = "dealing", seat = 0, card = round == 1 and { class = "hidden", value = 0 } or GenerateCard()}
+            entity.stage = {type = "dealing", seat = 0, card = round == 1 and { class = "hidden", value = 0 } or (dealerUpCard or GenerateCard())}
             entity.seats[0].hands[1][#entity.seats[0].hands[1] + 1] = entity.stage.card
             TriggerClientCasinoEvent("pickle_casinos:blackjack:updateStage", -1, casinoId, entityId, entity.stage)
             SetTimeout(1300, function()
@@ -269,7 +319,11 @@ function StartBlackjackGame(casinoId, entityId)
         if inPlay and dealerValue < 17 and dealerSecondaryValue < 17 then
             local done = false
             repeat
-                entity.stage = {type = "dealing", seat = 0, card = GenerateCard()}
+                local drawnCard = nil
+                if RollBlackjackOdds("DrawBlackjackPossibility") then
+                    drawnCard = GenerateDealerTwentyOneCard(entity.seats[0].hands[1])
+                end
+                entity.stage = {type = "dealing", seat = 0, card = drawnCard or GenerateCard()}
                 entity.seats[0].hands[1][#entity.seats[0].hands[1] + 1] = entity.stage.card
                 TriggerClientCasinoEvent("pickle_casinos:blackjack:updateStage", -1, casinoId, entityId, entity.stage)
                 SetTimeout(1300, function()

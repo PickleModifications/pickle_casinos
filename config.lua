@@ -363,6 +363,19 @@ Config.Roulette = {
     StraightPayout = 36, -- Multiplier paid on a winning single-number (straight) bet. Standard roulette is 36x.
 }
 
+-- Blackjack dealer odds: rigs the dealer's cards in the house's favor by the configured
+-- percentages. Both values are a percent chance out of 100, rolled with math.random(100).
+-- Set either to 0 to disable it and leave that phase fully random.
+Config.BlackjackOdds = {
+    -- Chance that the dealer's opening two cards are forced into a natural blackjack
+    -- (an Ace paired with a 10/Jack/Queen/King). Rolled once per round, before the deal.
+    BlackjackPossibility = 0,
+    -- Chance that a card the dealer draws (while under 17) is forced to a value that
+    -- lands the dealer on exactly 21. Rolled per drawn card; if no card can make 21
+    -- from the dealer's current hand, a normal random card is dealt instead.
+    DrawBlackjackPossibility = 0,
+}
+
 -- Thunder Roulette: each round picks N "thunder" numbers from the wheel and assigns
 -- each a multiplier. If the ball lands on a thunder number, straight-number bets on
 -- that number pay `wager * multiplier` instead of the normal 36x.
